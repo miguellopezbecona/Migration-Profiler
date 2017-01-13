@@ -1,0 +1,67 @@
+Final Version.
+Cleaner code, without extras.
+Adapted to be used in ctserv08, with libpfm recompiled and support for 12 cores.
+
+
+Si /proc/sys/kernel/perf_event_paranoid está a 1 no se pueden usar los contadores sin sudo
+echo "0" > /proc/sys/kernel/perf_event_paranoid
+
+Programa de proba ABC: element by element product of two arrays:
+icc -openmp -o ABC ABC.c
+Usage: %s [-mmemory-cpu] [-rrepetitions] [-sarray_size] [-ccpus] [-tstride]
+
+
+To test:
+
+./my_profiler_tm -m -s1000 -l500 -p5000 -P1000000 ./ABC -m0 -r2000 -s1000000 -c111111111111 -t1
+
+This still gives problems with too many unknown samples sometimes, manually changing the sample periods could smooth them out, but it is one of the issues the program has
+
+
+Some notes about the code, files are:
+
+//From libraries
+perfmon/perf_event.h: Perf_event header, should be taken from Linux core, same file.
+perfmon/*: taken from libpfm4.
+
+//For PEBS sampling
+common_util.c: Procedures to print pebs samples. Keeps a definition of "process_my_pebs_sample()" that is later implemented in "thread_migration/thread_migration.c", done so because it can be compiled without the files in "thread_migration", should be changed, no longer makes sense.
+
+my_profiler.c: main program, sampling program. When it reads enough samples from the PEBS buffers it prints them and, if it is complied with migration, calls "process_my_pebs_sample()" to store that informtion in the thread_migration side of the program. When the migration timer says so it calls "do_migration_and_clear_temp_list" (from "thread_migration/thread_migration.c") to do the migration.
+
+//For doing the thread migration
+thread_migration/thread_migration.c,.h: Controls the flow of the migrations, stores the information from the PEBS. Eventually calls "migrate_threads()" in "thread_migration/migration_algorithm.c"
+
+thread_migration/roofline_ops.c,.h: Takes the raw PEBS data (stored in the inst_list and memory_list, se below) and creates the pid_list (see below) with the 3DyRM info.
+
+thread_migration/migration_algorithm.c,.h: Implements the migration algorithm. In this version it only implements IMAR2, but IMAR is part of it. For other strategies check past versions (v6). Has some commented printouts to see what is happening, can be uncommented on compile. Has some commented code from past internal implementations, could be cleaned.
+
+thread_migration/thread_migration_aux.c,.h: Lots of auxiliary procedures, lots of holdovers from past versions with different migration strategies, but some are still used, it should be cleaned a little.
+
+
+//For keeping thread migration information and statistics
+thread_migration/system_struct.c,.h: Defines the structure (cores and memories) of the system
+
+thread_migration/inst_list.c,.h: List that keeps the instruction counts from the PEBS between migrations. Should be emptied after migration, it is.
+
+thread_migration/memory_list.c,.h: List that keeps the memory latency (and addresses) from the PEBS between migrations. Should be emptied after migration, it is.
+
+thread_migration/temp_tid_list.c,.h: List that keeps temporary information needed to compute the 3DyRM. Should be emptied after computing the performance, it is.
+
+thread_migration/pid_list.c,.h: Collection that maps all of the PIDs in the system to their TIDs. Alive during all the execution of the program.
+
+thread_migration/tid_list.c,.h: Map that keeps all of the TIDs belonging to each PID. Keeps the statistics of the TID, including performance.
+
+thread_migration/tid_performance.c,.h: Used to keep performance statistics, per system memory.
+
+thread_migration/migration_table.c,.h: Keeps a table internally (core_table[SYS_NUM_OF_CORES][MAX_THREADS_PER_CORE]) so the program can keep track of where all the TIDs are pinned, and which cores are free. Encapsulates the behavoiur.
+
+thread_migration/migration_list.c,.h: List that keeps all the possible destinations for a given migration, with their tickets. Each iteration of the algorithm creates one. Encapsulates the behaviour.
+
+
+
+
+
+
+
+
