@@ -82,3 +82,9 @@ make_plot(l[["avg"]], plots_last_row = TRUE)
 
 # For testing plots
 #m9 <- matrix(c(NA, 0, 100, 500, 1000, 100, 7000, NA, 10), nc=3, nr=3, byrow = TRUE); View(m9); plot_matrix(m9)
+
+##### Plotting page number vs how many different threads accessed to it?
+d <- read.csv("alt.csv", header = TRUE, row.name = 1)
+plot(d$threads_accessed, type="l", col = "red", xaxt = "n", xlab="Page Number", ylab="Number of threads that accessed")
+axis(1, at=1:nrow(d), labels=rownames(d))
+
