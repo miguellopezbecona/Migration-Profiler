@@ -43,6 +43,7 @@ typedef struct page_table{
 	//double* get_lowest_mean_accesed_by_itself_node();
 	void clear();
 	void print();
+	void print_alt_graph(FILE *fp);
 	void print_heatmaps(FILE **fps, int num_fps);
 	void print_table1();
 	void print_table2();

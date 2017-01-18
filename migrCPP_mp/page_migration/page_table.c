@@ -51,6 +51,7 @@ vector<double> page_table_t::get_latencies_from_cell(long int page_addr, int cpu
 	}
 }
 
+
 // Returns NULL if no association
 table_cell_t* page_table_t::get_cell(long int page_addr, int cpu){
 	if(contains_addr(page_addr,cpu))
@@ -170,6 +171,25 @@ void page_table_t::print_heatmaps(FILE **fps, int num_fps){
 			fprintf(fps[i], "%d,", accesses[j]);
 	}
 
+}
+
+// Page vs how many different threads accessed to it?
+void page_table_t::print_alt_graph(FILE *fp){
+	// First line of the CSV file: column header
+	fprintf(fp, "addr,threads_accessed\n");
+
+	// Each unique page address will write a row with the data for each thread
+	for (set<long int>::iterator it = uniq_addrs.begin(); it != uniq_addrs.end(); ++it){
+		long int addr = *it;
+		int threads_accessed = 0;		
+
+		// A thread/CPU had accesed to the page if its cell is not null
+		for(int i=0;i<SYS_NUM_OF_CORES;i++)
+			threads_accessed += ( get_cell(addr,i) != NULL );
+
+		// Prints row (row name and data) to file
+		fprintf(fp, "%lx,%d\n", addr, threads_accessed);
+	}
 }
 
 /*

@@ -39,14 +39,15 @@ inline int get_page_current_node(pid_t pid, long int pageAddr){
 }
 
 // Badly placed, will be changed later
-#define NUM_FILES 4
+#define NUM_FILES 5
 FILE *fps[NUM_FILES];
-const char* names[] = {"acs", "min", "avg", "max"};
+const char* names[] = {"acs", "min", "avg", "max", "alt"};
 int pages(unsigned int step, memory_data_list_t memory_list, page_table_t *page_t){
 	current_step=step;
 
 	// Builds table
 	build_page_table(memory_list, page_t);
+
 
 	// The table is printed every ITERATIONS_PER_PRINT iterations
 	if(current_step % ITERATIONS_PER_PRINT == 0){
@@ -62,7 +63,8 @@ int pages(unsigned int step, memory_data_list_t memory_list, page_table_t *page_
 			}
 		}
 
-		page_t->print_heatmaps(fps, NUM_FILES);
+		//page_t->print_heatmaps(fps, NUM_FILES);
+		page_t->print_alt_graph(fps[NUM_FILES-1]);
 		//page_t->print_table1();
 		//page_t->print_table2();
 

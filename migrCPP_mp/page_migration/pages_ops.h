@@ -11,7 +11,7 @@
 #include "../thread_migration/memory_list.h"
 #include "page_table.h"
 
-#define ITERATIONS_PER_PRINT 10
+#define ITERATIONS_PER_PRINT 5
 
 int pages(unsigned int step, memory_data_list_t memory_list, page_table_t *page_t);
 inline int get_page_current_node(pid_t pid, long int pageAddr);
