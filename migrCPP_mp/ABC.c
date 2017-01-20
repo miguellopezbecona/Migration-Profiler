@@ -1,242 +1,58 @@
 #define _GNU_SOURCE 1
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <unistd.h>
-
-#include <sched.h>
-#include <sys/types.h>
-#include <errno.h>
-
-#include <sys/syscall.h>
-
-#include <omp.h>
-
-#include <numa.h>
+#include <unistd.h> // optarg, getting number of CPUs...
+#include <sys/syscall.h> // gettid
 #include <ctype.h> // isprint
 
+#include <sched.h> // CPU affinity stuff
+#include <errno.h> // Affinity error's constants
+#include <omp.h> // OpenMP
+#include <numa.h> // numa_alloc_onnode
 
-/**
- ** VARIABEIS LANZADOR
-**/
-#define MAX_CPUS 4
-#define MAX_TH 144
-
-#define DEFAULT_MEM_CPU 0
-#define DEFAULT_CPUS "000000000001"
-#define DEFAULT_REP 1
-#define DEFAULT_ARRAY_SIZE 100
+#define DEFAULT_MEM_NODE 0
+#define DEFAULT_REP 100
+#define DEFAULT_ARRAY_SIZE 1000
 #define DEFAULT_NUMBER_OPS 1
 #define DEFAULT_STRIDE 1
-int array_size;
-int mem_cpu;
+
+int max_cpus; // Detected by the system
+
+// Main data
+float *A, *B, *C;
+
+// Options
+int array_basic_size; // Actual array size will be array_basic_size*num_th elements
+int mem_node;
 int num_th;
 int rep;
 int ops;
 int stride;
-unsigned char cpus[MAX_CPUS ];
-unsigned char *mycpus;
-//funcions
-void set_mycpus();
+unsigned char *selected_cpus;
+
+// Predeclarations
 void print_selected_cpus();
 void print_params();
 void usage(char **argv);
 void set_affinity_error();
-/**
- ** VARIABEIS PARA FUNCION
-**/
-float *A,*B,*C;
-void reserva_memoria(){
-	int i,j;
-	cpu_set_t my_affinity;
-	CPU_ZERO(&my_affinity);
-	CPU_SET(mem_cpu,&my_affinity);
-	if(sched_setaffinity(0,sizeof(cpu_set_t),&my_affinity)){
-		set_affinity_error();
-	}
-	//sleep(1);
-	A = numa_alloc_onnode(array_size*sizeof(float)*num_th, mem_cpu);
-	B = numa_alloc_onnode(array_size*sizeof(float)*num_th, mem_cpu);
-	C = numa_alloc_onnode(array_size*sizeof(float)*num_th, mem_cpu);
-	for(j=0;j<num_th;j++){
-		for(i=0;i<array_size;i++){
-			A[j*array_size+i]= (rand()%10)*1.0;
-			B[j*array_size+i]= (rand()%10)*1.0;
-			C[j*array_size+i]= 0.0;
-		}
-/*
-		printf("ABC: A[%d] from %lx to %lx\nB[%d] from %lx to %lx\nC[%d] from %lx to %lx\n",
-			j,(long unsigned int)&A[j*array_size],(long unsigned int)&A[j*array_size+array_size],
-			j,(long unsigned int)&B[j*array_size],(long unsigned int)&B[j*array_size+array_size],
-			j,(long unsigned int)&C[j*array_size],(long unsigned int)&C[j*array_size+array_size]
-		);
-*/
-	}
-}
-void funcion(){
-	int i,j,k;
-	pid_t	my_ompid = omp_get_thread_num();
-	int my_index =my_ompid*array_size;
-	for(j=0;j<rep;j++){
-			for(i=0;i<array_size;i=i+stride){
-				for(k=0;k<ops;k++){
-					C[my_index+i]=A[my_index+i]*B[my_index+i];
-				}
-			}
-		}
-}
 
 
-
-
-int main(int argc, char *argv[]){
-	int i,j;
-	char c;
-
-	/**
-	 ** Set defaults
-	**/
-	mem_cpu = DEFAULT_MEM_CPU;
-	rep = DEFAULT_REP;
-	ops = DEFAULT_NUMBER_OPS;
-	array_size = DEFAULT_ARRAY_SIZE;
-	stride = DEFAULT_STRIDE;
-	char *defaultcpus = DEFAULT_CPUS;
-	num_th=0;
-	for(i=0;i<MAX_CPUS;i++){
-		cpus[MAX_CPUS-1-i]=defaultcpus[i]-48;
-		num_th+=cpus[MAX_CPUS-1-i];
-	}
-	/**
-	 ** Input args
-	**/
-	if(argc<1){
-		usage(argv);
-		exit(-1);
-	}else{ while ((c = getopt (argc, argv, "m:r:o:s:t:c:")) != -1)
-      			switch (c)
-      			{
-       			case 'm':
-		       {
-		    	  	char *mc = optarg;
-		     	  	mem_cpu = atoi(mc);
-		       }
-			    break;
-
-		       case 'r':
-		       {
-		     		char *r = optarg;
-		     	    	rep = atoi(r);
-		       }
-		     	    break;
-			case 'o':
-		       {
-		     		char *o = optarg;
-		     	    	ops = atoi(o);
-		       }
-		     	    break;
-
-			case 't':
-		       {
-		     		char *t = optarg;
-		     	    	stride = atoi(t);
-		       }
-		     	    break;
-
-		       case 's':
-		       {
-		 		char *a = optarg;
-		 	  	array_size = atol(a);
-		       }
-			    break;
-			case 'c':
-		       {
-		 	 	char *cpuschar = optarg;
-		 	  	if(strlen(cpuschar)!=MAX_CPUS){
-					printf("Specify %d cpus\n",MAX_CPUS);
-					exit(-1);
-				}else{
-					num_th=0;
-					for(i=0;i<MAX_CPUS;i++){
-						cpus[MAX_CPUS-1-i]=cpuschar[i]-48;
-						num_th+=cpus[MAX_CPUS-1-i];
-					}
-				}
-		       }
-			    break;
-		       case '?':
-			    if (isprint (optopt))
-				fprintf (stderr, "Unknown option `-%c'.\n", optopt);
-			    else
-				fprintf (stderr,"Unknown option character `\\x%x'.\n",optopt);
-			    	usage(argv);
-		      }
-	}
-	set_mycpus();
-	print_params();
-	print_selected_cpus();
-
-	/**
-	 ** Seleccionar numero fios
-	**/
-	omp_set_num_threads(num_th);
-	/**
-	 ** Reservar memoria
-	**/
-	reserva_memoria();
-	/**
-	 ** LANZAR FIOS
-	**/
-	#pragma omp parallel private(i,j) firstprivate(array_size)
-	{	
-		cpu_set_t my_affinity;
-		int my_tid=syscall(SYS_gettid);
-		pid_t	my_pid = getpid();
-		pid_t	my_ompid = omp_get_thread_num();
-		unsigned char my_cpu=mycpus[my_ompid];
-
-		printf("I am thread (%d,%d) and I have got cpu %u\n",my_ompid,my_tid,my_cpu);
-		CPU_ZERO(&my_affinity);
-		CPU_SET(my_cpu,&my_affinity);
-		if(sched_setaffinity(0,sizeof(cpu_set_t),&my_affinity)){
-			set_affinity_error();
-		}
-		funcion();
-		printf("I am thread (%d,%d) in cpu %d and I just finished\n",my_ompid,my_tid,my_cpu);
-	}
-	
-	return 0;
-}
-void set_mycpus(){
-	mycpus = (unsigned char *) calloc(num_th,sizeof(unsigned char));
-	unsigned char i,cpu_counter,remainder;
-	cpu_counter=0;
-	for(i=0;i<MAX_CPUS;i++){
-		remainder=cpus[i];
-		while(remainder>0){
-			mycpus[cpu_counter] = i;
-			cpu_counter++;
-			remainder--;
-		}
-	}
-}
-			
+/*** Auxiliar functions ***/
 void print_selected_cpus(){
 	int i;
-	for(i=0;i<MAX_CPUS;i++){
-		if(cpus[i]!=0) printf("CPU %d selected: %u processes.\n",i,cpus[i]);
+	for(i=0;i<num_th;i++){
+		printf("CPU %d selected.\n", selected_cpus[i]);
 	}
 }
+
 void print_params(){
-	printf("Initialising Data in  %d.\nRepetitions %d.\nArray Size %d.\nStride %d.\nNumber of Threads %d.\n",mem_cpu,rep,array_size,stride,num_th);
+	printf("Initialising data in %d memory node.\nRepetitions: %d.\nArray size: %d.\nStride: %d.\nNumber of threads: %d.\n",mem_node,rep,array_basic_size,stride,num_th);
 }
-void usage(char **argv)
-{
-	printf("Usage: %s [-mmemory-cpu] [-rrepetitions] [-sarray_size] [-ccpus] [-tstride]\n\n",argv[0]);
+
+void usage(char **argv) {
+	printf("Usage: %s [-mmemory-cpu] [-rrepetitions] [-ooperations_per_iteration] [-sarray_basic_size] [-ccpus] [-tstride]\n\n", argv[0]);
 }
-void set_affinity_error()
-{
+
+void set_affinity_error(){
 	switch(errno){
 		case EFAULT:
 			printf("Error settting affinity: A supplied memory address was invalid\n");
@@ -251,4 +67,163 @@ void set_affinity_error()
 			printf("Error settting affinity: The process whose ID is pid could not be found\n");
 			break;
 	}
+}
+
+
+/*** Main functions ***/
+
+// Allocates memory in a memory node and initializes arrays
+void data_initialization(){
+	int i, j;
+
+	// Memory allocation on memory node
+	A = numa_alloc_onnode(array_basic_size*sizeof(float)*num_th, mem_node);
+	B = numa_alloc_onnode(array_basic_size*sizeof(float)*num_th, mem_node);
+	C = numa_alloc_onnode(array_basic_size*sizeof(float)*num_th, mem_node);
+
+	// Random initialization
+	for(j=0;j<num_th;j++){
+		for(i=0;i<array_basic_size;i++){
+			A[j*array_basic_size+i] = (rand()%10)*1.0;
+			B[j*array_basic_size+i] = (rand()%10)*1.0;
+			C[j*array_basic_size+i] = 0.0;
+		}
+
+		// Gets the memory range where each thread will work in
+		printf("ABC: A[%d] from %lx to %lx\nB[%d] from %lx to %lx\nC[%d] from %lx to %lx\n",
+			j,(long unsigned int)&A[j*array_basic_size],(long unsigned int)&A[j*array_basic_size+array_basic_size],
+			j,(long unsigned int)&B[j*array_basic_size],(long unsigned int)&B[j*array_basic_size+array_basic_size],
+			j,(long unsigned int)&C[j*array_basic_size],(long unsigned int)&C[j*array_basic_size+array_basic_size]
+		);
+	}
+}
+
+// The kernel operation in the parallel zone. Defined as inline to reduce call overhead
+static inline void operation(pid_t my_ompid){
+	int i,r,o;
+	int offset = my_ompid*array_basic_size; // Different work zone for each thread
+	int index;
+	for(r=0; r<rep; r++){ // How many times does each thread repeat the work?
+		for(i=0; i<array_basic_size; i+=stride){ // Advances through the vector using stride
+			index = offset + i;
+			for(o=0; o<ops; o++) // How many operations per iteration?
+				C[index] = A[index] * B[index];
+		}
+	}
+}
+
+void set_options_from_parameters(int argc, char** argv){
+	int i;
+	char c;
+
+	// Parses argv with getopt
+	while ((c = getopt (argc, argv, "m:r:o:s:t:c:")) != -1){
+		switch (c) {
+			case 'm': // Memory node to allocate data in
+				mem_node = atoi(optarg);
+				break;
+			case 'r': // Number of repetitions
+				rep = atoi(optarg);
+				break;
+			case 'o': // Number of floating operations per iteration
+				ops = atoi(optarg);
+				break;
+			case 't': // Stride
+				stride = atoi(optarg);
+				break;
+			case 's': // Array size
+				array_basic_size = atol(optarg);
+				break;
+			case 'c': // Binary vector of CPUs to be used (0 -> not used, 1 -> used). For example, 0011 means we only select CPUs 2 and 3
+				if(strlen(optarg) != max_cpus){
+					printf("If you use -c option, you have to specify %d cpus\n", max_cpus);
+					exit(-1);
+				}
+
+				num_th = 0;
+
+				// We loop over the value to get which CPUs will we use: the "1"s in the string
+				for(i=0;i<max_cpus;i++){
+					if (optarg[i] == '1'){ // CPU selected: one more thread to create, let's get the index (CPU ID)
+						selected_cpus[num_th] = i;
+						num_th++;
+					}
+				}
+
+				break;
+			case '?': // Default
+				if (isprint(optopt))
+					fprintf (stderr, "Unknown option `-%c'.\n", optopt);
+				else
+					fprintf (stderr, "Unknown option character `\\x%x'.\n", optopt);
+				usage(argv);
+				exit(1);
+		}
+	}
+}
+
+int main(int argc, char *argv[]){
+	max_cpus = sysconf(_SC_NPROCESSORS_ONLN);
+	selected_cpus = (unsigned char*)calloc(max_cpus, sizeof(unsigned char));
+
+	// Set defaults
+	mem_node = DEFAULT_MEM_NODE;
+	rep = DEFAULT_REP;
+	ops = DEFAULT_NUMBER_OPS;
+	array_basic_size = DEFAULT_ARRAY_SIZE;
+	stride = DEFAULT_STRIDE;
+	num_th = 0;
+
+	// By default, all available CPUs will be used
+	cpu_set_t aff;
+	if(sched_getaffinity(0,sizeof(cpu_set_t),&aff))
+		set_affinity_error();
+
+	int i;
+	for(i=0;i<max_cpus;i++) {
+		if(CPU_ISSET(i, &aff)){ // Gets available CPU IDs (compatible with numactl)
+			selected_cpus[num_th] = i;
+			num_th++;
+		}
+	}
+
+	set_options_from_parameters(argc, argv);
+
+	// Reallocs correct size of selected_cpus
+	selected_cpus = (unsigned char*)realloc(selected_cpus, num_th*sizeof(unsigned char));
+
+	// Just printings
+	print_params();
+	print_selected_cpus();
+
+	// Sets number of threads to use
+	omp_set_num_threads(num_th);
+	
+	data_initialization();
+
+	// Parallel zone
+	#pragma omp parallel
+	{
+		int tid = syscall(SYS_gettid);
+		pid_t ompid = omp_get_thread_num(); // From 0 to num_th
+		unsigned char my_cpu = selected_cpus[ompid]; // Picks selected CPU with omp index
+
+		// Fixes thread to CPU
+		cpu_set_t my_affinity;
+		CPU_ZERO(&my_affinity);
+		CPU_SET(my_cpu, &my_affinity);
+		if(sched_setaffinity(0,sizeof(cpu_set_t),&my_affinity))
+			set_affinity_error();
+
+		printf("I am thread (%d,%d) and I have got cpu %u\n", ompid, tid, my_cpu);
+		operation(ompid); // Kernel
+		printf("I am thread (%d,%d) in cpu %d and I just finished\n", ompid, tid, my_cpu);
+	}
+
+	// Frees resources and end
+	free(selected_cpus);
+	numa_free(A, array_basic_size*sizeof(float)*num_th);
+	numa_free(B, array_basic_size*sizeof(float)*num_th);
+	numa_free(C, array_basic_size*sizeof(float)*num_th);
+	return 0;
 }
