@@ -23,7 +23,7 @@ else
 fi
 
 # Set to what you want to profile
-toprofile="./ABC -m0 -r5000 -s1000000 -c1111 -t8"
+toprofile="./ABC -m0 -r5000 -s1000000 -t8"
 #toprofile=~/NPB3.3.1/NPB3.3-OMP/bin/lu.C.x
 #toprofile=~/NPB3.3.1/NPB3.3-OMP/bin/bt.C.x
 

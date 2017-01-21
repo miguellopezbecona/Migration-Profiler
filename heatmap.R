@@ -1,4 +1,15 @@
-#setwd("D:/Shared/pruebasR")
+read_data_from_dir <- function(path) {
+	setwd(path)
+
+	# Files to be read
+	file_suffixes <- c("acs", "avg", "min", "max", "alt")
+	filenames <- sapply(file_suffixes, function(s) paste(s, ".csv", sep=""))
+
+	fs <- lapply(filenames, function(fn) read.csv(fn, header = TRUE, na.strings = "-1", row.name = 1))
+
+	return (fs)
+}
+
 
 # Bar plot for number of accesses
 plot_last_row <- function(dataframe){
@@ -58,33 +69,24 @@ make_plot <- function(dataframe, filename = "", max_minus = NA, plots_last_row =
 		plot_last_row(dataframe)
 }
 
+# For "alt" case
+plot_alt <- function(df) {
+	# Plotting page number vs how many different threads accessed to it?
+	plot(df$threads_accessed, type="l", col = "red", xaxt = "n", xlab="Page Number", ylab="Number of threads that accessed")
+	axis(1, at=1:nrow(df), labels=rownames(df))
+}
+
 #node0_cpus <- seq(0,11,2) + 1
 #node1_cpus <- seq(1,11,2) + 1
 
-# Prepares files to be read
-file_suffixes <- c("acs", "avg", "min", "max")
-filenames <- sapply(file_suffixes, function(s) paste(s, ".csv", sep=""))
-
-# Reads files for direct and indirect case
-d_filenames <- sapply(file_suffixes, function(s) paste("d_", s, ".csv", sep=""))
-i_filenames <- sapply(file_suffixes, function(s) paste("i_", s, ".csv", sep=""))
-#ds <- lapply(d_filenames, function(fn) read.csv(fn, header = TRUE, na.strings = "-1", row.name = 1))
-#is <- lapply(i_filenames, function(fn) read.csv(fn, header = TRUE, na.strings = "-1", row.name = 1))
-
-# Or just ones without prefixes
-fs <- lapply(filenames, function(fn) read.csv(fn, header = TRUE, na.strings = "-1", row.name = 1))
+fs <- read_data_from_dir("~/migrCPP") # Adjust to the desired folder
 
 # Let's do some plots for avg file in list
-l <- fs # ds # is
-make_plot(l[["avg"]])
-make_plot(l[["avg"]], max_minus = 10000)
-make_plot(l[["avg"]], plots_last_row = TRUE)
+make_plot(fs[["avg"]])
+make_plot(fs[["avg"]], max_minus = 10000)
+make_plot(fs[["avg"]], plots_last_row = TRUE)
+#plot_alt(fs[["alt"]])
 
 # For testing plots
 #m9 <- matrix(c(NA, 0, 100, 500, 1000, 100, 7000, NA, 10), nc=3, nr=3, byrow = TRUE); View(m9); plot_matrix(m9)
-
-##### Plotting page number vs how many different threads accessed to it?
-d <- read.csv("alt.csv", header = TRUE, row.name = 1)
-plot(d$threads_accessed, type="l", col = "red", xaxt = "n", xlab="Page Number", ylab="Number of threads that accessed")
-axis(1, at=1:nrow(d), labels=rownames(d))
 

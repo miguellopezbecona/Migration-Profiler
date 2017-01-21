@@ -38,10 +38,13 @@ void set_affinity_error();
 
 /*** Auxiliar functions ***/
 void print_selected_cpus(){
+	printf("Selected CPUS:");
+
 	int i;
-	for(i=0;i<num_th;i++){
-		printf("CPU %d selected.\n", selected_cpus[i]);
-	}
+	for(i=0;i<num_th;i++)
+		printf(" %d", selected_cpus[i]);
+
+	printf("\n");
 }
 
 void print_params(){
@@ -74,7 +77,7 @@ void set_affinity_error(){
 
 // Allocates memory in a memory node and initializes arrays
 void data_initialization(){
-	int i, j;
+	int i, th, offset;
 
 	// Memory allocation on memory node
 	A = numa_alloc_onnode(array_basic_size*sizeof(float)*num_th, mem_node);
@@ -82,18 +85,20 @@ void data_initialization(){
 	C = numa_alloc_onnode(array_basic_size*sizeof(float)*num_th, mem_node);
 
 	// Random initialization
-	for(j=0;j<num_th;j++){
+	for(th=0;th<num_th;th++){
+		offset = th*array_basic_size;
+
 		for(i=0;i<array_basic_size;i++){
-			A[j*array_basic_size+i] = (rand()%10)*1.0;
-			B[j*array_basic_size+i] = (rand()%10)*1.0;
-			C[j*array_basic_size+i] = 0.0;
+			A[offset+i] = (rand()%10)*1.0;
+			B[offset+i] = (rand()%10)*1.0;
+			C[offset+i] = 0.0;
 		}
 
 		// Gets the memory range where each thread will work in
 		printf("ABC: A[%d] from %lx to %lx\nB[%d] from %lx to %lx\nC[%d] from %lx to %lx\n",
-			j,(long unsigned int)&A[j*array_basic_size],(long unsigned int)&A[j*array_basic_size+array_basic_size],
-			j,(long unsigned int)&B[j*array_basic_size],(long unsigned int)&B[j*array_basic_size+array_basic_size],
-			j,(long unsigned int)&C[j*array_basic_size],(long unsigned int)&C[j*array_basic_size+array_basic_size]
+			th,(long unsigned int)&A[offset],(long unsigned int)&A[offset+array_basic_size],
+			th,(long unsigned int)&B[offset],(long unsigned int)&B[offset+array_basic_size],
+			th,(long unsigned int)&C[offset],(long unsigned int)&C[offset+array_basic_size]
 		);
 	}
 }
@@ -113,7 +118,6 @@ static inline void operation(pid_t my_ompid){
 }
 
 void set_options_from_parameters(int argc, char** argv){
-	int i;
 	char c;
 
 	// Parses argv with getopt
@@ -143,6 +147,7 @@ void set_options_from_parameters(int argc, char** argv){
 				num_th = 0;
 
 				// We loop over the value to get which CPUs will we use: the "1"s in the string
+				int i;
 				for(i=0;i<max_cpus;i++){
 					if (optarg[i] == '1'){ // CPU selected: one more thread to create, let's get the index (CPU ID)
 						selected_cpus[num_th] = i;
