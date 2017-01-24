@@ -70,22 +70,29 @@ make_plot <- function(dataframe, filename = "", max_minus = NA, plots_last_row =
 }
 
 # For "alt" case
-plot_alt <- function(df) {
+plot_alt <- function(df, filename = "") {
+	if(filename != "")
+		png(filename, width = 6000, height = 4000, units = 'px', res = 300)
+
 	# Plotting page number vs how many different threads accessed to it?
 	plot(df$threads_accessed, type="l", col = "red", xaxt = "n", xlab="Page Number", ylab="Number of threads that accessed")
 	axis(1, at=1:nrow(df), labels=rownames(df))
+
+	if(filename != "")
+		dev.off()
 }
 
 #node0_cpus <- seq(0,11,2) + 1
 #node1_cpus <- seq(1,11,2) + 1
 
-fs <- read_data_from_dir("~/migrCPP") # Adjust to the desired folder
+d <- read_data_from_dir("~/data/direct") # Adjust to the desired folder
+ind <- read_data_from_dir("~/data/indirect") # Adjust to the desired folder
+int <- read_data_from_dir("~/data/inter") # Adjust to the desired folder
+all <- read_data_from_dir("~/data/all")
 
 # Let's do some plots for avg file in list
-make_plot(fs[["avg"]])
-make_plot(fs[["avg"]], max_minus = 10000)
-make_plot(fs[["avg"]], plots_last_row = TRUE)
-#plot_alt(fs[["alt"]])
+make_plot(d[["avg"]])
+#plot_alt(d[["alt"]])
 
 # For testing plots
 #m9 <- matrix(c(NA, 0, 100, 500, 1000, 100, 7000, NA, 10), nc=3, nr=3, byrow = TRUE); View(m9); plot_matrix(m9)

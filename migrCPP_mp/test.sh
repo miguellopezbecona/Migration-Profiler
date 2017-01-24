@@ -47,6 +47,12 @@ latest=$(ls -v acs_*.csv | tail -n 1 | sed -r "s/acs_([0-9]+).csv/\1/g")
 find . -maxdepth 1 ! -name "*_$latest.csv" | grep .csv | xargs rm
 
 # Renames final CSVs
-rename "s/_$latest//g" *.csv # This works in local
-#rename "_$latest" "" *.csv # This works in server
+nummemorynodes=$(numactl --hardware | head -n 1 | cut -d ' ' -f 2)
+
+if [ $nummemorynodes -eq 1 ]
+then
+	rename "s/_$latest//g" *.csv # This works in local
+else
+	rename "_$latest" "" *.csv # This works in server
+fi
 
