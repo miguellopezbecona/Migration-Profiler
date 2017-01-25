@@ -62,7 +62,7 @@ make_plot <- function(dataframe, filename = "", max_minus = NA, plots_last_row =
 	}
 	
 	# Saves image plot as png file if filename is not a empty string
-	if(filename != "")
+	if(filename != "") {
 		png(filename, width = 32000, height = 32000/nrow(m), units = 'px', res = 300)
 		plot_matrix(m, TRUE)
 		dev.off()
