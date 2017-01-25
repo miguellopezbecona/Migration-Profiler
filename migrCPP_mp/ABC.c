@@ -9,9 +9,11 @@
 #include <omp.h> // OpenMP
 #include <numa.h> // numa_alloc_onnode
 
+// Default macro values
+#define DEFAULT_BLOCKS 1
+#define DEFAULT_ARRAY_SIZE 1000
 #define DEFAULT_MEM_NODE 0
 #define DEFAULT_REP 100
-#define DEFAULT_ARRAY_SIZE 1000
 #define DEFAULT_NUMBER_OPS 1
 #define DEFAULT_STRIDE 1
 
@@ -21,12 +23,13 @@ int max_cpus; // Detected by the system
 float *A, *B, *C;
 
 // Options
+int blocks_per_thread;
 int array_basic_size; // Actual array size will be array_basic_size*num_th elements
 int mem_node;
-int num_th;
 int rep;
 int ops;
 int stride;
+int num_th;
 unsigned char *selected_cpus;
 
 // Predeclarations
@@ -48,11 +51,11 @@ void print_selected_cpus(){
 }
 
 void print_params(){
-	printf("Initialising data in %d memory node.\nRepetitions: %d.\nArray size: %d.\nStride: %d.\nNumber of threads: %d.\n",mem_node,rep,array_basic_size,stride,num_th);
+	printf("Initialising data in %d memory node.\Blocks per thread: %d.\nRepetitions: %d.\nArray size: %d.\nStride: %d.\nNumber of threads: %d.\n",mem_node,blocks_per_thread,rep,array_basic_size,stride,num_th);
 }
 
 void usage(char **argv) {
-	printf("Usage: %s [-mmemory-cpu] [-rrepetitions] [-ooperations_per_iteration] [-sarray_basic_size] [-ccpus] [-tstride]\n\n", argv[0]);
+	printf("Usage: %s [-bblocks_per_thread] [-mmemory-cpu] [-rrepetitions] [-ooperations_per_iteration] [-sarray_basic_size] [-ccpus] [-tstride]\n\n", argv[0]);
 }
 
 void set_affinity_error(){
@@ -105,14 +108,20 @@ void data_initialization(){
 
 // The kernel operation in the parallel zone. Defined as inline to reduce call overhead
 static inline void operation(pid_t my_ompid){
-	int i,r,o;
-	int offset = my_ompid*array_basic_size; // Different work zone for each thread
+	int r,b,i,o;
+	int chunk_id;
+	int offset; // Different work zone for each thread
 	int index;
+	
 	for(r=0; r<rep; r++){ // How many times does each thread repeat the work?
-		for(i=0; i<array_basic_size; i+=stride){ // Advances through the vector using stride
-			index = offset + i;
-			for(o=0; o<ops; o++) // How many operations per iteration?
-				C[index] = A[index] * B[index];
+		for(b=0; b<blocks_per_thread; b++){ // How many chunks will the thread work in?
+			chunk_id = (my_ompid + b) % num_th; // Cyclic chunk assignation
+			offset = chunk_id*array_basic_size;
+			for(i=0; i<array_basic_size; i+=stride){ // Advances through the vector using stride
+				index = offset + i;
+				for(o=0; o<ops; o++) // How many operations per iteration?
+					C[index] = A[index] * B[index];
+			}
 		}
 	}
 }
@@ -121,8 +130,11 @@ void set_options_from_parameters(int argc, char** argv){
 	char c;
 
 	// Parses argv with getopt
-	while ((c = getopt (argc, argv, "m:r:o:s:t:c:")) != -1){
+	while ((c = getopt (argc, argv, "b:m:r:o:s:t:c:")) != -1){
 		switch (c) {
+			case 'b': // How many consecutive chunks will every thread work in
+				blocks_per_thread = atoi(optarg);
+				break;
 			case 'm': // Memory node to allocate data in
 				mem_node = atoi(optarg);
 				break;
@@ -172,6 +184,7 @@ int main(int argc, char *argv[]){
 	selected_cpus = (unsigned char*)calloc(max_cpus, sizeof(unsigned char));
 
 	// Set defaults
+	blocks_per_thread = DEFAULT_BLOCKS;
 	mem_node = DEFAULT_MEM_NODE;
 	rep = DEFAULT_REP;
 	ops = DEFAULT_NUMBER_OPS;
