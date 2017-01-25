@@ -18,25 +18,29 @@ plot_last_row <- function(dataframe){
 }
 
 # Plots generic matrix as a image with log scale
-# TODO: adjust legend size when exporting to big image
-plot_matrix <- function(m){
+plot_matrix <- function(m, big){
 	mi <- min(m, na.rm = TRUE)
 	ma <- max(m, na.rm = TRUE)
-	max_exp <- ceiling(log10(ma-mi)) # Nearest exponent to maximum-minimum to scale better
+	max_exp <- floor(log10(ma-mi)) # Nearest flooring exponent to maximum-minimum to scale better
 	exps <- 1:max_exp
-	vals <- c(mi, mi + 10**exps) # Minimum in scale is the minimum value instead of 0
+	vals <- c(mi, mi + 10**exps, ma) # Min and max in scale are the absolute min and max values instead of 0 and big pow or 10 respectively
 	num_vals <- length(vals)
+
+	# If the plot is going to be exported as a big image, the graphic will have a bigger width proportion of the image than the legend
+	image_prop <- 3
+	if(big)
+		image_prop <- 25
 
 	# Reverses rows to plot correctly
 	m_img <- apply(m, 2, rev)
 
 	colf <- colorRampPalette(c("red", "blue")) # Color gradient
-	layout(matrix(1:2,ncol=2), width = c(2,1),height = c(1,1)) # Two figures (image and legend)
+	layout(matrix(1:2,ncol=2), width = c(image_prop,1),height = c(1,1)) # Two figures (image and legend)
 	image(1:ncol(m), 1:nrow(m), t(m_img), col = rev(colf(num_vals -1L)), breaks = vals, axes = FALSE) # Plots image
 		axis(1, 1:ncol(m), colnames(m))
 		axis(2, 1:nrow(m), rev(rownames(m)))
 	legend_image <- as.raster(matrix(colf(num_vals), ncol=1)) # Creates legend
-	plot(c(0,2),c(0,1),type = 'n', axes = F,xlab = '', ylab = '', main = 'legend title') #Plots legend
+	plot(c(0,2),c(0,1),type = 'n', axes = F,xlab = '', ylab = '', main = "Aggregated latency value") #Plots legend
 	text(x=1.5, y = seq(0,1,l=num_vals), labels = vals) # Adds labels to legend
 	rasterImage(legend_image, 0, 0, 1, 1)
 }
@@ -60,9 +64,10 @@ make_plot <- function(dataframe, filename = "", max_minus = NA, plots_last_row =
 	# Saves image plot as png file if filename is not a empty string
 	if(filename != "")
 		png(filename, width = 32000, height = 32000/nrow(m), units = 'px', res = 300)
-	plot_matrix(m)
-	if(filename != "")
+		plot_matrix(m, TRUE)
 		dev.off()
+	} else
+		plot_matrix(m, FALSE)
 	
 	# Plots last row if wanted
 	if(plots_last_row)
@@ -85,9 +90,10 @@ plot_alt <- function(df, filename = "") {
 #node0_cpus <- seq(0,11,2) + 1
 #node1_cpus <- seq(1,11,2) + 1
 
-d <- read_data_from_dir("~/data/direct") # Adjust to the desired folder
-ind <- read_data_from_dir("~/data/indirect") # Adjust to the desired folder
-int <- read_data_from_dir("~/data/inter") # Adjust to the desired folder
+data <- read_data_from_dir("~/migrCPP") # Adjust to the desired folder
+#d <- read_data_from_dir("~/data/direct")
+ind <- read_data_from_dir("~/data/indirect")
+int <- read_data_from_dir("~/data/inter")
 all <- read_data_from_dir("~/data/all")
 
 # Let's do some plots for avg file in list
