@@ -59,8 +59,9 @@ int pages(unsigned int step, memory_data_list_t memory_list, page_table_t *page_
 	build_page_table(memory_list, page_t);
 
 
-	// The table is printed every ITERATIONS_PER_PRINT iterations
+	// Some things are done every ITERATIONS_PER_PRINT iterations
 	if(current_step % ITERATIONS_PER_PRINT == 0){
+		/*
 		// Opens files
 		for(int i=0;i<NUM_FILES;i++){
 			char filename[12]; // xxx_yyy.csv
@@ -81,6 +82,11 @@ int pages(unsigned int step, memory_data_list_t memory_list, page_table_t *page_
 		// Closes files
 		for(int i=0;i<NUM_FILES;i++)
 			fclose(fps[i]);
+		*/
+
+		page_t->calculate_performance_tid(1000);
+		page_t->calculate_performance_page(1000);
+		//page_t->print_performance();
 	}
 
 	return 0;

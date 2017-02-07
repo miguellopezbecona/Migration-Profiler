@@ -51,7 +51,7 @@ void print_selected_cpus(){
 }
 
 void print_params(){
-	printf("Initialising data in %d memory node.\Blocks per thread: %d.\nRepetitions: %d.\nArray size: %d.\nStride: %d.\nNumber of threads: %d.\n",mem_node,blocks_per_thread,rep,array_basic_size,stride,num_th);
+	printf("Initialising data in %d memory node.\nBlocks per thread: %d.\nRepetitions: %d.\nArray size: %d.\nStride: %d.\nNumber of threads: %d.\n",mem_node,blocks_per_thread,rep,array_basic_size,stride,num_th);
 }
 
 void usage(char **argv) {

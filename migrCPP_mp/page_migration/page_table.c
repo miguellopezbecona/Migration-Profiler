@@ -32,8 +32,7 @@ int page_table_t::add_cell(long int page_addr, int current_node, pid_t tid, floa
 	} else
 		cell->update(tid,latency,cpu,is_cache_miss);
 	
-	page_node_map[page_addr] = current_node; // Creates/updates association in page node map
-
+	page_node_map[page_addr].current_mem_node = current_node; // Creates/updates association in page node map
 
 	return 0;
 }
@@ -42,11 +41,11 @@ bool page_table_t::contains_addr(long int page_addr, int cpu){
 	return table[cpu].count(page_addr) > 0;
 }
 
-vector<double> page_table_t::get_latencies_from_cell(long int page_addr, int cpu){
+vector<float> page_table_t::get_latencies_from_cell(long int page_addr, int cpu){
 	if(contains_addr(page_addr,cpu))
 		return table[cpu][page_addr].latencies;
 	else {
-		vector<double> v;
+		vector<float> v;
 		return v;
 	}
 }
@@ -64,26 +63,13 @@ int page_table_t::reset_cell(long int page_addr, int current_node){
 	table_cell_t *cell = NULL;
 	for(int i=0;i<SYS_NUM_OF_CORES;i++){
 		cell = get_cell(page_addr, i);
-		if(cell != NULL){ 
+		if(cell != NULL)
 			cell->latencies.clear();
-			/*
-			cell->mean_latency_reset = 0;
-			cell->total_accesses_reset = 0;
-			cell->accesses_l.reset();
-			*/
-		}
 	}
 	
-	page_node_map[page_addr] = current_node;
-	return 2;
+	page_node_map[page_addr].current_mem_node = current_node;
+	return 0;
 }
-
-/*
-double* page_table_t::get_lowest_mean_accesed_by_itself_node(){
-	// NOT IMPLEMENTED IN THIS VERSION
-	return -1.0;
-}
-*/
 
 void page_table_t::clear(){
 	for(int i=0;i<SYS_NUM_OF_CORES;i++)
@@ -103,7 +89,7 @@ void page_table_t::print(){
 			page_addr = it->first;
 			cell = it->second;
 			
-			printf("PAGE_ADDR: %lx, CURRENT_NODE: %d, ", page_addr, page_node_map[page_addr]);
+			printf("PAGE_ADDR: %lx, CURRENT_NODE: %d, ", page_addr, page_node_map[page_addr].current_mem_node);
 			cell.print();
 		}
 		printf("\n");
@@ -136,7 +122,7 @@ void page_table_t::print_heatmaps(FILE **fps, int num_fps){
 
 		// Writes data for each thread/core
 		for(int i=0;i<SYS_NUM_OF_CORES;i++){
-			vector<double> l = get_latencies_from_cell(addr,i);
+			vector<float> l = get_latencies_from_cell(addr,i);
 
 			// No data
 			if(l.empty()){
@@ -183,7 +169,7 @@ void page_table_t::print_alt_graph(FILE *fp){
 		long int addr = *it;
 		int threads_accessed = 0;		
 
-		// A thread/CPU had accesed to the page if its cell is not null
+		// A thread/CPU has accessed to the page if its cell is not null
 		for(int i=0;i<SYS_NUM_OF_CORES;i++)
 			threads_accessed += ( get_cell(addr,i) != NULL );
 
@@ -220,7 +206,7 @@ void page_table_t::print_table1(){
 		for(map<long int, table_cell_t>::iterator it = table[i].begin(); it != table[i].end(); ++it) {
 			page_addr = it->first;
 			cell = it->second;
-			page_node = page_node_map[page_addr];
+			page_node = page_node_map[page_addr].current_mem_node;
 			counters[page_node] += cell.latencies.size(); // What if those accesses were done when page was in another node?...
 		}
 
@@ -283,4 +269,156 @@ void page_table_t::print_table2(){
 	}
 
 	printf("\n");
+}
+
+// Fills only page_node_map
+void page_table_t::calculate_performance_page(double threshold){
+	// Loops over memory pages
+	for (set<long int>::iterator it = uniq_addrs.begin(); it != uniq_addrs.end(); ++it){
+		vector<float> l_thres;
+		long int addr = *it;
+		int threads_accessed = 0;
+		float avg_l = 0.0;
+
+		// A thread/CPU has accessed to the page if its cell is not null
+		for(int i=0;i<SYS_NUM_OF_CORES;i++){
+			vector<float> l = get_latencies_from_cell(addr,i);
+			
+			// No data
+			if(l.empty())
+				continue;
+
+			threads_accessed++;
+
+			// Calculates if there is a latency bigger than the threshold
+			for(size_t j=0;j<l.size();j++){
+				if(l[j] > threshold) {
+					l_thres.push_back(l[j]);
+					break;
+				}
+			}
+			
+		}
+
+		// Calculates average of latencies that were bigger than the threshold
+		if(!l_thres.empty())
+			avg_l = accumulate(l_thres.begin(), l_thres.end(), 0.0) / l_thres.size();
+
+		// Updates data in map
+		perf_data_t *cell = &page_node_map[addr];
+		cell->num_uniq_accesses = threads_accessed;
+		cell->num_acs_thres = l_thres.size();
+		cell->avg_latency = avg_l;
+	}
+}
+
+// Fills only tid_node_map
+void page_table_t::calculate_performance_tid(double threshold){
+	// Loops over cores/TIDs
+	for(int i=0;i<SYS_NUM_OF_CORES;i++){
+		vector<float> l_thres;
+		int pages_accessed = 0;
+		float avg_l = 0.0;
+
+		// Loops over page entries for that core/TID
+		for (map<long int, table_cell_t>::iterator it = table[i].begin(); it != table[i].end(); ++it){
+			long int addr = it->first;
+			vector<float> l = it->second.latencies;
+
+			pages_accessed++;
+
+			// Calculates if there is a latency bigger than the threshold
+			for(size_t j=0;j<l.size();j++){
+				if(l[j] > threshold) {
+					l_thres.push_back(l[j]);
+					break;
+				}
+			}
+			
+		}
+
+		// Calculates average of latencies that were bigger than the threshold
+		if(!l_thres.empty())
+			avg_l = accumulate(l_thres.begin(), l_thres.end(), 0.0) / l_thres.size();
+
+		// After all the internal iterations ends, updates data in TID map
+		perf_data_t *cell = &tid_node_map[i]; // For now works, but it should be used TIDs instead of CPU IDs
+		cell->num_uniq_accesses = pages_accessed;
+		cell->num_acs_thres = l_thres.size();
+		cell->avg_latency = avg_l;
+	}
+}
+
+
+/** [TODO]
+	The goal of this function is to update page_node_map and tid_node_map so:
+	  - We get from each memory page:
+	    -- How many different threads accessed to it.
+	    -- How many different threads accessed to it with a latency bigger than a threshold.
+	    -- The average latency from those accesses.
+	  - We get from each thread:
+	    -- How many different memory pages it had accessed to.
+	    -- How many different memory pages it had accessed with a latency bigger than a threshold to.
+	    -- The average latency from those accesses.
+	This info will be crucial to design a migration strategy.
+	This implies looping over the table.
+*/
+void page_table_t::calculate_performance(double threshold){
+
+	map<int, int> threads_accessed;
+	
+	// Loops over cores/TIDs
+	for(int i=0;i<SYS_NUM_OF_CORES;i++){
+		vector<float> l_thres;
+		int pages_accessed = 0;
+		float avg_l = 0.0;
+
+		// Loops over page entries for that core/TID
+		for (map<long int, table_cell_t>::iterator it = table[i].begin(); it != table[i].end(); ++it){
+			long int addr = it->first;
+			vector<float> l = it->second.latencies;
+
+			// An entry in the table means memory page "addr" has ben accessed by one more thread
+			threads_accessed[addr]++;
+			
+			pages_accessed++;
+
+			// Calculates if there is a latency bigger than the threshold
+			for(size_t j=0;j<l.size();j++){
+				if(l[j] > threshold) {
+					l_thres.push_back(l[j]);
+					break;
+				}
+			}
+			
+		}
+
+		// Calculates average of latencies that were bigger than the threshold
+		if(!l_thres.empty())
+			avg_l = accumulate(l_thres.begin(), l_thres.end(), 0.0) / l_thres.size();
+
+		// After all the internal iterations ends, updates data in TID map
+		perf_data_t *cell = &tid_node_map[i];
+		cell->num_uniq_accesses = pages_accessed;
+		cell->num_acs_thres = l_thres.size();
+		cell->avg_latency = avg_l;
+	}
+}
+
+void page_table_t::print_performance(){
+		for (auto it = page_node_map.begin(); it != page_node_map.end(); ++it){
+			printf("%lx: ", it->first);
+			it->second.print();
+		}
+		
+		printf("\n");
+
+		for (auto it = tid_node_map.begin(); it != tid_node_map.end(); ++it){
+			printf("T%d: ", it->first);
+			it->second.print();
+		}
+}
+
+void perf_data::print(){
+	printf("MEM_NODE %d, UNIQ_ACS %d, ACS_THRES: %d, AVG_LAT: %.2f\n", current_mem_node, num_uniq_accesses, num_acs_thres, avg_latency);
 }
