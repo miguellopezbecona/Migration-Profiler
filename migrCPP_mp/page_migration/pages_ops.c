@@ -6,8 +6,8 @@ static unsigned int current_step;
 
 int build_page_table(memory_data_list_t memory_list, page_table_t *page_t){
 	int ret;
-	long pagesize = sysconf(_SC_PAGESIZE);
-	int expn = log2(pagesize);
+	const long pagesize = sysconf(_SC_PAGESIZE);
+	const int expn = log2(pagesize);
 	int page_node, cpu_node;
 
 	// For each element in mem list, we calculate page address, get page node, and then it is added to the new list
@@ -86,7 +86,7 @@ int pages(unsigned int step, memory_data_list_t memory_list, page_table_t *page_
 
 		page_t->calculate_performance_tid(1000);
 		page_t->calculate_performance_page(1000);
-		//page_t->print_performance();
+		page_t->print_performance();
 	}
 
 	return 0;

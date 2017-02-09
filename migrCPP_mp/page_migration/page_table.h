@@ -18,15 +18,15 @@ using namespace std;
 #include "../thread_migration/system_struct.h"
 
 typedef struct table_cell {
-	vector<float> latencies;
+	vector<int> latencies;
 
 	//tid_page_accesses_list_t accesses_l;
 	unsigned cache_misses;
 
 	table_cell(){}
-	table_cell(pid_t tid, float latency, int cpu, bool is_cache_miss);
+	table_cell(pid_t tid, int latency, int cpu, bool is_cache_miss);
 	void print();
-	int update(pid_t tid, float latency, int cpu, bool is_cache_miss);
+	int update(pid_t tid, int latency, int cpu, bool is_cache_miss);
 } table_cell_t;
 
 // For threads and memory pages
@@ -34,7 +34,9 @@ typedef struct perf_data {
 	unsigned char current_mem_node;
 	unsigned short int num_uniq_accesses;
 	unsigned short int num_acs_thres; // Always equal or lower than num_uniq_accesses
-	float avg_latency;
+	int min_latency;
+	int median_latency;
+	int max_latency;
 
 	perf_data(){}
 	void print();
@@ -49,17 +51,17 @@ typedef struct page_table{
 
 	pid_t pid;
 
-	int add_cell(long int page_addr, int current_node, pid_t tid, float latency, int cpu, int cpu_node, bool is_cache_miss);
+	int add_cell(long int page_addr, int current_node, pid_t tid, int latency, int cpu, int cpu_node, bool is_cache_miss);
 	bool contains_addr(long int page_addr, int cpu);
 	table_cell_t* get_cell(long int page_addr, int cpu);
-	vector<float> get_latencies_from_cell(long int page_addr, int cpu);
+	vector<int> get_latencies_from_cell(long int page_addr, int cpu);
 	int reset_cell(long int page_addr, int current_node);
 	void clear();
 	void print();
 
-	void calculate_performance_page(double threshold);
-	void calculate_performance_tid(double threshold);
-	void calculate_performance(double threshold); // Intended to unify the two above
+	void calculate_performance_page(int threshold);
+	void calculate_performance_tid(int threshold);
+	void calculate_performance(int threshold); // Intended to unify the two above
 	void print_performance();
 
 	// More info on the definitions in .c file
