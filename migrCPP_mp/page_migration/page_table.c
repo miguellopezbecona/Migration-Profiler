@@ -354,6 +354,7 @@ void page_table_t::calculate_performance_tid(int threshold){
 
 		// After all the internal iterations ends, updates data in TID map
 		perf_data_t *cell = &tid_node_map[i]; // For now works, but it should be used TIDs instead of CPU IDs
+		cell->current_mem_node = get_cpu_memory_cell(i); // Bad! It should get TID's node, not CPU's. This issue will require a big rewrite
 		cell->num_uniq_accesses = pages_accessed;
 		cell->num_acs_thres = num_acs_thres;
 
