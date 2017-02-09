@@ -1,13 +1,24 @@
 #!/bin/bash
 
-#make my_profiler_thread_migration_opt
-
 execname=my_profiler_tm
 profparams="-s2000 -l400 -p5000 -P50000000"
 #profparams="-s3500 -l750 -p1000 -P7500000"
 #profparams="-s1000 -l500 -p5000 -P1000000"
 
+# Goes to source code folder if you execute script from another directory
+dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd $dir
+
+# Compiles ABC
 gcc -fopenmp -o ABC ABC.c -lnuma
+
+# Compiles profiler
+make
+
+# Exits if it there was a problem
+if [ $? -ne 0 ]; then
+	exit 1
+fi
 
 # Uses numactl (and in different ways) or not depending on first parameter
 if [ $# -lt 1 ]; then
@@ -23,17 +34,20 @@ else
 fi
 
 # Set to what you want to profile
-toprofile="./ABC -m0 -r5000 -s1000000 -t8"
+toprofile="./ABC -b1 -m0 -r5000 -s1000000 -t8"
 #toprofile=~/NPB3.3.1/NPB3.3-OMP/bin/lu.C.x
 #toprofile=~/NPB3.3.1/NPB3.3-OMP/bin/bt.C.x
 
-# Compiles and executes
-g++ -o $execname [^ABC]*.c perfmon/*.c thread_migration/*.c page_migration/*.c libpfm.so.4.8.0 -lnuma && $numacommand ./$execname -M $profparams $toprofile
+# Executes profiler with the app to profile as a child process
+$numacommand ./$execname -M $profparams $toprofile
 
 # Does not continue if there was an error
 if [ $? -ne 0 ]; then
 	exit 1
 fi
+
+# To skip file processing right now
+exit 0
 
 ### Preprocessing of generated files
 
