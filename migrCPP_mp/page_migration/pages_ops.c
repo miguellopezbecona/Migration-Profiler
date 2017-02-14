@@ -61,7 +61,7 @@ int pages(unsigned int step, memory_data_list_t memory_list, page_table_t *page_
 
 	// Some things are done every ITERATIONS_PER_PRINT iterations
 	if(current_step % ITERATIONS_PER_PRINT == 0){
-		/*
+		#ifdef PRINT_CSVS
 		// Opens files
 		for(int i=0;i<NUM_FILES;i++){
 			char filename[12]; // xxx_yyy.csv
@@ -82,11 +82,11 @@ int pages(unsigned int step, memory_data_list_t memory_list, page_table_t *page_
 		// Closes files
 		for(int i=0;i<NUM_FILES;i++)
 			fclose(fps[i]);
-		*/
+		#endif
 
 		page_t->calculate_performance_tid(1000);
 		page_t->calculate_performance_page(1000);
-		page_t->print_performance();
+		//page_t->print_performance();
 	}
 
 	return 0;
