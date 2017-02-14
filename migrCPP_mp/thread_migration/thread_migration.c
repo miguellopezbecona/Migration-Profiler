@@ -76,16 +76,13 @@ int do_migration(pid_t pid){
 			migrateThreads(pid, &pid_map, step);
 
 		if(act_pag_mig) {
-			//builds pages list
-			/*
-			pages(step, memory_data_list, &main_page_list);
-			migratePages(pid, &main_page_list);
-			*/
+			//builds pages table
 			pages(step, memory_data_list, &main_page_table);
 			migratePages(pid, &main_page_table);
 		}
 	}else{
 		init_migration_algorithm();
+		core_table.print();
 	}
 	
 	step++;

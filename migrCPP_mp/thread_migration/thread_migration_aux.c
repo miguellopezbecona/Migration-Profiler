@@ -5,7 +5,6 @@
 **/
 
 int migrate_pinned_thread_and_free_table(tid_cell_t *tid_c, int target_core);
-int find_first_free_core();
 
 
 //SYS_MEM_STRUCT
@@ -13,10 +12,12 @@ int find_first_free_core();
 unsigned int migration_step;
 unsigned int best_step;
 
+core_table_t core_table;
+
 
 void init_aux_functions(){
 	migration_step=0;
-	init_migration_table();
+	core_table.init();
 }
 
 //This is old, performance is more complex
@@ -119,7 +120,7 @@ int pin_all_threads(tid_list_t* tid_l){
 	for(tr1::unordered_map<pid_t, tid_cell_t>::iterator it = tid_l->map.begin(); it != tid_l->map.end(); ++it) {
 		tid_c = &it->second;
 		if(!tid_c->pinned){
-			pin_tid_to_core_or_first_free_core(tid_c->last_core,tid_c);
+			core_table.pin_tid_to_core_or_first_free_core(tid_c->last_core,tid_c);
 		}
 	}
 	return 0;
@@ -132,7 +133,7 @@ int pin_all_threads_to_free_cores_and_move(tid_list_t* tid_l){
 	for(tr1::unordered_map<pid_t, tid_cell_t>::iterator it = tid_l->map.begin(); it != tid_l->map.end(); ++it) {
 		tid_c = &it->second;
 		if(!tid_c->pinned){
-			pin_tid_to_core_or_first_free_core(tid_c->last_core,tid_c);
+			core_table.pin_tid_to_core_or_first_free_core(tid_c->last_core,tid_c);
 			update_affinity_tid(tid_c);
 		}
 	}
@@ -141,10 +142,10 @@ int pin_all_threads_to_free_cores_and_move(tid_list_t* tid_l){
 
 int pin_thread_to_free_core_and_move_free_cores_if_inactive(tid_cell_t* tid_c){
 	if(!tid_c->pinned && tid_c->active){
-		pin_tid_to_core_or_first_free_core(tid_c->last_core,tid_c);
+		core_table.pin_tid_to_core_or_first_free_core(tid_c->last_core,tid_c);
 		update_affinity_tid(tid_c);
 	}else if(!tid_c->active){ //if tid is pinned, check if active
-		free_table_core(tid_c->assigned_core, tid_c->tid);
+		core_table.free_tid(tid_c->assigned_core, tid_c->tid);
 		unpin_tid(tid_c);
 		//update_affinity_tid(tid_c);
 	}
@@ -165,9 +166,9 @@ int pin_all_threads_with_pid_greater_than_to_free_cores_and_move_and_free_cores_
 }
 
 int migrate_pinned_thread_and_free_table(tid_cell_t *tid_c, int target_core){
-	free_table_core(tid_c->assigned_core, tid_c->tid);
+	core_table.free_tid(tid_c->assigned_core, tid_c->tid);
 	pin_tid_to_core(target_core, tid_c);
-	set_table_core(target_core, tid_c->tid);
+	core_table.set_tid_to_core(target_core, tid_c->tid);
 	update_affinity_tid(tid_c);
 	#ifdef THREAD_MIGRATION_OUTPUT
 		printf("MIGRATED: TID-%d to %d\n",tid_c->tid,target_core);
@@ -184,13 +185,14 @@ int interchange_pinned_threads(tid_cell_t *tid1_c, tid_cell_t *tid2_c){
 
 	//move the current occupant of the core to a new one
 	pin_tid_to_core(tid1_c->assigned_core, tid2_c);
-	free_table_core(tid1_c->assigned_core, tid1_c->tid); //free its spot
-	set_table_core(tid1_c->assigned_core, tid2_c->tid);
+	core_table.free_tid(tid1_c->assigned_core, tid1_c->tid); //free its spot
+	core_table.set_tid_to_core(tid1_c->assigned_core, tid2_c->tid);
 
 	//move the target to the new core
 	pin_tid_to_core(aux_core, tid1_c);
-	free_table_core(aux_core, tid2_c->tid); //free its spot
-	set_table_core(aux_core, tid1_c->tid);
+	core_table.free_tid(aux_core, tid2_c->tid); //free its spot
+	core_table.set_tid_to_core(aux_core, tid1_c->tid);
+
 	update_affinity_tid(tid1_c);
 	update_affinity_tid(tid2_c);
 	#ifdef THREAD_MIGRATION_OUTPUT
@@ -202,7 +204,7 @@ int interchange_pinned_threads(tid_cell_t *tid1_c, tid_cell_t *tid2_c){
 
 //returns -2 if error, -1 if not free core, core number on success
 int migrate_thread_to_free_core(tid_cell_t *tid_c){
-	int core = find_first_free_core();
+	int core = core_table.find_first_free_core();
 	if(core>-1){
 		printf("Free core in %d\n",core);
 		core=migrate_pinned_thread_and_free_table(tid_c, core);
@@ -212,7 +214,7 @@ int migrate_thread_to_free_core(tid_cell_t *tid_c){
 
 //returns -2 if error, -1 if not free core, core number on success
 int migrate_thread_to_random_free_core(tid_cell_t *tid_c){
-	int core = get_random_free_core();
+	int core = core_table.get_random_free_core();
 	if(core>-1){
 		printf("Random free core in %d\n",core);
 		core=migrate_pinned_thread_and_free_table(tid_c, core);
@@ -276,20 +278,18 @@ migration_list_t migration_destinations_wweight(tid_cell_t *target_thread, pid_l
 
 		//check if it is on a different memory cell
 		if(tickets!=TICKETS_MEM_CELL_NO_VALID){
-			if(is_core_free(i)){//this is here for compatibility with multiple threads per core, not really necessary with one, because it could be done in next step
+			if(core_table.is_core_free(i)){//this is here for compatibility with multiple threads per core, not really necessary with one, because it could be done in next step
 				tickets = tickets + TICKETS_FREE_CORE;
 				ret = migration_list.add_cell(NULL,i, tickets);
 			}else{
 				//for every possible thread in the core (does not make much sense in this algorithm, but compatibility)
-				for(int j=0;j<MAX_THREADS_PER_CORE;j++){
-					tid = get_tid_in_core(i, j);
-					t_cell = pid_m->get_tid_cell(tid);
+				tid = core_table.get_tid_in_core(i);
+				t_cell = pid_m->get_tid_cell(tid);
 
-					tickets = tickets + get_lottery_weight_for_mem_cell_2(current_cell, destiny_cell, t_cell);
-					if(tickets>0){
-						migration_list.add_cell(t_cell,-1, tickets);
-					}
-				}
+				tickets = tickets + get_lottery_weight_for_mem_cell_2(current_cell, destiny_cell, t_cell);
+				if(tickets>0)
+					migration_list.add_cell(t_cell,-1, tickets);
+
 			}
 		}
 	}

@@ -19,6 +19,8 @@
 #include <vector> // std::vector
 using namespace std;
 
+extern core_table_t core_table;
+
 typedef struct target_thread{
 	tid_cell_t *tid_c;
 	uint32_t target_core;
