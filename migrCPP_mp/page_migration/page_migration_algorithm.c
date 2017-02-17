@@ -1,6 +1,7 @@
 //#define _GNU_SOURCE
 #include "page_migration_algorithm.h"
 
+int total_thread_migrations = 0;
 int total_page_migrations = 0;
 
 //Do better eventually, this is just for checking it works

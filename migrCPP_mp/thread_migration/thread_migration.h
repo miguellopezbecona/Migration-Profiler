@@ -3,10 +3,6 @@
 #include "../common_util.h"
 #include "memory_list.h"
 #include "inst_list.h"
-#include "pid_list.h"
-#include "roofline_ops.h"
-
-#include "migration_algorithm.h"
 
 // Pages
 #include "../page_migration/pages_ops.h"
