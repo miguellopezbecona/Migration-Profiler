@@ -1,8 +1,8 @@
 #include <stdlib.h> // rand()
 #include "system_struct.h"
 
-//long int SYS_NUM_OF_CORES;
-//int SYS_NUM_OF_MEMORIES;
+int SYS_NUM_OF_CORES;
+int SYS_NUM_OF_MEMORIES;
 int SYS_CORES_PER_MEMORY;
 int* cpu_node_map; // cpu_node_map[cpu] = node
 vector<int> node_cpu_map[MAX_PACKAGES]; // cpu_node_map[node] = list(cpus)
@@ -13,7 +13,7 @@ int detect_system() {
 	FILE *fff;
 	int package;
 
-	//SYS_NUM_OF_CORES = sysconf(_SC_NPROCESSORS_ONLN);
+	SYS_NUM_OF_CORES = sysconf(_SC_NPROCESSORS_ONLN);
 	cpu_node_map = (int*)malloc(SYS_NUM_OF_CORES*sizeof(int));
 
 	// For each CPU, reads topology file to get package (node) id
@@ -35,7 +35,7 @@ int detect_system() {
 	// Gets real number of packages (position of first empty vector)
 	for(int i=0;i<MAX_PACKAGES;i++){
 		if(node_cpu_map[i].empty()){
-			//SYS_NUM_OF_MEMORIES = i;
+			SYS_NUM_OF_MEMORIES = i;
 			break;
 		}
 	}

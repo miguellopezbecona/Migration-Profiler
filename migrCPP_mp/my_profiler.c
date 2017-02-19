@@ -89,7 +89,7 @@ typedef struct {
 
 static jmp_buf jbuf;
 static uint64_t collected_samples_total[NUM_GROUPS], lost_samples_total[NUM_GROUPS],processed_samples_total[NUM_GROUPS];
-static uint64_t collected_samples[NUM_GROUPS][SYS_NUM_OF_CORES], lost_samples[NUM_GROUPS][SYS_NUM_OF_CORES], processed_samples[NUM_GROUPS][SYS_NUM_OF_CORES];
+
 //static perf_event_desc_t *fds;
 static int num_fds[NUM_GROUPS];
 static options_t options;
@@ -203,17 +203,14 @@ static void process_smpl_buf(perf_event_desc_t *hw, int cpu, perf_event_desc_t *
 				//}
 				if (ret)
 					errx(1, "cannot parse sample");
-				processed_samples[name][cpu]= processed_samples[name][cpu]+processed;
-				processed_samples_total[name]= processed_samples_total[name]+processed;
-				collected_samples[name][cpu]++;
+				processed_samples_total[name] += processed;
 				collected_samples_total[name]++;
 				break;
 			case PERF_RECORD_EXIT:
 				//display_exit(hw, options.output_file);
 				break;
 			case PERF_RECORD_LOST:
-//				lost_samples[name][cpu] += display_lost(hw, fds, num_fds_p,options.output_file);
-//				lost_samples_total[name]+= display_lost(hw, fds, num_fds_p,options.output_file);
+				//lost_samples_total[name] += display_lost(hw, fds, num_fds_p,options.output_file);
 				break;
 			case PERF_RECORD_THROTTLE:
 				//display_freq(1, hw, options.output_file);
@@ -422,9 +419,7 @@ static void handler(int n) {
 int mainloop(char **arg) {
 	detect_system();
 
-	static uint64_t ovfl_count[NUM_GROUPS][SYS_NUM_OF_CORES]; /* static to avoid setjmp issue */
 	static uint64_t ovfl_count_total[NUM_GROUPS]; /* static to avoid setjmp issue */
-	static uint64_t partial_read[NUM_GROUPS][SYS_NUM_OF_CORES]; /* static to avoid setjmp issue */
 	static uint64_t partial_read_total[NUM_GROUPS]; /* static to avoid setjmp issue */
 
 	//This is the struct for polling the buffers of SYS_NUM_OF_CORES for 2 different groups of events-
@@ -436,12 +431,8 @@ int mainloop(char **arg) {
 	char buf;
 
 	//set overflows to zero
-	for(int i=0;i<NUM_GROUPS;i++){
+	for(int i=0;i<NUM_GROUPS;i++)
 		ovfl_count_total[i]=0;
-		for(int j=0;j<SYS_NUM_OF_CORES;j++){
-			ovfl_count[i][j]=0;
-		}
-	}
 
 	perf_event_desc_t *fds = NULL;
 
@@ -556,7 +547,6 @@ int mainloop(char **arg) {
 			for(int i=0;i<NUM_GROUPS;i++){
 				for(int j=0;j<SYS_NUM_OF_CORES;j++){
 					process_smpl_buf(all_fds[i][j],j,all_fds[i],num_fds[i],i);
-					partial_read[i][j]++;
 					partial_read_total[i]++;
 				}
 			}
@@ -599,11 +589,6 @@ terminate_session:
 /*
 	printf("%lu(%lu) memory samples collected (processed) in total %lu poll events and %lu partial reads, %lu lost samples\n",collected_samples_total[0],processed_samples_total[0],ovfl_count_total[0],partial_read_total[0],lost_samples_total[0]);
 	printf("%lu(%lu) instruction samples collected in total (processed) %lu poll events and %lu partial reads, %lu lost samples\n\n",collected_samples_total[1],processed_samples_total[1],ovfl_count_total[1],partial_read_total[1],lost_samples_total[1]);
-	for(i=0;i<SYS_NUM_OF_CORES;i++){
-		printf("\t%lu(%lu) memory samples collected (processed) in cpu %d %lu poll events and %lu partial reads, %lu lost samples\n",collected_samples[0][i],processed_samples[0][i],i,ovfl_count[0][i],partial_read[0][i],lost_samples[0][i]);
-		printf("\t%lu(%lu) instruction samples collected (processed) in cpu %d %lu poll events and %lu partial reads, %lu lost samples\n",collected_samples[1][i],processed_samples[1][i],i,ovfl_count[1][i],partial_read[1][i],lost_samples[1][i]);
-		printf("\n");
-	}
 */
 	printf("%d thread migrations made.\n", total_thread_migrations);
 	printf("%d page migrations made.\n", total_page_migrations);

@@ -22,11 +22,8 @@ using namespace std;
 #define SYS_RESET_STEP 10
 #define SYS_CUTOFF_STEP 40
 
-// TODO: convert these defines to const after initialization, if possible
-#define SYS_NUM_OF_CORES 4
-#define SYS_NUM_OF_MEMORIES 1
-//extern long int SYS_NUM_OF_CORES;
-//extern int SYS_NUM_OF_MEMORIES;
+extern int SYS_NUM_OF_CORES;
+extern int SYS_NUM_OF_MEMORIES;
 
 extern int SYS_CORES_PER_MEMORY;
 extern int* cpu_node_map;

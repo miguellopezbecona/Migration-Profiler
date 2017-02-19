@@ -43,7 +43,7 @@ typedef struct perf_data {
 } perf_data_t;
 
 typedef struct page_table{
-	map<long int, table_cell_t> table[SYS_NUM_OF_CORES]; // Matrix/table where rows are cores (static) and columns are indexed by page address
+	map<long int, table_cell_t> *table; // Matrix/table where rows are threads and columns are indexed by page address
 	set<long int> uniq_addrs; // All different addresses, useful for heatmap printing
 
 	map<long int, perf_data_t> page_node_map; // Maps page address to memory node and other data
@@ -51,6 +51,9 @@ typedef struct page_table{
 
 	pid_t pid;
 
+	page_table(){
+		table = new map<long int, table_cell_t>[SYS_NUM_OF_CORES];
+	}
 	int add_cell(long int page_addr, int current_node, pid_t tid, int latency, int cpu, int cpu_node, bool is_cache_miss);
 	bool contains_addr(long int page_addr, int cpu);
 	table_cell_t* get_cell(long int page_addr, int cpu);
