@@ -13,15 +13,6 @@ using namespace std;
 
 #define MAX_PACKAGES 16
 
-#define SYS_IMPOSSIBLE_LATENCY -1
-#define SYS_IMPOSSIBLY_LARGE_LATENCY 99999
-#define SYS_CACHE_LINE_SIZE 64
-
-#define SYS_ROOF_SAMPLES_CUTOFF 0
-
-#define SYS_RESET_STEP 10
-#define SYS_CUTOFF_STEP 40
-
 extern int SYS_NUM_OF_CORES;
 extern int SYS_NUM_OF_MEMORIES;
 

@@ -69,7 +69,8 @@ int do_migration(pid_t pid){
 	if(act_pag_mig) {
 			//builds pages table
 			pages(step, memory_data_list, &main_page_table);
-			migratePages(pid, &main_page_table);
+
+			perform_migration_strategy(pid, &main_page_table);
 	}
 	
 	step++;

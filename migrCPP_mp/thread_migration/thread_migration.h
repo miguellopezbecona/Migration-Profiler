@@ -6,7 +6,7 @@
 
 // Pages
 #include "../page_migration/pages_ops.h"
-#include "../page_migration/page_migration_algorithm.h"
+#include "../page_migration/migration_algorithm.h"
 
 #define NUM_LAT_SAMPLES_MEAN 1
 #define SECONDS_BETWEEN_MIGRATIONS 2
