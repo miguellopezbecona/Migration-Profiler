@@ -51,7 +51,8 @@ typedef struct page_table{
 
 	pid_t pid;
 
-	page_table(){
+	// No constructor because SYS_NUM_OF_CORES is not defined at constructor call time
+	void init(){
 		table = new map<long int, table_cell_t>[SYS_NUM_OF_CORES];
 	}
 	int add_cell(long int page_addr, int current_node, pid_t tid, int latency, int cpu, int cpu_node, bool is_cache_miss);

@@ -55,6 +55,10 @@ const char* names[] = {"acs", "min", "avg", "max", "alt"};
 int pages(unsigned int step, memory_data_list_t memory_list, page_table_t *page_t){
 	current_step=step;
 
+	if(step == 0){
+		page_t->init();
+	}
+
 	// Builds table
 	build_page_table(memory_list, page_t);
 
