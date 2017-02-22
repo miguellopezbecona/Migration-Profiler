@@ -16,6 +16,10 @@ int build_page_table(memory_data_list_t memory_list, page_table_t *page_t){
 	for(int i=0;i<memory_list.list.size();i++){
 		m_cell = memory_list.list[i];
 
+		// The table stores data for its PID
+		if(m_cell.pid != page_t->pid)
+			continue;
+
 		// This gets page address with offset 0
 		long int page_addr = m_cell.addr & ~((long int)(pagesize -1));
 
@@ -29,7 +33,7 @@ int build_page_table(memory_data_list_t memory_list, page_table_t *page_t){
 		if(page_node < 0 || cpu_node == -1)
 			continue;
 
-		ret = page_t->add_cell(page_num, page_node, m_cell.tid, m_cell.latency, m_cell.cpu, cpu_node, m_cell.is_cache_miss());
+		ret = page_t->add_cell(page_addr, page_node, m_cell.tid, m_cell.latency, m_cell.cpu, cpu_node, m_cell.is_cache_miss());
 	}
 	return ret;	
 }
@@ -39,26 +43,23 @@ inline int get_page_current_node(pid_t pid, long int pageAddr){
 	void **pages = (void **)calloc(1,sizeof(long int *));
 	pages[0] = (void *)pageAddr;
 	int *status = (int*)calloc(1,sizeof(int));
-	int flags = MPOL_MF_MOVE;
 
 	//printf("getting page current node for tid %d and pageAddr 0x%016lx\n",pid,(long int)pages[0]);
-	numa_move_pages(pid,count,pages,NULL,status,flags); // If nodes is NULL, in status we obtain the node where the page is
+	numa_move_pages(pid,count,pages,NULL,status,MPOL_MF_MOVE); // If nodes is NULL, in status we obtain the node where the page is
 	//printf("%d\n",status[0]);
 
 	return status[0];
 }
 
-// Badly placed, will be changed later
-#define NUM_FILES 5
-FILE *fps[NUM_FILES];
+
 const char* names[] = {"acs", "min", "avg", "max", "alt"};
-int pages(unsigned int step, memory_data_list_t memory_list, page_table_t *page_t){
+FILE *fps[NUM_FILES];
+int pages(unsigned int step, pid_t pid, memory_data_list_t memory_list, page_table_t *page_t){
 	current_step=step;
 
-	// Just a dynamic allocation
+	// Initialization at first step
 	if(step == 0)
-		page_t->init();
-
+		page_t->init(pid);
 
 	// Builds table
 	build_page_table(memory_list, page_t);
@@ -80,13 +81,15 @@ int pages(unsigned int step, memory_data_list_t memory_list, page_table_t *page_
 
 		page_t->print_heatmaps(fps, NUM_FILES-1);
 		page_t->print_alt_graph(fps[NUM_FILES-1]);
-		//page_t->print_table1();
-		//page_t->print_table2();
+
 
 		// Closes files
 		for(int i=0;i<NUM_FILES;i++)
 			fclose(fps[i]);
 		#endif
+
+		//page_t->print_table1();
+		//page_t->print_table2();
 
 		page_t->calculate_performance_tid(1000);
 		page_t->calculate_performance_page(1000);

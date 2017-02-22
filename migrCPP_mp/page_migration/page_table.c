@@ -1,50 +1,56 @@
 #include "page_table.h"
 
 /*** table_cell_t ***/
-table_cell_t::table_cell(pid_t tid, int latency, int cpu, bool is_cache_miss){
+table_cell_t::table_cell(int latency, bool is_cache_miss){
 	latencies.push_back(latency);
 	cache_misses = (unsigned) is_cache_miss;
-
-	//accesses_l.add_cell(tid, latency, cpu);
 }
 
-int table_cell_t::update(pid_t tid, int latency, int cpu, bool is_cache_miss){
+void table_cell_t::update(int latency, bool is_cache_miss){
 	latencies.push_back(latency);
 	cache_misses += (unsigned) is_cache_miss;
-
-	//accesses_l.add_cell(tid, latency, cpu);
-	return 2;
 }
 
 void table_cell_t::print(){
 	printf("M_LAT %.2f, T_ACC %lu, CACH_MIS: %u\n", accumulate(latencies.begin(), latencies.end(), 0.0) / latencies.size(), latencies.size(), cache_misses);
-	//accesses_l.print();
 }
 
 /*** page_table_t ***/
 int page_table_t::add_cell(long int page_addr, int current_node, pid_t tid, int latency, int cpu, int cpu_node, bool is_cache_miss){
-	table_cell_t *cell = get_cell(page_addr, cpu);
+	table_cell_t *cell = get_cell(page_addr, tid);
 
 	if(cell == NULL) {
-		table_cell_t aux(tid,latency,cpu,is_cache_miss);
-		table[cpu][page_addr] = aux;
+		table_cell_t aux(latency, is_cache_miss);
 		uniq_addrs.insert(page_addr); // Adds address to the set, won't be inserted if already added by other threads
+
+		// If TID does not exist in map, we associate a index to it
+		if(tid_index.count(tid) == 0){
+			tid_index[tid] = table_index;
+			table_index++;
+		}
+		int pos = tid_index[tid];
+		table[pos][page_addr] = aux;
 	} else
-		cell->update(tid,latency,cpu,is_cache_miss);
+		cell->update(latency, is_cache_miss);
 	
-	page_node_map[page_addr].current_mem_node = current_node; // Creates/updates association in page node map
+	page_node_map[page_addr].current_place = current_node; // Creates/updates association in page node map
 
 	return 0;
 }
 
-bool page_table_t::contains_addr(long int page_addr, int cpu){
-	return table[cpu].count(page_addr) > 0;
+bool page_table_t::contains_addr(long int page_addr, int tid){
+	if(tid_index.count(tid) == 0)
+		return false;
+
+	int pos = tid_index[tid];
+	return table[pos].count(page_addr) > 0;
 }
 
-vector<int> page_table_t::get_latencies_from_cell(long int page_addr, int cpu){
-	if(contains_addr(page_addr,cpu))
-		return table[cpu][page_addr].latencies;
-	else {
+vector<int> page_table_t::get_latencies_from_cell(long int page_addr, int tid){
+	if(contains_addr(page_addr,tid)){
+		int pos = tid_index[tid];
+		return table[pos][page_addr].latencies;
+	} else {
 		vector<int> v;
 		return v;
 	}
@@ -52,22 +58,22 @@ vector<int> page_table_t::get_latencies_from_cell(long int page_addr, int cpu){
 
 
 // Returns NULL if no association
-table_cell_t* page_table_t::get_cell(long int page_addr, int cpu){
-	if(contains_addr(page_addr,cpu))
-		return &table[cpu][page_addr];
-	else
+table_cell_t* page_table_t::get_cell(long int page_addr, int tid){
+	if(contains_addr(page_addr,tid)){
+		int pos = tid_index[tid];
+		return &table[pos][page_addr];
+	} else
 		return NULL;
 }
 
-int page_table_t::reset_cell(long int page_addr, int current_node){
-	table_cell_t *cell = NULL;
-	for(int i=0;i<SYS_NUM_OF_CORES;i++){
-		cell = get_cell(page_addr, i);
+int page_table_t::reset_column(long int page_addr, int current_node){
+	for(map<int, short>::iterator it = tid_index.begin(); it != tid_index.end(); ++it) {
+		table_cell_t *cell = get_cell(page_addr, it->first);
 		if(cell != NULL)
 			cell->latencies.clear();
 	}
 	
-	page_node_map[page_addr].current_mem_node = current_node;
+	page_node_map[page_addr].current_place = current_node;
 	return 0;
 }
 
@@ -77,19 +83,21 @@ void page_table_t::clear(){
 }
 
 void page_table_t::print(){
-	printf("page table\n");
+	printf("Page table for PID: %d\n", pid);
 
-	long int page_addr;
-	table_cell_t cell;
-	for(int i=0;i<SYS_NUM_OF_CORES;i++){
-		if(table[i].empty())
-			printf("empty for %d cpu", i);
+	for(map<int, short>::iterator t_it = tid_index.begin(); t_it != tid_index.end(); ++t_it) {
+		int tid = t_it->first;
+		int pos = t_it->second;
+
+		printf("TID: %d\n", tid);
+		if(table[pos].empty())
+			printf("\tEmpty.\n");
 		
-		for(map<long int, table_cell_t>::iterator it = table[i].begin(); it != table[i].end(); ++it) {
-			page_addr = it->first;
-			cell = it->second;
+		for(map<long int, table_cell_t>::iterator it = table[pos].begin(); it != table[pos].end(); ++it) {
+			long int page_addr = it->first;
+			table_cell_t cell = it->second;
 			
-			printf("PAGE_ADDR: %lx, CURRENT_NODE: %d, ", page_addr, page_node_map[page_addr].current_mem_node);
+			printf("\tPAGE_ADDR: %lx, CURRENT_NODE: %d, ", page_addr, page_node_map[page_addr].current_place);
 			cell.print();
 		}
 		printf("\n");
@@ -107,8 +115,8 @@ void page_table_t::print_heatmaps(FILE **fps, int num_fps){
 		fprintf(fps[i], "addr,");
 
 		// Threads' ID
-		for(int j=0;j<SYS_NUM_OF_CORES;j++)
-			fprintf(fps[i], "T%d,", j);
+		for(map<int, short>::iterator t_it = tid_index.begin(); t_it != tid_index.end(); ++t_it)
+			fprintf(fps[i], "T-%d,", t_it->first);
 		fprintf(fps[i], "\n");
 	}
 
@@ -120,9 +128,9 @@ void page_table_t::print_heatmaps(FILE **fps, int num_fps){
 		for(int i=0;i<num_fps;i++)
 			fprintf(fps[i], "%lx,", addr);
 
-		// Writes data for each thread/core
-		for(int i=0;i<SYS_NUM_OF_CORES;i++){
-			vector<int> l = get_latencies_from_cell(addr,i);
+		// Writes data for each thread
+		for(map<int, short>::iterator t_it = tid_index.begin(); t_it != tid_index.end(); ++t_it) {
+			vector<int> l = get_latencies_from_cell(addr, t_it->first);
 
 			// No data
 			if(l.empty()){
@@ -131,7 +139,7 @@ void page_table_t::print_heatmaps(FILE **fps, int num_fps){
 				continue;
 			}
 
-			accesses[i] += l.size();
+			accesses[t_it->second] += l.size();
 
 			// Calculates data
 			int num_accesses = l.size();
@@ -198,20 +206,21 @@ void page_table_t::print_table1(){
 		printf("\tN%d", i);
 	printf("\n");
 
-	// For each CPU (row)...
-	for(int i=0;i<SYS_NUM_OF_CORES;i++){
+	// For each thread (row)...
+	for(map<int, short>::iterator t_it = tid_index.begin(); t_it != tid_index.end(); ++t_it) {
 		memset(counters, 0, sizeof(counters)); // Zero reset
 		
 		// For each map entry, gets address and sums accesses to counters[page_node]
-		for(map<long int, table_cell_t>::iterator it = table[i].begin(); it != table[i].end(); ++it) {
+		int pos = t_it->second;
+		for(map<long int, table_cell_t>::iterator it = table[pos].begin(); it != table[pos].end(); ++it) {
 			page_addr = it->first;
 			cell = it->second;
-			page_node = page_node_map[page_addr].current_mem_node;
+			page_node = page_node_map[page_addr].current_place;
 			counters[page_node] += cell.latencies.size(); // What if those accesses were done when page was in another node?...
 		}
 
 		// Prints results
-		printf("T%d:", i);
+		printf("T-%d:", t_it->first);
 		for(int j=0;j<SYS_NUM_OF_MEMORIES;j++)
 			printf("\t%d", counters[j]);
 		printf("\n");
@@ -230,10 +239,7 @@ p1	acc_1_n0	acc_1_n1
 acc_i_nj: accesses to page_i from threads/cpus in node_j
 */
 void page_table_t::print_table2(){
-	long int page_addr;
-	table_cell_t* cell;
 	int counters[SYS_NUM_OF_MEMORIES];
-	int cpu_node;
 
 	// Initial print
 	printf("\t");
@@ -245,20 +251,21 @@ void page_table_t::print_table2(){
 	const int LIMIT = 50;
 	int i = 0;
 
-	//for (set<long int>::iterator it = uniq_addrs.begin(); it != uniq_addrs.end(); ++it){
-	for (set<long int>::iterator it = uniq_addrs.end(); it != uniq_addrs.begin() && i<LIMIT; --it, i++){
-		page_addr = *it;
+	for (set<long int>::iterator it = uniq_addrs.begin(); it != uniq_addrs.end(); ++it){
+	//for (set<long int>::iterator it = uniq_addrs.end(); it != uniq_addrs.begin() && i<LIMIT; --it, i++){
+		long int page_addr = *it;
 
 		memset(counters, 0, sizeof(counters)); // Zero reset
 		
-		// For each CPU, gets page cell and sums accesses to counters[cpu_node]
-		for(int j=0;j<SYS_NUM_OF_CORES;j++){
-
-			// TODO: for now works well for CPUs, then this will be changed to TIDs
-			cpu_node = get_cpu_memory_cell(j);
-			cell = get_cell(page_addr, j);
-			if(cell != NULL)
+		// For each thread, gets page cell and sums accesses to counters[cpu_node]
+		for(map<int, short>::iterator t_it = tid_index.begin(); t_it != tid_index.end(); ++t_it) {
+			table_cell_t* cell = get_cell(page_addr, t_it->first);
+			if(cell != NULL){
+				// For getting the memory cell, we need the core first
+				int core = get_tid_core(t_it->first);
+				int cpu_node = get_cpu_memory_cell(core);
 				counters[cpu_node] += cell->latencies.size();
+			}
 		}
 
 		// Prints results
@@ -291,9 +298,9 @@ void page_table_t::calculate_performance_page(int threshold){
 		int threads_accessed = 0;
 		int num_acs_thres = 0;
 
-		// A thread/CPU has accessed to the page if its cell is not null
-		for(int i=0;i<SYS_NUM_OF_CORES;i++){
-			vector<int> l = get_latencies_from_cell(addr,i);
+		// A thread has accessed to the page if its cell is not null
+		for(map<int, short>::iterator t_it = tid_index.begin(); t_it != tid_index.end(); ++t_it) {
+			vector<int> l = get_latencies_from_cell(addr, t_it->first);
 			
 			// No data
 			if(l.empty())
@@ -328,14 +335,16 @@ void page_table_t::calculate_performance_page(int threshold){
 
 // Fills only tid_node_map
 void page_table_t::calculate_performance_tid(int threshold){
-	// Loops over cores/TIDs
-	for(int i=0;i<SYS_NUM_OF_CORES;i++){
+	// Loops over TIDs
+	for(map<int, short>::iterator t_it = tid_index.begin(); t_it != tid_index.end(); ++t_it) {
 		vector<int> l_thres;
 		int pages_accessed = 0;
 		int num_acs_thres = 0;
 
-		// Loops over page entries for that core/TID
-		for (map<long int, table_cell_t>::iterator it = table[i].begin(); it != table[i].end(); ++it){
+		// Loops over page entries for that TID
+		pid_t tid = t_it->first;
+		int pos = t_it->second;
+		for (map<long int, table_cell_t>::iterator it = table[pos].begin(); it != table[pos].end(); ++it){
 			vector<int> l = it->second.latencies;
 
 			pages_accessed++;
@@ -353,8 +362,8 @@ void page_table_t::calculate_performance_tid(int threshold){
 		}
 
 		// After all the internal iterations ends, updates data in TID map
-		perf_data_t *cell = &tid_node_map[i]; // For now works, but it should be used TIDs instead of CPU IDs
-		cell->current_mem_node = get_cpu_memory_cell(i); // Bad! It should get TID's node, not CPU's. This issue will require a big rewrite
+		perf_data_t *cell = &tid_node_map[tid];
+		cell->current_place = get_tid_core(tid);
 		cell->num_uniq_accesses = pages_accessed;
 		cell->num_acs_thres = num_acs_thres;
 
@@ -440,7 +449,7 @@ void page_table_t::print_performance(){
 }
 
 void perf_data::print(){
-	printf("MEM_NODE %d, UNIQ_ACS %d, ACS_THRES: %d", current_mem_node, num_uniq_accesses, num_acs_thres);
+	printf("MEM_NODE %d, UNIQ_ACS %d, ACS_THRES: %d", current_place, num_uniq_accesses, num_acs_thres);
 
 	if(num_acs_thres > 0)
 		printf(", MIN_LAT: %d, MEDIAN_LAT: %d, MAX_LAT: %d", min_latency, median_latency, max_latency);

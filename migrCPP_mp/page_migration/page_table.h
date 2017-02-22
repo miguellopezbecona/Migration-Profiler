@@ -19,19 +19,17 @@ using namespace std;
 
 typedef struct table_cell {
 	vector<int> latencies;
-
-	//tid_page_accesses_list_t accesses_l;
 	unsigned cache_misses;
 
 	table_cell(){}
-	table_cell(pid_t tid, int latency, int cpu, bool is_cache_miss);
+	table_cell(int latency, bool is_cache_miss);
 	void print();
-	int update(pid_t tid, int latency, int cpu, bool is_cache_miss);
+	void update(int latency, bool is_cache_miss);
 } table_cell_t;
 
 // For threads and memory pages
 typedef struct perf_data {
-	unsigned char current_mem_node;
+	unsigned char current_place; // Mem node for pages or core for TIDs
 	unsigned short int num_uniq_accesses;
 	unsigned short int num_acs_thres; // Always equal or lower than num_uniq_accesses
 	int min_latency;
@@ -42,9 +40,11 @@ typedef struct perf_data {
 	void print();
 } perf_data_t;
 
-typedef struct page_table{
-	map<long int, table_cell_t> *table; // Matrix/table where rows are threads and columns are indexed by page address
+typedef struct page_table {
+	map<long int, table_cell_t> *table; // Matrix/table where rows are threads (uses index from tid_index) and columns are indexed by page address
 	set<long int> uniq_addrs; // All different addresses, useful for heatmap printing
+	map<int, short> tid_index; // Translates TID to table index
+	short table_index; // A bit dirty way to translate TID to index incrementally
 
 	map<long int, perf_data_t> page_node_map; // Maps page address to memory node and other data
 	map<int, perf_data_t> tid_node_map; // Maps TID to memory node and other data
@@ -52,14 +52,16 @@ typedef struct page_table{
 	pid_t pid;
 
 	// No constructor because SYS_NUM_OF_CORES is not defined at constructor call time
-	void init(){
+	void init(pid_t p){
+		pid = p;
+		table_index = 0;
 		table = new map<long int, table_cell_t>[SYS_NUM_OF_CORES];
 	}
 	int add_cell(long int page_addr, int current_node, pid_t tid, int latency, int cpu, int cpu_node, bool is_cache_miss);
 	bool contains_addr(long int page_addr, int cpu);
 	table_cell_t* get_cell(long int page_addr, int cpu);
 	vector<int> get_latencies_from_cell(long int page_addr, int cpu);
-	int reset_cell(long int page_addr, int current_node);
+	int reset_column(long int page_addr, int current_node);
 	void clear();
 	void print();
 

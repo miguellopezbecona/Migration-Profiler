@@ -1,5 +1,6 @@
 #include "migration_cell.h"
 
+// It moves only one page at once, could be arrange to move more
 void migration_cell_t::perform_page_migration(pid_t pid){
 	void **page = (void **)calloc(1,sizeof(long int *));
 	page[0] = (void*) &elem.page_addr;

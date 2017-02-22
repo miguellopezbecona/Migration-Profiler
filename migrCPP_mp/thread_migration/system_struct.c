@@ -4,8 +4,12 @@
 int SYS_NUM_OF_CORES;
 int SYS_NUM_OF_MEMORIES;
 int SYS_CORES_PER_MEMORY;
+
 int* cpu_node_map; // cpu_node_map[cpu] = node
 vector<int> node_cpu_map[MAX_PACKAGES]; // cpu_node_map[node] = list(cpus)
+
+map<int, int> tid_core_map;
+int* core_tid_map;
 
 // Gets info about number of cores, memory nodes and creates two maps (cpu to node and node to cpu)
 int detect_system() {
@@ -15,6 +19,8 @@ int detect_system() {
 
 	SYS_NUM_OF_CORES = sysconf(_SC_NPROCESSORS_ONLN);
 	cpu_node_map = (int*)malloc(SYS_NUM_OF_CORES*sizeof(int));
+
+	core_tid_map = (int*)malloc(SYS_NUM_OF_CORES*sizeof(int));
 
 	// For each CPU, reads topology file to get package (node) id
 	for(int i=0;i<SYS_NUM_OF_CORES;i++) {
@@ -54,4 +60,8 @@ int get_cpu_memory_cell(int cpu){
 int get_random_core_in_cell(int cell){
 	int position = rand() % SYS_CORES_PER_MEMORY;
 	return node_cpu_map[cell][position];
+}
+
+int get_tid_core(pid_t tid){
+	return tid_core_map[tid];
 }

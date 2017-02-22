@@ -6,7 +6,7 @@
 #include <errno.h>
 #include <sched.h>
 
-//for numa_move_pages, link with -lnuma
+// For numa_move_pages, link with -lnuma
 #include <numa.h>
 #include <numaif.h>
 
