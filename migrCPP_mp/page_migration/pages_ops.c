@@ -33,6 +33,7 @@ int build_page_table(memory_data_list_t memory_list, page_table_t *page_t){
 		if(page_node < 0 || cpu_node == -1)
 			continue;
 
+		set_tid_core(m_cell.tid, m_cell.cpu); // Get TID location (core)
 		ret = page_t->add_cell(page_addr, page_node, m_cell.tid, m_cell.latency, m_cell.cpu, cpu_node, m_cell.is_cache_miss());
 	}
 	return ret;	
@@ -82,7 +83,6 @@ int pages(unsigned int step, pid_t pid, memory_data_list_t memory_list, page_tab
 		page_t->print_heatmaps(fps, NUM_FILES-1);
 		page_t->print_alt_graph(fps[NUM_FILES-1]);
 
-
 		// Closes files
 		for(int i=0;i<NUM_FILES;i++)
 			fclose(fps[i]);
@@ -93,7 +93,7 @@ int pages(unsigned int step, pid_t pid, memory_data_list_t memory_list, page_tab
 
 		page_t->calculate_performance_tid(1000);
 		page_t->calculate_performance_page(1000);
-		//page_t->print_performance();
+		page_t->print_performance();
 	}
 
 	return 0;

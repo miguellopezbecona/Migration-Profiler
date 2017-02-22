@@ -177,9 +177,9 @@ void page_table_t::print_alt_graph(FILE *fp){
 		long int addr = *it;
 		int threads_accessed = 0;		
 
-		// A thread/CPU has accessed to the page if its cell is not null
-		for(int i=0;i<SYS_NUM_OF_CORES;i++)
-			threads_accessed += ( get_cell(addr,i) != NULL );
+		// A thread has accessed to the page if its cell is not null
+		for(map<int, short>::iterator t_it = tid_index.begin(); t_it != tid_index.end(); ++t_it)
+			threads_accessed += ( get_cell(addr, t_it->first) != NULL );
 
 		// Prints row (row name and data) to file
 		fprintf(fp, "%lx,%d\n", addr, threads_accessed);
@@ -193,7 +193,7 @@ t0	acc_0_n0	acc_0_n1
 t1	acc_1_n0	acc_1_n1
 ...
 
-acc_i_nj: thread/cpu_i accesses to pages in node_j
+acc_i_nj: thread_i accesses to pages in node_j
 */
 void page_table_t::print_table1(){
 	long int page_addr;
@@ -236,7 +236,7 @@ p0	acc_0_n0	acc_0_n1
 p1	acc_1_n0	acc_1_n1
 ...
 
-acc_i_nj: accesses to page_i from threads/cpus in node_j
+acc_i_nj: accesses to page_i from threads in node_j
 */
 void page_table_t::print_table2(){
 	int counters[SYS_NUM_OF_MEMORIES];
@@ -270,7 +270,7 @@ void page_table_t::print_table2(){
 
 		// Prints results
 		printf("P%lx:", page_addr);
-		for(int j=0;i<SYS_NUM_OF_MEMORIES;j++)
+		for(int j=0;j<SYS_NUM_OF_MEMORIES;j++)
 			printf("\t%d", counters[j]);
 		printf("\n");
 	}
@@ -289,6 +289,18 @@ int get_median_from_list(vector<int> l){
 		return l[size / 2];
 }
 
+/** The goal of these functions is to update page_node_map and tid_node_map so:
+	  - We get from each memory page:
+	    -- How many different threads accessed to it.
+	    -- How many different threads accessed to it with a latency bigger than a threshold.
+	    -- The average latency from those accesses.
+	  - We get from each thread:
+	    -- How many different memory pages it had accessed to.
+	    -- How many different memory pages it had accessed with a latency bigger than a threshold to.
+	    -- The average latency from those accesses.
+	This info will be crucial to design a migration strategy.
+	This implies looping over the table.
+*/
 // Fills only page_node_map
 void page_table_t::calculate_performance_page(int threshold){
 	// Loops over memory pages
@@ -375,65 +387,6 @@ void page_table_t::calculate_performance_tid(int threshold){
 	}
 }
 
-
-/** [TODO]
-	The goal of this function is to update page_node_map and tid_node_map so:
-	  - We get from each memory page:
-	    -- How many different threads accessed to it.
-	    -- How many different threads accessed to it with a latency bigger than a threshold.
-	    -- The average latency from those accesses.
-	  - We get from each thread:
-	    -- How many different memory pages it had accessed to.
-	    -- How many different memory pages it had accessed with a latency bigger than a threshold to.
-	    -- The average latency from those accesses.
-	This info will be crucial to design a migration strategy.
-	This implies looping over the table.
-*/
-void page_table_t::calculate_performance(int threshold){
-
-	map<int, int> threads_accessed;
-	
-	// Loops over cores/TIDs
-	for(int i=0;i<SYS_NUM_OF_CORES;i++){
-		vector<int> l_thres;
-		int pages_accessed = 0;
-		int num_acs_thres = 0;
-
-		// Loops over page entries for that core/TID
-		for (map<long int, table_cell_t>::iterator it = table[i].begin(); it != table[i].end(); ++it){
-			long int addr = it->first;
-			vector<int> l = it->second.latencies;
-
-			// An entry in the table means memory page "addr" has ben accessed by one more thread
-			threads_accessed[addr]++;
-			
-			pages_accessed++;
-
-			// Calculates if there is at least a latency bigger than the threshold and keeps them
-			bool upper_thres = 0;
-			for(size_t j=0;j<l.size();j++){
-				if(l[j] > threshold) {
-					l_thres.push_back(l[j]);
-					upper_thres = true;
-				}
-			}
-			num_acs_thres += upper_thres;
-			
-		}
-
-		// After all the internal iterations ends, updates data in TID map
-		perf_data_t *cell = &tid_node_map[i];
-		cell->num_uniq_accesses = pages_accessed;
-		cell->num_acs_thres = num_acs_thres;
-
-		if(!l_thres.empty()){
-			cell->median_latency = get_median_from_list(l_thres);
-			cell->min_latency = *(min_element(l_thres.begin(), l_thres.end()));
-			cell->max_latency = *(max_element(l_thres.begin(), l_thres.end()));
-		}
-	}
-}
-
 void page_table_t::print_performance(){
 	for (auto it = page_node_map.begin(); it != page_node_map.end(); ++it){
 		printf("%lx: ", it->first);
@@ -449,7 +402,7 @@ void page_table_t::print_performance(){
 }
 
 void perf_data::print(){
-	printf("MEM_NODE %d, UNIQ_ACS %d, ACS_THRES: %d", current_place, num_uniq_accesses, num_acs_thres);
+	printf("MEM_NODE/CORE: %d, UNIQ_ACS: %d, ACS_THRES: %d", current_place, num_uniq_accesses, num_acs_thres);
 
 	if(num_acs_thres > 0)
 		printf(", MIN_LAT: %d, MEDIAN_LAT: %d, MAX_LAT: %d", min_latency, median_latency, max_latency);

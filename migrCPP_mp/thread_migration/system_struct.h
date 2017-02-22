@@ -31,3 +31,4 @@ int get_cpu_memory_cell(int cpu);
 bool is_in_same_memory_cell(int cpu1, int cpu2);
 int get_random_core_in_cell(int cell);
 int get_tid_core(pid_t tid);
+void set_tid_core(pid_t tid, int core);

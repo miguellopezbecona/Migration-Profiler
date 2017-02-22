@@ -65,3 +65,8 @@ int get_random_core_in_cell(int cell){
 int get_tid_core(pid_t tid){
 	return tid_core_map[tid];
 }
+
+void set_tid_core(pid_t tid, int core){
+	tid_core_map[tid] = core;
+	core_tid_map[core] = tid;
+}
