@@ -11,11 +11,8 @@
 #include <algorithm> // min_element and max_element
 using namespace std;
 
-/* USES tid_page_accesses_list.h */
-#include "tid_page_accesses_list.h"
-
 // Needs to know the system
-#include "../thread_migration/system_struct.h"
+#include "system_struct.h"
 
 typedef struct table_cell {
 	vector<int> latencies;

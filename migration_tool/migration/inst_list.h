@@ -1,5 +1,4 @@
-#ifndef __INST_LIST_H__
-#define __INST_LIST_H__
+#pragma once
 
 #include <stdio.h> // printf
 #include <string.h> // memset
@@ -15,8 +14,6 @@ typedef struct inst_data_cell{
 	int pid;
 	int tid;
 	uint64_t inst;
-//	uint64_t sse_d;
-//	uint64_t sse_s;
 	uint64_t req_dr;
 	uint64_t time;
 
@@ -37,4 +34,3 @@ typedef struct inst_data_list{
 	int create_increments();
 } inst_data_list_t;
 
-#endif

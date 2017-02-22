@@ -5,8 +5,8 @@
 #include "inst_list.h"
 
 // Pages
-#include "../page_migration/pages_ops.h"
-#include "../page_migration/migration_algorithm.h"
+#include "pages_ops.h"
+#include "migration_algorithm.h"
 
 #define ACTIVATE_THREAD_MIGRATION 0
 #define ACTIVATE_PAGE_MIGRATION 1

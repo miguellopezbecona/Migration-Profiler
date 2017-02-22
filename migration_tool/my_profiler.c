@@ -1,5 +1,5 @@
 /*
- * syst_smpl.c - example of a system-wide sampling
+ * Based on syst_smpl.c - example of a system-wide sampling
  *
  * Copyright (c) 2010 Google, Inc
  * Contributed by Stephane Eranian <eranian@gmail.com>
@@ -47,14 +47,12 @@
 #include <locale.h>
 #include <inttypes.h>
 #include <time.h>
-//To fix in a core
-#include <sched.h>
 
 #include "perfmon/perf_util.h"
 
 //ADDED
 #include "common_util.h"
-#include "thread_migration/thread_migration.h" // do_migration_and_clear_temp_list
+#include "migration/thread_migration.h" // do_migration_and_clear_temp_list
 
 unsigned int anti_inf_loop_counter=0; 
 

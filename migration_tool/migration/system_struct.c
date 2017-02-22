@@ -1,4 +1,3 @@
-#include <stdlib.h> // rand()
 #include "system_struct.h"
 
 int SYS_NUM_OF_CORES;

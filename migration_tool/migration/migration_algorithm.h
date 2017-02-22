@@ -1,7 +1,5 @@
 #pragma once
 
-#define MIGRATION_OUTPUT
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -10,7 +8,9 @@
 #include "page_table.h"
 
 // Needs to know the system
-#include "../thread_migration/system_struct.h"
+#include "system_struct.h"
+
+#define MIGRATION_OUTPUT
 
 extern int total_thread_migrations;
 extern int total_page_migrations;

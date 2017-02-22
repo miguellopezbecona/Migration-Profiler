@@ -93,7 +93,7 @@ int pages(unsigned int step, pid_t pid, memory_data_list_t memory_list, page_tab
 
 		page_t->calculate_performance_tid(1000);
 		page_t->calculate_performance_page(1000);
-		page_t->print_performance();
+		//page_t->print_performance();
 	}
 
 	return 0;

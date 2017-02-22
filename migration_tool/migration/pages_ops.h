@@ -7,7 +7,7 @@
 #include <numaif.h>
 
 // Uses some structures
-#include "../thread_migration/memory_list.h"
+#include "memory_list.h"
 #include "page_table.h"
 
 //#define PRINT_CSVS

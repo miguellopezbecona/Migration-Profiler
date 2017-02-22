@@ -1,5 +1,4 @@
-#ifndef __MEMORY_LIST_H__
-#define __MEMORY_LIST_H__
+#pragma once
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -30,4 +29,3 @@ typedef struct memory_data_list{
 	void print();
 } memory_data_list_t;
 
-#endif
