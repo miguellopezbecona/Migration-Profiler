@@ -1,7 +1,5 @@
 #include "migration_algorithm.h"
 
-#include "migration_cell.h"
-
 #include "../strategies/random.h"
 
 int total_thread_migrations = 0;

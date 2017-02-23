@@ -2,20 +2,10 @@
 
 memory_data_list_t memory_data_list;
 inst_data_list_t inst_data_list;
-page_table_t main_page_table; // Associated to a specific PID
+map<pid_t, page_table_t> page_tables; // Each table is associated to a specific PID
 
 unsigned int step = 0;
 bool action = false;
-
-int do_migration(pid_t pid);
-
-
-int do_migration_and_clear_temp_list(pid_t pid, int do_thread_migration, int do_page_migration){
-	do_migration(pid);
-	//printf("mem %lu, inst %lu\n", memory_data_list.list.size(), inst_data_list.list.size());
-	memory_data_list.clear();
-	inst_data_list.clear();
-}	
 
 //>0 if addr_sample, 0 if inst_sample
 bool is_addr_sample(my_pebs_sample_t sample){
@@ -34,30 +24,30 @@ int process_inst_sample(my_pebs_sample_t sample){
 }
 
 // For use with no output
-int process_my_pebs_sample(pid_t pid, my_pebs_sample_t sample){
+int process_my_pebs_sample(my_pebs_sample_t sample){
 	if(is_addr_sample(sample))
 		return process_addr_sample(sample);
 	else
 		return process_inst_sample(sample);
 }
 
-int do_migration(pid_t pid){
+int begin_migration_process(vector<pid_t> pids, int do_thread_migration, int do_page_migration){
+
 	//printf("\nPrinting memory list...\n");
 	//memory_data_list.print();
 
 	//printf("\nPrinting instructions list...\n");
 	//inst_data_list.print();
 
-	int ret = inst_data_list.create_increments();
-	if(ret==-1){
-		printf("No instruction data needed for migration\n");
-		return RET_NO_INST;
-	}
-	//printf("increments created\n");
+	// Let's take out the data we are not interested in
+	memory_data_list.filter_by_pids(pids);
+
+	inst_data_list.create_increments();
+	//printf("Printing inst list after creating increments...\n");
 	//inst_data_list.print();
 
-	// Builds pages table
-	pages(step, pid, memory_data_list, &main_page_table);
+	// Builds pages tables for each PID
+	pages(step, pids, memory_data_list, &page_tables);
 
 	// This can be uncommented to alternate between migrating pages and threads each iteration
 	/*
@@ -73,8 +63,17 @@ int do_migration(pid_t pid){
 	*/
 
 	// Migrates threads and/or pages
-	perform_migration_strategy(pid, &main_page_table);
+	for (map<pid_t, page_table_t>::iterator it = page_tables.begin(); it != page_tables.end(); ++it){
+		printf("Performing migration strategy for PID: %d\n", it->first);
+		perform_migration_strategy(it->first, &it->second);
+		//it->second.print();
+	}
 	
 	step++;
+
+	//printf("Mem list size: %lu, inst list size: %lu\n", memory_data_list.list.size(), inst_data_list.list.size());
+	memory_data_list.clear();
+	inst_data_list.clear();
+
 	return 0;
 }
