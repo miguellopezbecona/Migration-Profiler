@@ -22,8 +22,8 @@
 #ifndef __PFMLIB_PERF_EVENTS_H__
 #define __PFMLIB_PERF_EVENTS_H__
 
-#include <perfmon/pfmlib.h>
-#include <perfmon/perf_event.h>
+#include "pfmlib.h"
+#include "perf_event.h"
 
 #pragma GCC visibility push(default)
 
