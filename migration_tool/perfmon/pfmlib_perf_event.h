@@ -22,9 +22,10 @@
 #ifndef __PFMLIB_PERF_EVENTS_H__
 #define __PFMLIB_PERF_EVENTS_H__
 
-#include "pfmlib.h"
-#include "perf_event.h"
-//#include <linux/perf_event.h>
+#include <perfmon/pfmlib.h>
+#include <perfmon/perf_event.h>
+
+#pragma GCC visibility push(default)
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,7 +39,7 @@ typedef struct {
 	char **fstr;			/* out/in: fully qualified event string */
 	size_t size;			/* sizeof struct */
 	int idx;			/* out: opaque event identifier */
-	int cpu;			/* out: cpu to program */
+	int cpu;			/* out: cpu to program, -1 = not set */
 	int flags;			/* out: perf_event_open() flags */
 	int pad0;			/* explicit 64-bit mode padding */
 } pfm_perf_encode_arg_t;
@@ -61,5 +62,7 @@ extern pfm_err_t pfm_get_perf_event_encoding(const char *str,
 #ifdef __cplusplus /* extern C */
 }
 #endif
+
+#pragma GCC visibility pop
 
 #endif /* __PFMLIB_PERF_EVENT_H__ */

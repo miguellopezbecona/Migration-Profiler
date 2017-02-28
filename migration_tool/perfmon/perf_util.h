@@ -21,14 +21,13 @@
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
  * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifndef __PERF_UTIL_H__
-#define __PERF_UTIL_H__
+#pragma once
 
 #include <sys/types.h>
 #include <inttypes.h>
 #include <err.h>
 #include "pfmlib_perf_event.h"
-#include "../common_util.h"
+#include "../sample_data.h"
 
 typedef struct {
 	struct perf_event_attr hw;
@@ -54,15 +53,11 @@ extern int perf_read_buffer(perf_event_desc_t *hw, void *buf, size_t sz);
 extern void perf_free_fds(perf_event_desc_t *fds, int num_fds);
 extern void perf_skip_buffer(perf_event_desc_t *hw, size_t sz);
 
-static inline int
-perf_read_buffer_32(perf_event_desc_t *hw, void *buf)
-{
+static inline int perf_read_buffer_32(perf_event_desc_t *hw, void *buf) {
 	return perf_read_buffer(hw, buf, sizeof(uint32_t));
 }
 
-static inline int
-perf_read_buffer_64(perf_event_desc_t *hw, void *buf)
-{
+static inline int perf_read_buffer_64(perf_event_desc_t *hw, void *buf) {
 	return perf_read_buffer(hw, buf, sizeof(uint64_t));
 }
 
@@ -71,9 +66,7 @@ perf_read_buffer_64(perf_event_desc_t *hw, void *buf)
  * values[1] = TIME_ENABLED
  * values[2] = TIME_RUNNING
  */
-static inline uint64_t
-perf_scale(uint64_t *values)
-{
+static inline uint64_t perf_scale(uint64_t *values) {
 	uint64_t res = 0;
 
 	if (!values[2] && !values[1] && values[0])
@@ -87,9 +80,7 @@ perf_scale(uint64_t *values)
 	return res;
 }
 
-static inline uint64_t
-perf_scale_delta(uint64_t *values, uint64_t *prev_values)
-{
+static inline uint64_t perf_scale_delta(uint64_t *values, uint64_t *prev_values) {
 	uint64_t res = 0;
 
 	if (!values[2] && !values[1] && values[0])
@@ -107,18 +98,14 @@ perf_scale_delta(uint64_t *values, uint64_t *prev_values)
 /*
  * TIME_RUNNING/TIME_ENABLED
  */
-static inline double
-perf_scale_ratio(uint64_t *values)
-{
+static inline double perf_scale_ratio(uint64_t *values) {
 	if (!values[1])
 		return 0.0;
 
 	return values[2]*1.0/values[1];
 }
 
-static inline int
-perf_fd2event(perf_event_desc_t *fds, int num_events, int fd)
-{
+static inline int perf_fd2event(perf_event_desc_t *fds, int num_events, int fd) {
 	int i;
 
 	for(i=0; i < num_events; i++)
@@ -130,9 +117,7 @@ perf_fd2event(perf_event_desc_t *fds, int num_events, int fd)
 /*
  * id = PERF_FORMAT_ID
  */
-static inline int
-perf_id2event(perf_event_desc_t *fds, int num_events, uint64_t id)
-{
+static inline int perf_id2event(perf_event_desc_t *fds, int num_events, uint64_t id) {
 	int j;
 	for(j=0; j < num_events; j++)
 		if (fds[j].id == id)
@@ -140,9 +125,7 @@ perf_id2event(perf_event_desc_t *fds, int num_events, uint64_t id)
 	return -1;
 }
 
-static inline int
-perf_is_group_leader(perf_event_desc_t *fds, int idx)
-{
+static inline int perf_is_group_leader(perf_event_desc_t *fds, int idx) {
 	return fds[idx].group_leader == idx;
 }
 
@@ -153,4 +136,4 @@ extern uint64_t display_lost(perf_event_desc_t *hw, perf_event_desc_t *fds, int 
 extern void display_exit(perf_event_desc_t *hw, FILE *fp);
 extern void display_freq(int mode, perf_event_desc_t *hw, FILE *fp);
 void print_dsrc(void * pointer, FILE *fp);
-#endif
+

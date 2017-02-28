@@ -1,4 +1,4 @@
-#include "thread_migration.h"
+#include "migration_facade.h"
 
 memory_data_list_t memory_data_list;
 inst_data_list_t inst_data_list;

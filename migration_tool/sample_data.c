@@ -1,4 +1,4 @@
-#include "common_util.h"
+#include "sample_data.h"
 
 void my_pebs_sample_t::print(FILE *fp){
 	printf( "%#016lx ", iip);
@@ -16,9 +16,7 @@ void my_pebs_sample_t::print(FILE *fp){
 }
 
 void my_pebs_sample_t::print_for_3DyRM(FILE *fp){
-	/*
-	 * We use this format TYPE IIP PID TID TIME SAMPLE_ADDR CPU WEIGHT TIME_E TIME_R DSRC INST SSE_D SSE_S REQ_DR MEM_OPS
-	*/
+	// We use this format TYPE IIP PID TID TIME SAMPLE_ADDR CPU WEIGHT TIME_E TIME_R DSRC INST SSE_D SSE_S REQ_DR MEM_OPS
 	if(nr==1){//it is a memory sample
 		printf( "%c ",'M');
 		printf( "%#016lx ", iip);

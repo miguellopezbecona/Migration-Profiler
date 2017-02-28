@@ -26,6 +26,8 @@
 #ifndef __PFMLIB_H__
 #define __PFMLIB_H__
 
+#pragma GCC visibility push(default)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -155,6 +157,216 @@ typedef enum {
 	PFM_PMU_INTEL_SNB_UNC_CB1,	/* Intel SandyBridge C-box 1 uncore PMU */
 	PFM_PMU_INTEL_SNB_UNC_CB2,	/* Intel SandyBridge C-box 2 uncore PMU */
 	PFM_PMU_INTEL_SNB_UNC_CB3,	/* Intel SandyBridge C-box 3 uncore PMU */
+
+	PFM_PMU_INTEL_SNBEP_UNC_CB0,	/* Intel SandyBridge-EP C-Box core 0 uncore */
+	PFM_PMU_INTEL_SNBEP_UNC_CB1,	/* Intel SandyBridge-EP C-Box core 1 uncore */
+	PFM_PMU_INTEL_SNBEP_UNC_CB2,	/* Intel SandyBridge-EP C-Box core 2 uncore */
+	PFM_PMU_INTEL_SNBEP_UNC_CB3,	/* Intel SandyBridge-EP C-Box core 3 uncore */
+	PFM_PMU_INTEL_SNBEP_UNC_CB4,	/* Intel SandyBridge-EP C-Box core 4 uncore */
+	PFM_PMU_INTEL_SNBEP_UNC_CB5,	/* Intel SandyBridge-EP C-Box core 5 uncore */
+	PFM_PMU_INTEL_SNBEP_UNC_CB6,	/* Intel SandyBridge-EP C-Box core 6 uncore */
+	PFM_PMU_INTEL_SNBEP_UNC_CB7,	/* Intel SandyBridge-EP C-Box core 7 uncore */
+	PFM_PMU_INTEL_SNBEP_UNC_HA,	/* Intel SandyBridge-EP HA uncore */
+	PFM_PMU_INTEL_SNBEP_UNC_IMC0,	/* Intel SandyBridge-EP IMC socket 0 uncore */
+	PFM_PMU_INTEL_SNBEP_UNC_IMC1,	/* Intel SandyBridge-EP IMC socket 1 uncore */
+	PFM_PMU_INTEL_SNBEP_UNC_IMC2,	/* Intel SandyBridge-EP IMC socket 2 uncore */
+	PFM_PMU_INTEL_SNBEP_UNC_IMC3,	/* Intel SandyBridge-EP IMC socket 3 uncore */
+	PFM_PMU_INTEL_SNBEP_UNC_PCU,	/* Intel SandyBridge-EP PCU uncore */
+	PFM_PMU_INTEL_SNBEP_UNC_QPI0,	/* Intel SandyBridge-EP QPI link 0 uncore */
+	PFM_PMU_INTEL_SNBEP_UNC_QPI1,	/* Intel SandyBridge-EP QPI link 1 uncore */
+	PFM_PMU_INTEL_SNBEP_UNC_UBOX,	/* Intel SandyBridge-EP U-Box uncore */
+	PFM_PMU_INTEL_SNBEP_UNC_R2PCIE,	/* Intel SandyBridge-EP R2PCIe uncore */
+	PFM_PMU_INTEL_SNBEP_UNC_R3QPI0,	/* Intel SandyBridge-EP R3QPI 0 uncore */
+	PFM_PMU_INTEL_SNBEP_UNC_R3QPI1,	/* Intel SandyBridge-EP R3QPI 1 uncore */
+	PFM_PMU_INTEL_KNC,		/* Intel Knights Corner (Xeon Phi) */
+
+	PFM_PMU_S390X_CPUM_CF,		/* s390x: CPU-M counter facility */
+
+	PFM_PMU_ARM_1176,		/* ARM 1176 */
+
+	PFM_PMU_INTEL_IVB_EP,		/* Intel IvyBridge EP */
+	PFM_PMU_INTEL_HSW,		/* Intel Haswell */
+
+	PFM_PMU_INTEL_IVB_UNC_CB0,	/* Intel IvyBridge C-box 0 uncore PMU */
+	PFM_PMU_INTEL_IVB_UNC_CB1,	/* Intel IvyBridge C-box 1 uncore PMU */
+	PFM_PMU_INTEL_IVB_UNC_CB2,	/* Intel IvyBridge C-box 2 uncore PMU */
+	PFM_PMU_INTEL_IVB_UNC_CB3,	/* Intel IvyBridge C-box 3 uncore PMU */
+
+	PFM_PMU_POWER8,			/* IBM POWER8 */
+	PFM_PMU_INTEL_RAPL,		/* Intel RAPL */
+
+	PFM_PMU_INTEL_SLM,		/* Intel Silvermont */
+	PFM_PMU_AMD64_FAM15H_NB,	/* AMD AMD64 Fam15h NorthBridge */
+
+	PFM_PMU_ARM_QCOM_KRAIT,		/* Qualcomm Krait */
+	PFM_PMU_PERF_EVENT_RAW,		/* perf_events RAW event syntax */
+
+	PFM_PMU_INTEL_IVBEP_UNC_CB0,	/* Intel IvyBridge-EP C-Box core 0 uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_CB1,	/* Intel IvyBridge-EP C-Box core 1 uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_CB2,	/* Intel IvyBridge-EP C-Box core 2 uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_CB3,	/* Intel IvyBridge-EP C-Box core 3 uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_CB4,	/* Intel IvyBridge-EP C-Box core 4 uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_CB5,	/* Intel IvyBridge-EP C-Box core 5 uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_CB6,	/* Intel IvyBridge-EP C-Box core 6 uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_CB7,	/* Intel IvyBridge-EP C-Box core 7 uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_CB8,	/* Intel IvyBridge-EP C-Box core 8 uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_CB9,	/* Intel IvyBridge-EP C-Box core 9 uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_CB10,	/* Intel IvyBridge-EP C-Box core 10 uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_CB11,	/* Intel IvyBridge-EP C-Box core 11 uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_CB12,	/* Intel IvyBridge-EP C-Box core 12 uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_CB13,	/* Intel IvyBridge-EP C-Box core 13 uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_CB14,	/* Intel IvyBridge-EP C-Box core 14 uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_HA0,	/* Intel IvyBridge-EP HA 0 uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_HA1,	/* Intel IvyBridge-EP HA 1 uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_IMC0,	/* Intel IvyBridge-EP IMC socket 0 uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_IMC1,	/* Intel IvyBridge-EP IMC socket 1 uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_IMC2,	/* Intel IvyBridge-EP IMC socket 2 uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_IMC3,	/* Intel IvyBridge-EP IMC socket 3 uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_IMC4,	/* Intel IvyBridge-EP IMC socket 4 uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_IMC5,	/* Intel IvyBridge-EP IMC socket 5 uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_IMC6,	/* Intel IvyBridge-EP IMC socket 6 uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_IMC7,	/* Intel IvyBridge-EP IMC socket 7 uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_PCU,	/* Intel IvyBridge-EP PCU uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_QPI0,	/* Intel IvyBridge-EP QPI link 0 uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_QPI1,	/* Intel IvyBridge-EP QPI link 1 uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_QPI2,	/* Intel IvyBridge-EP QPI link 2 uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_UBOX,	/* Intel IvyBridge-EP U-Box uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_R2PCIE,	/* Intel IvyBridge-EP R2PCIe uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_R3QPI0,	/* Intel IvyBridge-EP R3QPI 0 uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_R3QPI1,	/* Intel IvyBridge-EP R3QPI 1 uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_R3QPI2,	/* Intel IvyBridge-EP R3QPI 2 uncore */
+	PFM_PMU_INTEL_IVBEP_UNC_IRP,	/* Intel IvyBridge-EP IRP uncore */
+
+	PFM_PMU_S390X_CPUM_SF,		/* s390x: CPU-M sampling facility */
+
+	PFM_PMU_ARM_CORTEX_A57,		/* ARM Cortex A57 (ARMv8) */
+	PFM_PMU_ARM_CORTEX_A53,		/* ARM Cortex A53 (ARMv8) */
+
+	PFM_PMU_ARM_CORTEX_A7,		/* ARM Cortex A7 */
+
+	PFM_PMU_INTEL_HSW_EP,		/* Intel Haswell EP */
+	PFM_PMU_INTEL_BDW,		/* Intel Broadwell */
+
+	PFM_PMU_ARM_XGENE,		/* Applied Micro X-Gene (ARMv8) */
+
+	PFM_PMU_INTEL_HSWEP_UNC_CB0,	/* Intel Haswell-EP C-Box core 0 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_CB1,	/* Intel Haswell-EP C-Box core 1 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_CB2,	/* Intel Haswell-EP C-Box core 2 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_CB3,	/* Intel Haswell-EP C-Box core 3 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_CB4,	/* Intel Haswell-EP C-Box core 4 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_CB5,	/* Intel Haswell-EP C-Box core 5 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_CB6,	/* Intel Haswell-EP C-Box core 6 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_CB7,	/* Intel Haswell-EP C-Box core 7 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_CB8,	/* Intel Haswell-EP C-Box core 8 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_CB9,	/* Intel Haswell-EP C-Box core 9 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_CB10,	/* Intel Haswell-EP C-Box core 10 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_CB11,	/* Intel Haswell-EP C-Box core 11 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_CB12,	/* Intel Haswell-EP C-Box core 12 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_CB13,	/* Intel Haswell-EP C-Box core 13 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_CB14,	/* Intel Haswell-EP C-Box core 14 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_CB15,	/* Intel Haswell-EP C-Box core 15 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_CB16,	/* Intel Haswell-EP C-Box core 16 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_CB17,	/* Intel Haswell-EP C-Box core 17 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_HA0,	/* Intel Haswell-EP HA 0 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_HA1,	/* Intel Haswell-EP HA 1 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_IMC0,	/* Intel Haswell-EP IMC socket 0 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_IMC1,	/* Intel Haswell-EP IMC socket 1 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_IMC2,	/* Intel Haswell-EP IMC socket 2 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_IMC3,	/* Intel Haswell-EP IMC socket 3 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_IMC4,	/* Intel Haswell-EP IMC socket 4 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_IMC5,	/* Intel Haswell-EP IMC socket 5 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_IMC6,	/* Intel Haswell-EP IMC socket 6 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_IMC7,	/* Intel Haswell-EP IMC socket 7 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_PCU,	/* Intel Haswell-EP PCU uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_QPI0,	/* Intel Haswell-EP QPI link 0 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_QPI1,	/* Intel Haswell-EP QPI link 1 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_UBOX,	/* Intel Haswell-EP U-Box uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_R2PCIE,	/* Intel Haswell-EP R2PCIe uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_R3QPI0,	/* Intel Haswell-EP R3QPI 0 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_R3QPI1,	/* Intel Haswell-EP R3QPI 1 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_R3QPI2,	/* Intel Haswell-EP R3QPI 2 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_IRP,	/* Intel Haswell-EP IRP uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_SB0,	/* Intel Haswell-EP S-Box 0 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_SB1,	/* Intel Haswell-EP S-Box 1 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_SB2,	/* Intel Haswell-EP S-Box 2 uncore */
+	PFM_PMU_INTEL_HSWEP_UNC_SB3,	/* Intel Haswell-EP S-Box 3 uncore */
+
+	PFM_PMU_POWERPC_NEST_MCS_READ_BW,   /* POWERPC Nest Memory Read bandwidth */
+	PFM_PMU_POWERPC_NEST_MCS_WRITE_BW,  /* POWERPC Nest Memory Write bandwidth */
+
+	PFM_PMU_INTEL_SKL,		/* Intel Skylake */
+
+	PFM_PMU_INTEL_BDW_EP,		/* Intel Broadwell EP */
+
+	PFM_PMU_INTEL_GLM,		/* Intel Goldmont */
+
+	PFM_PMU_INTEL_KNL,		/* Intel Knights Landing */
+	PFM_PMU_INTEL_KNL_UNC_IMC0,	/* Intel KnightLanding IMC channel 0 uncore */
+	PFM_PMU_INTEL_KNL_UNC_IMC1,	/* Intel KnightLanding IMC channel 1 uncore */
+	PFM_PMU_INTEL_KNL_UNC_IMC2,	/* Intel KnightLanding IMC channel 2 uncore */
+	PFM_PMU_INTEL_KNL_UNC_IMC3,	/* Intel KnightLanding IMC channel 3 uncore */
+	PFM_PMU_INTEL_KNL_UNC_IMC4,	/* Intel KnightLanding IMC channel 4 uncore */
+	PFM_PMU_INTEL_KNL_UNC_IMC5,	/* Intel KnightLanding IMC channel 5 uncore */
+	PFM_PMU_INTEL_KNL_UNC_IMC_UCLK0,/* Intel KnightLanding IMC UCLK unit 0 uncore */
+	PFM_PMU_INTEL_KNL_UNC_IMC_UCLK1,/* Intel KnightLanding IMC UCLK unit 1 uncore */
+	PFM_PMU_INTEL_KNL_UNC_EDC_ECLK0,/* Intel KnightLanding EDC ECLK unit 0 uncore */
+	PFM_PMU_INTEL_KNL_UNC_EDC_ECLK1,/* Intel KnightLanding EDC ECLK unit 1 uncore */
+	PFM_PMU_INTEL_KNL_UNC_EDC_ECLK2,/* Intel KnightLanding EDC ECLK unit 2 uncore */
+	PFM_PMU_INTEL_KNL_UNC_EDC_ECLK3,/* Intel KnightLanding EDC ECLK unit 3 uncore */
+	PFM_PMU_INTEL_KNL_UNC_EDC_ECLK4,/* Intel KnightLanding EDC ECLK unit 4 uncore */
+	PFM_PMU_INTEL_KNL_UNC_EDC_ECLK5,/* Intel KnightLanding EDC ECLK unit 5 uncore */
+	PFM_PMU_INTEL_KNL_UNC_EDC_ECLK6,/* Intel KnightLanding EDC ECLK unit 6 uncore */
+	PFM_PMU_INTEL_KNL_UNC_EDC_ECLK7,/* Intel KnightLanding EDC ECLK unit 7 uncore */
+	PFM_PMU_INTEL_KNL_UNC_EDC_UCLK0,/* Intel KnightLanding EDC UCLK unit 0 uncore */
+	PFM_PMU_INTEL_KNL_UNC_EDC_UCLK1,/* Intel KnightLanding EDC UCLK unit 1 uncore */
+	PFM_PMU_INTEL_KNL_UNC_EDC_UCLK2,/* Intel KnightLanding EDC UCLK unit 2 uncore */
+	PFM_PMU_INTEL_KNL_UNC_EDC_UCLK3,/* Intel KnightLanding EDC UCLK unit 3 uncore */
+	PFM_PMU_INTEL_KNL_UNC_EDC_UCLK4,/* Intel KnightLanding EDC UCLK unit 4 uncore */
+	PFM_PMU_INTEL_KNL_UNC_EDC_UCLK5,/* Intel KnightLanding EDC UCLK unit 5 uncore */
+	PFM_PMU_INTEL_KNL_UNC_EDC_UCLK6,/* Intel KnightLanding EDC UCLK unit 6 uncore */
+	PFM_PMU_INTEL_KNL_UNC_EDC_UCLK7,/* Intel KnightLanding EDC UCLK unit 7 uncore */
+
+	PFM_PMU_INTEL_KNL_UNC_CHA0,	/* Intel KnightLanding CHA unit 0 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA1,	/* Intel KnightLanding CHA unit 1 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA2,	/* Intel KnightLanding CHA unit 2 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA3,	/* Intel KnightLanding CHA unit 3 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA4,	/* Intel KnightLanding CHA unit 4 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA5,	/* Intel KnightLanding CHA unit 5 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA6,	/* Intel KnightLanding CHA unit 6 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA7,	/* Intel KnightLanding CHA unit 7 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA8,	/* Intel KnightLanding CHA unit 8 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA9,	/* Intel KnightLanding CHA unit 9 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA10,	/* Intel KnightLanding CHA unit 10 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA11,	/* Intel KnightLanding CHA unit 11 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA12,	/* Intel KnightLanding CHA unit 12 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA13,	/* Intel KnightLanding CHA unit 13 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA14,	/* Intel KnightLanding CHA unit 14 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA15,	/* Intel KnightLanding CHA unit 15 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA16,	/* Intel KnightLanding CHA unit 16 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA17,	/* Intel KnightLanding CHA unit 17 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA18,	/* Intel KnightLanding CHA unit 18 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA19,	/* Intel KnightLanding CHA unit 19 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA20,	/* Intel KnightLanding CHA unit 20 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA21,	/* Intel KnightLanding CHA unit 21 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA22,	/* Intel KnightLanding CHA unit 22 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA23,	/* Intel KnightLanding CHA unit 23 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA24,	/* Intel KnightLanding CHA unit 24 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA25,	/* Intel KnightLanding CHA unit 25 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA26,	/* Intel KnightLanding CHA unit 26 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA27,	/* Intel KnightLanding CHA unit 27 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA28,	/* Intel KnightLanding CHA unit 28 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA29,	/* Intel KnightLanding CHA unit 29 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA30,	/* Intel KnightLanding CHA unit 30 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA31,	/* Intel KnightLanding CHA unit 31 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA32,	/* Intel KnightLanding CHA unit 32 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA33,	/* Intel KnightLanding CHA unit 33 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA34,	/* Intel KnightLanding CHA unit 34 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA35,	/* Intel KnightLanding CHA unit 35 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA36,	/* Intel KnightLanding CHA unit 36 uncore */
+	PFM_PMU_INTEL_KNL_UNC_CHA37,	/* Intel KnightLanding CHA unit 37 uncore */
+
+	PFM_PMU_INTEL_KNL_UNC_UBOX,	/* Intel KnightLanding Ubox uncore */
+	PFM_PMU_INTEL_KNL_UNC_M2PCIE,	/* Intel KnightLanding M2PCIe uncore */
 	/* MUST ADD NEW PMU MODELS HERE */
 
 	PFM_PMU_MAX			/* end marker */
@@ -278,8 +490,9 @@ typedef struct {
 	size_t			size;	/* struct sizeof */
 	uint64_t		code;	/* attribute code */
 	pfm_attr_t		type;	/* attribute type */
-	int			idx;	/* attribute opaque index */
-	pfm_attr_ctrl_t		ctrl;		/* what is providing attr */
+	int			pad;	/* padding */
+	uint64_t		idx;	/* attribute opaque index */
+	pfm_attr_ctrl_t		ctrl;	/* what is providing attr */
 	struct {
 		unsigned int    is_dfl:1;	/* is default umask */
 		unsigned int    is_precise:1;	/* Intel X86: supports PEBS */
@@ -307,13 +520,13 @@ typedef struct {
 #if __WORDSIZE == 64
 #define PFM_PMU_INFO_ABI0	56
 #define PFM_EVENT_INFO_ABI0	64
-#define PFM_ATTR_INFO_ABI0	64
+#define PFM_ATTR_INFO_ABI0	72
 
 #define PFM_RAW_ENCODE_ABI0	32
 #else
 #define PFM_PMU_INFO_ABI0	44
 #define PFM_EVENT_INFO_ABI0	48
-#define PFM_ATTR_INFO_ABI0	48
+#define PFM_ATTR_INFO_ABI0	56
 
 #define PFM_RAW_ENCODE_ABI0	20
 #endif
@@ -394,5 +607,7 @@ extern pfm_err_t pfm_get_event_encoding(const char *str, int dfl_plm, char **fst
 #ifdef __cplusplus /* extern C */
 }
 #endif
+
+#pragma GCC visibility pop
 
 #endif /* __PFMLIB_H__ */

@@ -38,8 +38,8 @@
 
 #include "perfmon/perf_util.h"
 
-#include "common_util.h"
-#include "migration/thread_migration.h" // do_migration_and_clear_temp_list
+#include "sample_data.h"
+#include "migration/migration_facade.h" // begin_migration_process
 
 #define NUM_GROUPS 2 // Changing this does not make the app work automatically
 #define DEFAULT_MMAP_PAGES 16

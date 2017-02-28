@@ -26,22 +26,23 @@ Apart from building the profiler, it will execute it along the ABC program with 
 * *int* (interleave): uses interleave option from `numactl` command.
 
 ## Execution flow, components, etc
-Note that some files are leftovers from Óscar's work. The following list explains briefly the components regarding the main execution flow:
+The following list explains briefly the components regarding the main execution flow:
 
-* `my_profiler.c`: all begins in this file. It is based on libfpm's example file `syst_smpl.c`. It sets up the profiler, creates the child process to be profiled, gets sample data into a general structure (`my_pebs_sample_t`) and then it is inserted in one of two lists (`memory_list` and `inst_list`, currently in `thread_migration` folder). Then, `perform_migration` is called, which calls `do_migration_and_clear_temp_list`.
+* `my_profiler.c`: all begins in this file. It is based on libfpm's example file `syst_smpl.c`. It sets up the profiler, creates the child process to be profiled, gets sample data into a general structure (`my_pebs_sample_t`) and then it is inserted in one of two lists (`memory_list` and `inst_list`, currently in `thread_migration` folder). Then, `perform_migration` is called, which calls `begin_migration_process`.
   - `migration/memory_list.c`: each element of the list consists in a structure that holds data for memory samples. It contains data such as memory address, latency, source CPU, source PID, etc.
   - `migration/inst_list.c`: each element of the list consists in a structure that holds data for instructions samples. It contains data such as instruction number, source CPU, source PID, etc.
-* `igration/thread_migration.c`: serves as a fachade to other migration functionalities and holds the main data structures (`memory_data_list`, `inst_data_list`, and `main_page_table`). `do_migration_and_clear_temp_list` calls `do_migration` and at the end of the iteration, the two lists mentioned before are emptied. `do_migration` creates increments (instruction count) for the inst_list, builds the page table calling `pages` and performs a migration strategy. Might be renamed.
-* `migration/page_ops.c`: serves as a fachade to other page migration functionalities. `pages` creates page table and creates and closes the CSV files to be generated. Might be discarded.
+* `migration/migration_facade.c`: serves as a facade to other migration functionalities and holds the main data structures (`memory_data_list`, `inst_data_list`, and `page_tables`). `begin_migration_process` creates increments (instruction count) for `inst_data_list` that might be used in the future, builds a page table for each wanted PID to profile by calling `pages`, and performs a migration strategy. At the end, `memory_data_list` and `inst_data_list` are emptied.
+* `migration/page_ops.c`: serves as a fachade to other table page functionalities. `pages` creates page tables and creates and closes the CSV files to be generated if wanted. Might be fused with `thread_migration`.
 * `migration/page_table.c`: it consists in an somewhat "static" array of maps (i.e, a matrix with a fixed number of rows). The rows would be the number of threads, while the columns would be the memory pages' numbers. So, for each access a thread does to a memory page, this structure holds a cell with latencies and cache misses. This will be the main data structure to be used in future work to compute system's performance and migration decisions.
-* `migration/page_migration_algorithm.c`: it calls freely the strategies you want, defined in `strategies` folder in order to do the following migrations.
-* `migration/migration_cell.*`: defines a migration, which needs an element to migrate (TID or memory page) and a destination (core or memory node).
+* `migration/migration_algorithm.c`: it calls freely the strategies you want, defined in `strategies` folder, in order to do the following migrations.
+* `migration/migration_cell.*`: defines a migration, which needs an element to migrate (TID or memory page) and a destination (core or memory node) and functions to perform them.
 * `strategies/strategy.h`: defines which operations should define a scratch strategy.
 * `strategies/random.*`: right now, the only defined strategy is a simple random approach.
 
 The following is the brief explanation of some of the other files:
-* `perfmon/*`: for `libpfm` library. Should not be modified. It also includes `perf_util.*` which holds the data obtained by the counters.
-* `thread_migration/system_struct.*`: defines system's structure (number of cores, number of memory nodes, distribution of CPUs/threads on memory nodes...) and functions to get this data. It is intended to detect all these parameters in a dynamic way.
+* `perfmon/*`: most of its content comes frm `libpfm` library, so in general it should not be modified.
+* `sample_data.*`: defines a simple structure that holds the data obtained by the counters.
+* `migration/system_struct.*`: defines system's structure (number of cores, number of memory nodes, distribution of CPUs/threads on memory nodes...) and functions to get this data. It is intended to detect all these parameters in a dynamic way.
 
 ## Design [TODO]
 A UML diagram will be generated to make clearer the connection between the components.

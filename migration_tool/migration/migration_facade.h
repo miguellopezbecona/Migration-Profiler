@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../common_util.h"
+#include "../sample_data.h"
 #include "memory_list.h"
 #include "inst_list.h"
 
