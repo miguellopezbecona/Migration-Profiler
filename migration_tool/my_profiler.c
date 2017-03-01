@@ -67,7 +67,9 @@ typedef struct {
 	int minimum_latency;
 } options_t;
 
-unsigned int anti_inf_loop_counter=0;
+unsigned int anti_inf_loop_counter = 0;
+int uid; // For PID filtering
+
 static jmp_buf jbuf;
 static uint64_t collected_samples_total[NUM_GROUPS], lost_samples_total[NUM_GROUPS],processed_samples_total[NUM_GROUPS];
 
@@ -79,6 +81,11 @@ static size_t map_size;
 static struct option the_options[]={
 	{ "help", 0, 0,  1},
 	{0,0,0,0}
+};
+
+static const char *gen_events[NUM_GROUPS] = {
+	"MEM_TRANS_RETIRED:LATENCY_ABOVE_THRESHOLD:period=10000",
+	"INSTRUCTIONS:period=10000000,OFFCORE_REQUESTS:ALL_DATA_RD" // Changed ALL_DATA_READ by ALL_DATA_RD
 };
 
 #ifndef JUST_PROFILE
@@ -99,9 +106,6 @@ time_t last_migration;
 
 SYS_TIME_VALUES
 int current_time_value = 0;
-
-vector<pid_t> pids; // PIDs to profile
-
 static perf_event_desc_t **all_fds[NUM_GROUPS];
 
 
@@ -120,7 +124,7 @@ int get_time_value(){
 }
 		
 
-void perform_migration(vector<pid_t> pids){
+void perform_migration(){
 	if(aux_counter==0){
 		last_migration = time(NULL);
 		aux_counter++;
@@ -131,27 +135,16 @@ void perform_migration(vector<pid_t> pids){
 		last_migration=current_time;
 		//printf("\n***********\nAt %s\n",ctime(&last_migration));
 
-		begin_migration_process(pids, options.th_mig,options.pag_mig);
+		begin_migration_process(options.th_mig,options.pag_mig);
 	}
 }
 #endif
 
-static const char *gen_events[NUM_GROUPS] = {
-	"MEM_TRANS_RETIRED:LATENCY_ABOVE_THRESHOLD:period=10000",
-	"INSTRUCTIONS:period=10000000,OFFCORE_REQUESTS:ALL_DATA_RD" // Changed ALL_DATA_READ by ALL_DATA_RD
-	};
-
-int child(char **arg) {
-	execvp(arg[0], arg);
-
-	return -1; // Not reached
-}
-
-static void process_smpl_buf(perf_event_desc_t *hw, int cpu, perf_event_desc_t **all_fds_p,int num_fds_p, int name) {
+static void process_smpl_buf(perf_event_desc_t *hw, int cpu, perf_event_desc_t **all_fds_p, int num_fds_p, int name) {
 	my_pebs_sample_t my_sample;
 	struct perf_event_header ehdr;
 	perf_event_desc_t *fds = NULL;
-	int ret, processed=0;
+	int ret;
 
 	size_t to_skip; // ADDED
 
@@ -166,15 +159,20 @@ static void process_smpl_buf(perf_event_desc_t *hw, int cpu, perf_event_desc_t *
 
 		switch(ehdr.type) {
 			case PERF_RECORD_SAMPLE:
-				ret = perf_display_sample_redux(fds, num_fds_p, hw - fds, &ehdr, &my_sample);
+				ret = transfer_data_from_buffer_to_structure(fds, num_fds_p, hw - fds, &ehdr, &my_sample, uid);
+				processed_samples_total[name]++;
+
+				if(ret < 0) // PID from process we can't migrate so it will be skipped
+					break;
+
 				#ifndef JUST_PROFILE
-					processed = process_my_pebs_sample(my_sample);
+					add_data_to_list(my_sample);
 				#endif
 				//print_my_pebs_sample_for_3DyRM(&my_sample,options.output_file);
 					
 				if (ret)
 					errx(1, "cannot parse sample");
-				processed_samples_total[name] += processed;
+
 				collected_samples_total[name]++;
 				break;
 			case PERF_RECORD_EXIT:
@@ -381,17 +379,15 @@ static void handler(int n) {
 
 int mainloop(char **arg) {
 	detect_system();
+	uid = getuid();
 
 	static uint64_t ovfl_count_total[NUM_GROUPS]; /* static to avoid setjmp issue */
 	static uint64_t partial_read_total[NUM_GROUPS]; /* static to avoid setjmp issue */
 
-	//This is the struct for polling the buffers of SYS_NUM_OF_CORES for 2 different groups of events-
+	// This is the struct for polling the buffers of SYS_NUM_OF_CORES for 2 different groups of events
 	struct pollfd pollfds[SYS_NUM_OF_CORES*NUM_GROUPS];
 	int ret;
 	int fd = -1;
-	//ADDED
-	int go[2], ready[2];
-	char buf;
 
 	//set overflows to zero
 	for(int i=0;i<NUM_GROUPS;i++)
@@ -419,44 +415,6 @@ int mainloop(char **arg) {
 			err(1, "cannot open cgroup file %s\n", options.cgroup);
 	}
 
-	//ADDED
-	ret = pipe(ready);
-	if (ret)
-		err(1, "cannot create pipe ready");
-
-	ret = pipe(go);
-	if (ret)
-		err(1, "cannot create pipe go");
-
-	// We create the child process
-	// [TODO]: it is pending how we decide which apps to profile, not every one should be child processes!
-	pids.push_back(fork());
-	if (pids[0] == -1)
-		err(1, "cannot fork process\n");
-
-	if (pids[0] == 0) {
-		close(ready[0]);
-		close(go[1]);
-
-		/*
-		 * let the parent know we exist
-		 */
-		close(ready[1]);
-		if (read(go[0], &buf, 1) == -1)
-			err(1, "unable to read go_pipe");
-
-		exit(child(arg));
-	}
-	close(ready[1]);
-	close(go[0]);
-
-	if (read(ready[0], &buf, 1) == -1)
-		err(1, "unable to read child_ready_pipe");
-
-	close(ready[0]);
-
-	printf("Child process' PID: %d\n", pids[0]);
-
 	//END ADDED
 	for(int i=0;i<NUM_GROUPS;i++){
 		for(int j=0;j<SYS_NUM_OF_CORES;j++)
@@ -479,12 +437,6 @@ int mainloop(char **arg) {
 		pollfds[i].fd = fds[0].fd;
 		pollfds[i].events = POLLIN;
 	}
-	
-
-	//ADDED
-	signal(SIGCHLD, handler);
-	close(go[1]);
-
 
 	if (setjmp(jbuf) == 1){
 		printf("TERMINATING\n");
@@ -515,15 +467,10 @@ int mainloop(char **arg) {
 		/*
 		 * Here we should perform the migration, we have the data
 		*/
-		perform_migration(pids);
+		perform_migration();
 		#endif
 	}//end core loop
 terminate_session:
-	int status;
-
-	// Waits for child's ends
-	for(int i=0;i<pids.size();i++)
-		wait4(pids[i], &status, 0, NULL);
 
 	// Closes and frees resources	
 	for(int i=0;i<NUM_GROUPS;i++){
@@ -552,7 +499,7 @@ terminate_session:
 }
 
 static void usage(void){
-	printf("usage: my_profiler_tm [-h] [--help] [-m(do thread migration)] [-M(do page migration)] [-p period_memory] [-P period_indtructions] [-l minimum_latency] [-s seconds_between_migrations] cmd\n");
+	printf("usage: my_profiler_tm [-h] [--help] [-m(do thread migration)] [-M(do page migration)] [-p period_memory] [-P period_indtructions] [-l minimum_latency] [-s seconds_between_migrations]\n");
 }
 
 int main(int argc, char **argv){
@@ -607,9 +554,6 @@ int main(int argc, char **argv){
 		}
 	}
 
-	//ADDED for cmd
-	if (argv[optind] == NULL)
-		errx(1, "you must specify a command to execute\n");
 	if (!options.eventsA)
 		options.eventsA = strdup(gen_events[0]);
 

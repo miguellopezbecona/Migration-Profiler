@@ -5,6 +5,8 @@ profparams="-s2000 -l400 -p5000 -P50000000"
 #profparams="-s3500 -l750 -p1000 -P7500000"
 #profparams="-s1000 -l500 -p5000 -P1000000"
 
+preprocessfiles=0
+
 # Goes to source code folder if you execute script from another directory
 dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $dir
@@ -38,18 +40,19 @@ toprofile="./ABC -b1 -m0 -r5000 -s1000000 -t8"
 #toprofile=~/NPB3.3.1/NPB3.3-OMP/bin/lu.C.x
 #toprofile=~/NPB3.3.1/NPB3.3-OMP/bin/bt.C.x
 
-# Executes profiler with the app to profile as a child process
-$numacommand ./$execname -M $profparams $toprofile
+# Executes app to profile in background along with the app to profile
+$toprofile > /dev/null &
+$numacommand ./$execname -M $profparams &
 
 # Does not continue if there was an error
 if [ $? -ne 0 ]; then
 	exit 1
 fi
 
-# To skip file processing right now
-exit 0
-
 ### Preprocessing of generated files
+if [ $preprocessfiles -eq 0 ]; then
+	exit 0
+fi
 
 # Removes last comma from each CSV
 sed -i 's/.$//' acs_*.csv max_*.csv min_*.csv avg_*.csv

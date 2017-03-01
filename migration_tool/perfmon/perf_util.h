@@ -130,8 +130,7 @@ static inline int perf_is_group_leader(perf_event_desc_t *fds, int idx) {
 }
 
 extern int perf_get_group_nevents(perf_event_desc_t *fds, int num, int leader);
-extern int perf_display_sample(perf_event_desc_t *fds, int num_fds, int idx, struct perf_event_header *ehdr, FILE *fp);
-extern int perf_display_sample_redux(perf_event_desc_t *fds, int num_fds, int idx, struct perf_event_header *ehdr, my_pebs_sample_t *sample);
+extern int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, int idx, struct perf_event_header *ehdr, my_pebs_sample_t *sample, int uid);
 extern uint64_t display_lost(perf_event_desc_t *hw, perf_event_desc_t *fds, int num_fds, FILE *fp);
 extern void display_exit(perf_event_desc_t *hw, FILE *fp);
 extern void display_freq(int mode, perf_event_desc_t *hw, FILE *fp);

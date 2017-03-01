@@ -31,13 +31,8 @@ void memory_data_list_t::add_cell(uint32_t cpu, int pid, int tid, uint64_t addr,
 	list.push_back(cell);
 }
 
-void memory_data_list_t::filter_by_pids(vector<pid_t> pids) {
-	for(int i=0;i<list.size();i++){
-		if(find(pids.begin(), pids.end(), list[i].pid) == pids.end()){ // removes if list[i].pid not in pids
-			list.erase(list.begin() + i);
-			i--;
-		}
-	}
+bool memory_data_list_t::is_empty(){
+	return list.empty();
 }
 
 void memory_data_list_t::clear(){

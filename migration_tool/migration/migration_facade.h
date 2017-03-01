@@ -11,6 +11,6 @@
 #define ACTIVATE_THREAD_MIGRATION 0
 #define ACTIVATE_PAGE_MIGRATION 1
 
-int process_my_pebs_sample(my_pebs_sample_t sample);
-int begin_migration_process(vector<pid_t> pids, int do_thread_migration, int do_page_migration);
+void add_data_to_list(my_pebs_sample_t sample);
+int begin_migration_process(int do_thread_migration, int do_page_migration);
 

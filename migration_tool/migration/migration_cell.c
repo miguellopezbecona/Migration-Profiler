@@ -10,7 +10,7 @@ void migration_cell_t::perform_page_migration(pid_t pid){
 	int rc = numa_move_pages(pid, 1, page, (int*) &dest.mem_node, status, MPOL_MF_MOVE);
 	if (rc < 0){
 		printf("Move pages did not work: %s\n", strerror(errno));
-		exit(1);
+		return;
 	}
 
 	total_page_migrations++;
@@ -23,7 +23,7 @@ void migration_cell_t::perform_page_migration(pid_t pid){
 	#endif
 }
 
-void set_affinity_error(){
+void set_affinity_error(pid_t tid){
 	switch(errno){
 		case EFAULT:
 			printf("Error setting affinity: A supplied memory address was invalid\n");
@@ -35,7 +35,7 @@ void set_affinity_error(){
 			printf("Error setting affinity: The calling process does not have appropriate privileges\n");
 			break;
 		case ESRCH:
-			printf("Error setting affinity: The process whose ID is pid could not be found\n");
+			printf("Error setting affinity: The process whose ID is %d could not be found\n", tid);
 			break;
 	}
 }
@@ -47,8 +47,10 @@ void migration_cell_t::perform_thread_migration(){
 	CPU_ZERO(&affinity);
 	CPU_SET(dest.core, &affinity);
 
-	if(sched_setaffinity(elem.tid, sizeof(cpu_set_t), &affinity))
-		set_affinity_error();
+	if(sched_setaffinity(elem.tid, sizeof(cpu_set_t), &affinity)){
+		set_affinity_error(elem.tid);
+		return;
+	}
 
 	#ifdef MIGRATION_OUTPUT
 		printf("Migrated thread %d to core %d\n", elem.tid, dest.core);

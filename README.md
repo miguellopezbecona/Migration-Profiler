@@ -9,7 +9,7 @@ The app can also print, each N iterations, some CSV files that can be plotted a 
 * A line plot where X axis is the number of memory page and Y axis is the number of different threads that access to that memory page.
 
 ## Compiling and executing
-The app requires `libnuma-dev` package, so you need to install it first. It also uses [libpfm](http://perfmon2.sourceforge.net/) but it is already compiled and included in the repository. Note that `perf_event_paranoid` system file should contain a zero or else the profiler will not be able to read the hardware counters. You can solve it with the following command:
+The app requires `libnuma-dev` package, so you need to install it first. It also uses [libpfm](http://perfmon2.sourceforge.net/) but it is already compiled and included in the repository. Note that, unless you are root, `perf_event_paranoid` system file should contain a zero or else the profiler will not be able to read the hardware counters. You can solve it with the following command:
 ```bash
 echo "0" | sudo tee /proc/sys/kernel/perf_event_paranoid > /dev/null
 ```
@@ -19,7 +19,7 @@ If you just want to build the profiler, you can use the Makefile inside the sour
 bash test.sh [NUMA option]
 ```
 
-Apart from building the profiler, it will execute it along the ABC program with some static parameters. You can edit the script freely so it profiles another application. Note that right now, it can only profile a child process created by the own profiler and not a previous running process. Furthermore, the test script allows you to indicate a NUMA configuration:
+Apart from building the profiler, it will execute it along the ABC program with some static parameters. You can edit the script freely so it profiles another application. Furthermore, the test script allows you to indicate a NUMA configuration:
 
 * *d* (direct): uses all CPUs from memory node 0 and allocates data in memory node 0. This is considered a "good" case that should not require any migrations.
 * *ind* (indirect): uses all CPUs from memory node 1 and allocates data in memory node 0.  This is considered a "bad" case that should require some migrations.
@@ -32,7 +32,7 @@ The following list explains briefly the components regarding the main execution 
   - `migration/memory_list.c`: each element of the list consists in a structure that holds data for memory samples. It contains data such as memory address, latency, source CPU, source PID, etc.
   - `migration/inst_list.c`: each element of the list consists in a structure that holds data for instructions samples. It contains data such as instruction number, source CPU, source PID, etc.
 * `migration/migration_facade.c`: serves as a facade to other migration functionalities and holds the main data structures (`memory_data_list`, `inst_data_list`, and `page_tables`). `begin_migration_process` creates increments (instruction count) for `inst_data_list` that might be used in the future, builds a page table for each wanted PID to profile by calling `pages`, and performs a migration strategy. At the end, `memory_data_list` and `inst_data_list` are emptied.
-* `migration/page_ops.c`: serves as a fachade to other table page functionalities. `pages` creates page tables and creates and closes the CSV files to be generated if wanted. Might be fused with `thread_migration`.
+* `migration/page_ops.c`: serves as a fachade to other table page functionalities. `pages` creates page tables and creates and closes the CSV files to be generated if wanted. Might be fused with `migration_facade`.
 * `migration/page_table.c`: it consists in an somewhat "static" array of maps (i.e, a matrix with a fixed number of rows). The rows would be the number of threads, while the columns would be the memory pages' numbers. So, for each access a thread does to a memory page, this structure holds a cell with latencies and cache misses. This will be the main data structure to be used in future work to compute system's performance and migration decisions.
 * `migration/migration_algorithm.c`: it calls freely the strategies you want, defined in `strategies` folder, in order to do the following migrations.
 * `migration/migration_cell.*`: defines a migration, which needs an element to migrate (TID or memory page) and a destination (core or memory node) and functions to perform them.
