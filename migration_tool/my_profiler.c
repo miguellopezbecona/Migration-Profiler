@@ -194,7 +194,7 @@ static void process_smpl_buf(perf_event_desc_t *hw, int cpu, perf_event_desc_t *
 
 				perf_skip_buffer(hw, to_skip);
 
-				anti_inf_loop_counter++;
+				//anti_inf_loop_counter++;
 				if(anti_inf_loop_counter>50){
 					printf("error in read buffer, too many unknown samples, exiting\n");
 					exit(-1);

@@ -27,6 +27,11 @@ int page_table_t::add_cell(long int page_addr, int current_node, pid_t tid, int 
 		if(tid_index.count(tid) == 0){
 			tid_index[tid] = table_index;
 			table_index++;
+
+			// Resizes vector if necessary
+			size_t ts = table.size();
+			if(ts < table_index)
+				table.resize(2*ts);
 		}
 		int pos = tid_index[tid];
 		table[pos][page_addr] = aux;

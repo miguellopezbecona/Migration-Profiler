@@ -40,6 +40,6 @@ void memory_data_list_t::clear(){
 }
 
 void memory_data_list_t::print(){
-	for(int i=0;i<list.size();i++)
+	for(size_t i=0;i<list.size();i++)
 		list[i].print();
 }

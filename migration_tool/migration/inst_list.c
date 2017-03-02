@@ -26,7 +26,7 @@ void inst_data_list_t::clear(){
 }
 
 void inst_data_list_t::print(){
-	for(int i=0;i<list.size();i++)
+	for(size_t i=0;i<list.size();i++)
 		list[i].print();
 }
 
@@ -50,12 +50,12 @@ int inst_data_list_t::create_increments(){
 			
 	//now let us suppose data are ordered by time FOR EACH CPU
 	inst_data_cell_t* cell;
-	for(int i=0;i<list.size();i++){
+	for(size_t i=0;i<list.size();i++){
 		cell = &list.at(i);
 		temp_inst = cell->inst;
 		temp_req_dr = cell->req_dr;
 		temp_time = cell->time;
-		if(last_time[cell->cpu]==0){//it is the first datum of the cpu, set to zero, should be taken care when building the roofline
+		if(last_time[cell->cpu]==0){ // it is the first datum of the cpu, set to zero, should be taken care when building the roofline
 			cell->inst=0;
 			cell->req_dr=0;
 			cell->time=0;

@@ -26,7 +26,7 @@ typedef struct inst_data_list{
 	vector<inst_data_cell_t> list;
 
 	inst_data_list(){
-		list.reserve(75000); // Speeds up doing preallocation
+		list.reserve(100); // Speeds up doing preallocation
 	}
 	void add_cell(uint32_t cpu, int pid, int tid, uint64_t inst, uint64_t req_dr, uint64_t time);
 	void clear();

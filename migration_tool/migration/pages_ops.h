@@ -15,6 +15,6 @@
 
 #define NUM_FILES 5
 
-int pages(unsigned int step, vector<pid_t> pids, memory_data_list_t memory_list, map<pid_t, page_table_t> *page_ts);
+int pages(unsigned int step, set<pid_t> pids, memory_data_list_t memory_list, map<pid_t, page_table_t> *page_ts);
 inline int get_page_current_node(pid_t pid, long int pageAddr);
 

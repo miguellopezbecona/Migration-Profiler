@@ -2,7 +2,7 @@
 
 memory_data_list_t memory_data_list;
 inst_data_list_t inst_data_list;
-vector<pid_t> pids;
+set<pid_t> pids;
 map<pid_t, page_table_t> page_tables; // Each table is associated to a specific PID
 
 unsigned int step = 0;
@@ -13,11 +13,10 @@ bool is_addr_sample(my_pebs_sample_t sample){
 }
 
 void add_data_to_list(my_pebs_sample_t sample){
-	pids.push_back(sample.pid);
-
-	if(is_addr_sample(sample) && sample.dsrc != 0)
+	if(is_addr_sample(sample) && sample.dsrc != 0){
 		memory_data_list.add_cell(sample.cpu,sample.pid,sample.tid,sample.sample_addr,sample.weight,sample.dsrc,sample.time);
-	else
+		pids.insert(sample.pid); // Currently we only use memory list so we only consider a thread is active if we get a memory sample
+	} else
 		inst_data_list.add_cell(sample.cpu,sample.pid,sample.tid,sample.values[1],sample.values[0],sample.time);
 }
 
@@ -54,14 +53,18 @@ int begin_migration_process(int do_thread_migration, int do_page_migration){
 	*/
 
 	// Migrates threads and/or pages for active PIDs
-	for (size_t i=0;i<pids.size();i++){
-		pid_t pid = pids[i];
+	for (pid_t pid : pids){
+		if(page_tables.count(pid) == 0){
+			printf("This should not happen! It was requested a PID that has not entry in the map table: %d", pid);
+			continue;
+		}
 		page_table* table = &page_tables[pid];
 
 		printf("Performing migration strategy for PID: %d\n", pid);
-		perform_migration_strategy(table); 
 		//table->print();
+		perform_migration_strategy(table); 
 	}
+	printf("\n");
 	
 	step++;
 

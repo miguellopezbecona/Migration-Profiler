@@ -16,5 +16,7 @@ int perform_migration_strategy(page_table_t *page_t){
 
 	migration_cell_t page_migr = rand_st.get_page_to_migrate(page_t);
 	page_migr.perform_page_migration(page_t->pid);
+
+	return 0;
 }
 
