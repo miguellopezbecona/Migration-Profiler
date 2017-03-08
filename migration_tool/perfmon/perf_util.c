@@ -32,29 +32,6 @@
 #include "pfmlib_perf_event.h"
 #include "perf_util.h"
 
-// Useful to filter unwanted PIDs because unless you are root, you can't migrate processes you don't own
-bool is_migratable(int my_uid, int pid){
-	FILE *fp;
-	char command[40];
-	char p_uid[6] = "\0";
-
-	if(pid < 1) // Bad PID
-		return false;
-	if(my_uid == 0) // Root can do anything
-		return true;
-
-	// Command-dependent
-	sprintf(command, "/bin/ps --no-headers -o uid -p %d", pid);
-	fp = popen(command, "r");
-	if (fp == NULL)
-		return 0;
-
-	fgets(p_uid, 1023, fp);
-	pclose(fp);
-
-	return atoi(p_uid) == my_uid;
-}
-
 
 /* the **fd parameter must point to a null pointer on the first call
  * max_fds and num_fds must both point to a zero value on the first call

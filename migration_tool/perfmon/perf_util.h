@@ -28,6 +28,7 @@
 #include <err.h>
 #include "pfmlib_perf_event.h"
 #include "../sample_data.h"
+#include "../utils.h"
 
 typedef struct {
 	struct perf_event_attr hw;

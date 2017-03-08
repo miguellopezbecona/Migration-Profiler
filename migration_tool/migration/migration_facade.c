@@ -52,17 +52,23 @@ int begin_migration_process(int do_thread_migration, int do_page_migration){
 	}
 	*/
 
-	// Migrates threads and/or pages for active PIDs
+	// For each active PID, cleans "dead" TIDs from its table and performs a migration strategy
 	for (pid_t pid : pids){
 		if(page_tables.count(pid) == 0){
 			printf("This should not happen! It was requested a PID that has not entry in the map table: %d", pid);
+			fflush(stdout);
 			continue;
 		}
-		page_table* table = &page_tables[pid];
 
-		printf("Performing migration strategy for PID: %d\n", pid);
-		//table->print();
-		perform_migration_strategy(table); 
+		printf("Working over table associated to PID: %d\n", pid);
+		fflush(stdout);
+
+		page_table* table = &page_tables[pid];
+		table->print();
+		table->remove_inactive_tids();
+		table->print();
+
+		//perform_migration_strategy(table); 
 	}
 	printf("\n");
 	

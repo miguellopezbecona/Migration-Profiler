@@ -10,7 +10,7 @@ void build_page_tables(memory_data_list_t memory_list, map<pid_t, page_table_t> 
 	int page_node, cpu_node;
 
 	// For each element in mem list, we calculate page address, get page node, and then it is added to the new list
-	// TODO: do this stuff in mem list to reduce overhead and memory?
+	// TODO: do this stuff in mem list to reduce overhead?
 	memory_data_cell_t m_cell;
 	for(size_t i=0;i<memory_list.list.size();i++){
 		m_cell = memory_list.list[i];
@@ -19,16 +19,16 @@ void build_page_tables(memory_data_list_t memory_list, map<pid_t, page_table_t> 
 		long int page_addr = m_cell.addr & ~((long int)(pagesize -1));
 
 		// This gets page number
-		long int page_num = m_cell.addr >> expn;
+		//long int page_num = m_cell.addr >> expn;
 
 		page_node = get_page_current_node(m_cell.tid, page_addr);
 		cpu_node = get_cpu_memory_cell(m_cell.cpu);
 
-		// We skip elements which returned error when getting page node
-		if(page_node < 0 || cpu_node == -1)
-			continue;
+		// Page node 0 by default
+		if(page_node < 0)
+			page_node = 0;
 
-		set_tid_core(m_cell.tid, m_cell.cpu); // Get TID location (core)
+		set_tid_core(m_cell.tid, m_cell.cpu); // Set TID location (core)
 
 		if(page_ts->count(m_cell.pid) == 0) // = !contains(pid). We init the entry if it doesn't exist
 			page_ts->operator[](m_cell.pid).init(m_cell.pid);
@@ -38,13 +38,12 @@ void build_page_tables(memory_data_list_t memory_list, map<pid_t, page_table_t> 
 }
 
 inline int get_page_current_node(pid_t pid, long int pageAddr){
-	unsigned long count = 1;
 	void **pages = (void **)calloc(1,sizeof(long int *));
 	pages[0] = (void *)pageAddr;
 	int *status = (int*)calloc(1,sizeof(int));
 
 	//printf("getting page current node for tid %d and pageAddr 0x%016lx\n",pid,(long int)pages[0]);
-	numa_move_pages(pid,count,pages,NULL,status,MPOL_MF_MOVE); // If nodes is NULL, in status we obtain the node where the page is
+	numa_move_pages(pid, 1, pages, NULL, status, MPOL_MF_MOVE); // If nodes is NULL, in status we obtain the node where the page is
 	//printf("%d\n",status[0]);
 
 	return status[0];
@@ -65,9 +64,9 @@ int pages(unsigned int step, set<pid_t> pids, memory_data_list_t memory_list, ma
 		for (set<pid_t>::iterator it = pids.begin(); it != pids.end(); ++it){
 			pid_t pid = *it;
 
-			// Opens files
+			// Creates files
 			for(int i=0;i<NUM_FILES;i++){
-				char filename[12]; // xxx_yyy.csv
+				char filename[32] = "\0";
 				sprintf(filename, "%s_%d_%d.csv", names[i], pid, current_step);
 				fps[i] = fopen(filename, "w");
 

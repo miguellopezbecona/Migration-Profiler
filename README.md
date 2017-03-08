@@ -33,15 +33,16 @@ The following list explains briefly the components regarding the main execution 
   - `migration/inst_list.c`: each element of the list consists in a structure that holds data for instructions samples. It contains data such as instruction number, source CPU, source PID, etc.
 * `migration/migration_facade.c`: serves as a facade to other migration functionalities and holds the main data structures (`memory_data_list`, `inst_data_list`, and `page_tables`). `begin_migration_process` creates increments (instruction count) for `inst_data_list` that might be used in the future, builds a page table for each wanted PID to profile by calling `pages`, and performs a migration strategy. At the end, `memory_data_list` and `inst_data_list` are emptied.
 * `migration/page_ops.c`: builds page tables (defined in the following file) and can do other stuff like generating the already described CSV files. Might be fused with `migration_facade`.
-* `migration/page_table.c`: it consists in an somewhat "static" array of maps (i.e, a matrix with a fixed number of rows). The rows would be the number of threads (but instead of being indexed directly by TID, this is done by a simple "bad hash" using a counter), while the columns would be the memory pages' numbers. So, for each access a thread does to a memory page, this structure holds a cell with latencies and cache misses. This will be the main data structure to be used in future work to compute system's performance and migration decisions.
+* `migration/page_table.c`: it consists in a matrix defined as a vector of maps, where the rows (number of vectors) would be the number of TIDs, while the columns would be the memory pages' addresses. So, for each access a thread does to a memory page, this structure holds a cell with latencies and cache misses. Another option was implement it as a single map with a pair of two values as key, but that would make inefficient the looping over a specific row (TID) or a specific column (page address). TID indexing is done by a simple "bad hash" using a counter rather than the actual TID, so each row isn't a map as well. This structure will be the main one to be used in future work to compute system's performance and migration decisions.
 * `migration/migration_algorithm.c`: it calls freely the strategies you want, defined in `strategies` folder, in order to do the following migrations.
 * `migration/migration_cell.*`: defines a migration, which needs an element to migrate (TID or memory page) and a destination (core or memory node) and functions to perform them.
 * `strategies/strategy.h`: defines which operations should define a scratch strategy.
 * `strategies/random.*`: right now, the only defined strategy is a simple random approach.
 
 The following is the brief explanation of some of the other files:
-* `perfmon/*`: most of its content comes frm `libpfm` library, so in general it should not be modified.
+* `perfmon/*`: most of its content comes from `libpfm` library, so in general it should not be modified. `perf_util.c` may be interesting because it defines how to get the counter data into the structure defined in `sample_data`.
 * `sample_data.*`: defines a simple structure that holds the data obtained by the counters.
+* `utils.*`: self descriptive.
 * `migration/system_struct.*`: defines system's structure (number of cores, number of memory nodes, distribution of CPUs/threads on memory nodes...) and functions to get this data. It is intended to detect all these parameters in a dynamic way.
 
 ## Design [TODO]
