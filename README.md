@@ -37,7 +37,8 @@ The following list explains briefly the components regarding the main execution 
 * `migration/migration_algorithm.c`: it calls freely the strategies you want, defined in `strategies` folder, in order to do the following migrations.
 * `migration/migration_cell.*`: defines a migration, which needs an element to migrate (TID or memory page) and a destination (core or memory node) and functions to perform them.
 * `strategies/strategy.h`: defines which operations should define a scratch strategy.
-* `strategies/random.*`: right now, the only defined strategy is a simple random approach.
+* `strategies/random.*`: there is a simple strategy implemented which is a simple random approach.
+* `strategies/genetic.*` and `strategies/genetic/*`: I am working in a strategy based on a genetic algorithm, but in a simplified way.
 
 The following is the brief explanation of some of the other files:
 * `perfmon/*`: most of its content comes from `libpfm` library, so in general it should not be modified. `perf_util.c` may be interesting because it defines how to get the counter data into the structure defined in `sample_data`.

@@ -64,11 +64,10 @@ int begin_migration_process(int do_thread_migration, int do_page_migration){
 		fflush(stdout);
 
 		page_table* table = &page_tables[pid];
-		table->print();
 		table->remove_inactive_tids();
-		table->print();
+		//table->print();
 
-		//perform_migration_strategy(table); 
+		perform_migration_strategy(table); 
 	}
 	printf("\n");
 	

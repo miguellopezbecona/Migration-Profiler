@@ -1,7 +1,7 @@
 #include "migration_cell.h"
 
 // It moves only one page at once, could be arrange to move more
-void migration_cell_t::perform_page_migration(pid_t pid){
+void migration_cell_t::perform_page_migration(pid_t pid) const {
 	void **page = (void **)calloc(1,sizeof(long int *));
 	page[0] = (void*) &elem.page_addr;
 	int *status = (int *)calloc(1,sizeof(int));
@@ -40,7 +40,7 @@ void set_affinity_error(pid_t tid){
 	}
 }
 
-void migration_cell_t::perform_thread_migration(){
+void migration_cell_t::perform_thread_migration() const {
 	cpu_set_t affinity;
 	sched_getaffinity(elem.tid, sizeof(cpu_set_t), &affinity);
 

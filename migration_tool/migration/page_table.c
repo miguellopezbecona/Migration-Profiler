@@ -88,6 +88,7 @@ void page_table_t::remove_inactive_tids(){
 		pid_t tid = it->first;
 		int pos = it->second;
 
+		// Removing a thread (row) implies deleting the map association, deleting the element in the vector, and updating following positions
 		if(!is_tid_alive(pid, tid)){
 			printf("TID %d is dead. It will be removed from the table.\n", tid);
 			tid_index.erase(it);

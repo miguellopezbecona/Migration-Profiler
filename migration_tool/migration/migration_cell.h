@@ -23,7 +23,7 @@ typedef struct migration_cell {
 		unsigned char mem_node;
 	} dest;
 
-	void perform_page_migration(pid_t pid);
-	void perform_thread_migration();
+	void perform_page_migration(pid_t pid) const;
+	void perform_thread_migration() const;
 } migration_cell_t;
 
