@@ -14,15 +14,11 @@
 
 // We need to know what to migrate and where
 typedef struct migration_cell {
-	union {
-		int tid;
-		long int page_addr;
-	} elem;
-	union {
-		unsigned char core;
-		unsigned char mem_node;
-	} dest;
+	long int elem; // Core or page address
+	unsigned char dest; // Mem node for pages or core for TIDs
 
+	migration_cell(){}
+	migration_cell(long int elem, unsigned char dest);
 	void perform_page_migration(pid_t pid) const;
 	void perform_thread_migration() const;
 } migration_cell_t;

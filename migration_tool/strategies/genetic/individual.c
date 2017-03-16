@@ -2,44 +2,42 @@
 
 individual::individual() {
 }
+
+individual::individual(map<long int, perf_data_t> m){
+	// [TODO]: redundant! Must be rewritten
+	for(auto const & it : m){
+		migration_cell_t mc(it.first, it.second.current_place);
+		v.push_back(mc);
+	}
+}
     
-// To ease copy
-individual::individual(vector<int> vec){
+// To ease copy in cross
+individual::individual(vector<migration_cell_t> vec){
 	v = vec;
 }
     
 // Scratch implementation. The real one would use the perf_data from the table
 int individual::fitness() const {
-	int s = 0;
-	for(int v : v)
-		s += v;
-	return s;
+	return -1;
 }
 
 size_t individual::size(){
 	return v.size();
 }
     
-void individual::add(int value){
-	v.push_back(value);
-}
-    
 void individual::set(int index, int value){
-	v[index] = value;
+	v[index].dest = value;
 }
 
 int individual::get(int index){
-	return v[index];
+	return v[index].dest;
 }
-    
-bool individual::contains(int city){
-	return find(v.begin(), v.end(), city) != v.end();
-}
-    
+
+// Simple interchange
 void individual::mutate(int idx1, int idx2) {
-	int aux = v[idx1];
-	v[idx1] = v[idx2];
-	v[idx2] = aux;
+	int aux = v[idx1].dest;
+	v[idx1].dest = v[idx2].dest;
+	v[idx2].dest = aux;
 }
     
 // Order crossover
@@ -59,7 +57,8 @@ individual individual::cross(individual r, int idx1, int idx2){
 	individual son = get_copy();
 	
 	/*** Changes what is not the central block ***/
-	// Gets central block
+	// Gets central block. [TODO]: needs a rewrite
+/*
 	vector<int> sublist(v.begin() + cut1, v.begin() + cut2+1);
 	
 	// Copies from second cut until the end
@@ -83,6 +82,7 @@ individual individual::cross(individual r, int idx1, int idx2){
 		sublist.push_back(num);
 		son.set(i, num);
 	}
+*/
 	
 	return son;
 }
@@ -93,8 +93,8 @@ individual individual::get_copy() {
     
 void individual::print(){
     printf("0 ");
-    for(int const & el : v)
-        printf("%d ", el);
+    for(migration_cell const & mc : v)
+        printf("%d ", mc.dest);
 }
 
 bool individual::operator < (const individual &other) const {

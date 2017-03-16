@@ -26,7 +26,10 @@ typedef struct table_cell {
 
 // For threads and memory pages
 typedef struct perf_data {
+	// [TODO]: reuse migration_cell??
+	long int elem; // Core or page address
 	unsigned char current_place; // Mem node for pages or core for TIDs
+
 	unsigned short int num_uniq_accesses;
 	unsigned short int num_acs_thres; // Always equal or lower than num_uniq_accesses
 	int min_latency;
@@ -45,7 +48,9 @@ typedef struct page_table {
 	map<int, short> tid_index; // Translates TID to row index
 
 	map<long int, perf_data_t> page_node_map; // Maps page address to memory node and other data
-	map<int, perf_data_t> tid_node_map; // Maps TID to memory node and other data
+
+	// Using long int as key to use along the previous one as function parameter
+	map<long int, perf_data_t> tid_node_map; // Maps TID to memory node and other data
 
 	pid_t pid;
 

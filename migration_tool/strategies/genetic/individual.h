@@ -3,25 +3,30 @@
 #include <stdio.h>
 
 #include <algorithm> // find
+#include <map>
 #include <vector>
 using namespace std;
 
+#include "../../migration/page_table.h" // perf_data
+#include "../../migration/migration_cell.h"
+
 class individual {
 	private:
-	vector<int> v;
+	// Migration cell instead of just numbers (locations) so we can keep which memory page or TID is associated to that location
+	//vector<migration_cell_t> v;
     
 	public:
+	vector<migration_cell_t> v;
 
 	individual();
-	individual(vector<int> vec);
+	individual(map<long int, perf_data_t> m);
+	individual(vector<migration_cell_t> vec);
 
 	int fitness() const;
 
 	size_t size();
-	void add(int value);
 	void set(int index, int value);
 	int get(int index);
-	bool contains(int city);
 
 	void mutate(int idx1, int idx2);
 	individual cross(individual r, int idx1, int idx2); // Using order crossover

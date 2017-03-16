@@ -10,7 +10,6 @@ void build_page_tables(memory_data_list_t memory_list, map<pid_t, page_table_t> 
 	int page_node, cpu_node;
 
 	// For each element in mem list, we calculate page address, get page node, and then it is added to the new list
-	// TODO: do this stuff in mem list to reduce overhead?
 	memory_data_cell_t m_cell;
 	for(size_t i=0;i<memory_list.list.size();i++){
 		m_cell = memory_list.list[i];

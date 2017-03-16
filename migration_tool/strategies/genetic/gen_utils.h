@@ -6,7 +6,7 @@
 
 using namespace std;
 
-class utils {
+class gen_utils {
 	public:
 	static double obtain_double();
 	static bool contains(vector<int> v, int e);

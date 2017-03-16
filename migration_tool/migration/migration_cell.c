@@ -1,13 +1,18 @@
 #include "migration_cell.h"
 
+migration_cell_t::migration_cell(long int elem, unsigned char dest) {
+	this->elem = elem;
+	this->dest = dest;
+}
+
 // It moves only one page at once, could be arrange to move more
 void migration_cell_t::perform_page_migration(pid_t pid) const {
 	void **page = (void **)calloc(1,sizeof(long int *));
-	page[0] = (void*) &elem.page_addr;
+	page[0] = (void*) &elem;
 	int *status = (int *)calloc(1,sizeof(int));
 
 	// Key system call: numa_move_pages
-	int rc = numa_move_pages(pid, 1, page, (int*) &dest.mem_node, status, MPOL_MF_MOVE);
+	int rc = numa_move_pages(pid, 1, page, (int*) &dest, status, MPOL_MF_MOVE);
 	if (rc < 0){
 		printf("Move pages did not work: %s\n", strerror(errno));
 		return;
@@ -16,7 +21,7 @@ void migration_cell_t::perform_page_migration(pid_t pid) const {
 	total_page_migrations++;
 
 	#ifdef MIGRATION_OUTPUT
-		printf("Migrated page number %016lx to node %d, status=%d", (long unsigned int) elem.page_addr, dest.mem_node, status[0]);
+		printf("Migrated page number %016lx to node %d, status=%d", (long unsigned int) elem, dest, status[0]);
 		if(status[0] < 0)
 			printf(", err: %s", strerror(-status[0]));
 		printf("\n");
@@ -42,18 +47,18 @@ void set_affinity_error(pid_t tid){
 
 void migration_cell_t::perform_thread_migration() const {
 	cpu_set_t affinity;
-	sched_getaffinity(elem.tid, sizeof(cpu_set_t), &affinity);
+	sched_getaffinity(elem, sizeof(cpu_set_t), &affinity);
 
 	CPU_ZERO(&affinity);
-	CPU_SET(dest.core, &affinity);
+	CPU_SET(dest, &affinity);
 
-	if(sched_setaffinity(elem.tid, sizeof(cpu_set_t), &affinity)){
-		set_affinity_error(elem.tid);
+	if(sched_setaffinity(elem, sizeof(cpu_set_t), &affinity)){
+		set_affinity_error(elem);
 		return;
 	}
 
 	#ifdef MIGRATION_OUTPUT
-		printf("Migrated thread %d to core %d\n", elem.tid, dest.core);
+		printf("Migrated thread %d to core %d\n", (int) elem, dest);
 	#endif
 
 	total_thread_migrations++;

@@ -3,7 +3,6 @@
 // Picks random page and destination
 vector<migration_cell_t> random_t::get_pages_to_migrate(page_table_t *page_t){
 	vector<migration_cell_t> ret;
-	migration_cell_t mc;
 
 	// Searches random page address in set
 	set<long int> s = page_t->uniq_addrs;
@@ -11,8 +10,10 @@ vector<migration_cell_t> random_t::get_pages_to_migrate(page_table_t *page_t){
 	set<long int>::iterator it = s.begin();
 	for (; pos != 0; pos--) it++;
 
-	mc.elem.page_addr = *it;
-	mc.dest.mem_node = rand() % SYS_NUM_OF_MEMORIES;
+	// Creates migration cell with data
+	long int page_addr = *it;
+	unsigned char mem_node = rand() % SYS_NUM_OF_MEMORIES;
+	migration_cell_t mc(page_addr, mem_node);
 
 	ret.push_back(mc);
 	return ret;
@@ -21,7 +22,6 @@ vector<migration_cell_t> random_t::get_pages_to_migrate(page_table_t *page_t){
 // Picks random thread and destination
 vector<migration_cell_t> random_t::get_threads_to_migrate(page_table_t *page_t){
 	vector<migration_cell_t> ret;
-	migration_cell_t mc;
 
 	// Searches random TID in map
 	map<int, short> m = page_t->tid_index;
@@ -29,8 +29,10 @@ vector<migration_cell_t> random_t::get_threads_to_migrate(page_table_t *page_t){
 	map<int, short>::iterator it = m.begin();
 	for (; pos != 0; pos--) it++;
 
-	mc.elem.tid = it->first;
-	mc.dest.core = rand() % SYS_NUM_OF_CORES;
+	// Creates migration cell with data
+	long int tid = it->first;
+	unsigned char core = rand() % SYS_NUM_OF_CORES;
+	migration_cell_t mc(tid, core);
 
 	ret.push_back(mc);
 	return ret;

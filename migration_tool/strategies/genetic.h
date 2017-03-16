@@ -6,12 +6,14 @@
 
 #include "genetic/population.h"
 #include "genetic/individual.h"
-#include "genetic/utils.h"
+#include "genetic/gen_utils.h"
+
+#define GENETIC_OUTPUT
 
 using namespace std;
 
 const double CROSS_PROB = 0.9;
-const double MUT_PROB = 0.08;
+const double MUT_PROB = 1;
 
 typedef struct genetic : strategy {
 	population p;
@@ -21,10 +23,10 @@ typedef struct genetic : strategy {
 
 	genetic(){}
 
-	void do_genetic(individual r);
+	vector<migration_cell_t> do_genetic(individual r);
 	individual tournament();
 	individual cross(individual from_iter, individual chosen);
-	void mutation(individual *r);
+	void mutation(individual *r, vector<migration_cell_t> *v);
 	void print_best_sol();
 
 	// The following should not be written because it should inherit it from strategy

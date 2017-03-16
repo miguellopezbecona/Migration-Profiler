@@ -407,7 +407,7 @@ void page_table_t::print_performance(){
 	printf("\n");
 
 	for (auto const & it : tid_node_map){
-		printf("T%d: ", it.first);
+		printf("T%d: ", (int) it.first);
 		it.second.print();
 	}
 }
