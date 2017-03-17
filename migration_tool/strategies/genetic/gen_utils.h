@@ -8,6 +8,7 @@ using namespace std;
 
 class gen_utils {
 	public:
-	static double obtain_double();
+	static int get_rand_int(int max, int no_repeat);
+	static double get_rand_double();
 	static bool contains(vector<int> v, int e);
 };

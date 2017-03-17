@@ -64,8 +64,8 @@ individual genetic::cross(individual from_iter, individual chosen){
 	if(sz2 < sz1)
 		sz = sz2;
 
-	// Cross probability, it will also be reused
-	double prob = gen_utils::obtain_double();
+	// Cross probability
+	double prob = gen_utils::get_rand_double();
 
 	#ifdef GENETIC_OUTPUT
 	printf("Cross: (rand num: %.2f) -> ", prob);
@@ -77,11 +77,8 @@ individual genetic::cross(individual from_iter, individual chosen){
 		#endif
 		return from_iter;
 	} else {
-		int ind1, ind2;
-		prob = gen_utils::obtain_double();
-		ind1 = (int) round(prob*(sz-1));
-		prob = gen_utils::obtain_double();
-		ind2 = (int) round(prob*(sz-1));
+		int ind1 = gen_utils::get_rand_int(sz, -1);
+		int ind2 = gen_utils::get_rand_int(sz, ind1);
 
 		// Two descendents can be obtained with order crossover
 		individual r3 = chosen.cross(from_iter, ind1, ind2);
@@ -108,10 +105,9 @@ void genetic::mutation(individual *r, vector<migration_cell_t> *v){
 			return;
 
 		for(size_t pos1=0;pos1<sz;pos1++){
-			double prob, decimal;
 
 			// Obtains probability and mutation index
-			prob = gen_utils::obtain_double();
+			double prob = gen_utils::get_rand_double();
 
 			#ifdef GENETIC_OUTPUT
 			printf("\tposition: %lu (rand rum %.2f) -> ", pos1, prob);
@@ -122,8 +118,7 @@ void genetic::mutation(individual *r, vector<migration_cell_t> *v){
 				printf("mutation not done\n");
 				#endif
 			} else {
-				decimal = gen_utils::obtain_double();
-				int pos2 = (int) round(decimal*(sz-1));
+				int pos2 = gen_utils::get_rand_int(sz, pos1);
 
 				// Generates two migration cells: r.v[pos1] goes to r.v[pos2] location and viceversa
 				migration_cell_t mc1(r->v[pos1].elem, r->v[pos2].dest);
@@ -134,8 +129,6 @@ void genetic::mutation(individual *r, vector<migration_cell_t> *v){
 				#ifdef GENETIC_OUTPUT
 				printf("interchanges with position %d\n", pos2);
 				#endif
-
-				//printf("\t%lx %d, %lx %d\n", mc1.elem, mc2.dest, mc1.elem, mc2.dest);
 
 				// Key function
 				r->mutate(pos1, pos2);

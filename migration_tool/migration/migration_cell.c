@@ -9,11 +9,12 @@ migration_cell_t::migration_cell(long int elem, unsigned char dest) {
 void migration_cell_t::perform_page_migration(pid_t pid) const {
 	void **page = (void **)calloc(1,sizeof(long int *));
 	page[0] = (void*) &elem;
-	int *status = (int *)calloc(1,sizeof(int));
+	int dest_int = dest, status;
 
 	// Key system call: numa_move_pages
-	int rc = numa_move_pages(pid, 1, page, (int*) &dest, status, MPOL_MF_MOVE);
+	int rc = numa_move_pages(pid, 1, page, &dest_int, &status, MPOL_MF_MOVE);
 	if (rc < 0){
+		printf("%d %lx %d, e: %d\n", pid, elem, dest, errno);
 		printf("Move pages did not work: %s\n", strerror(errno));
 		return;
 	}
@@ -21,9 +22,9 @@ void migration_cell_t::perform_page_migration(pid_t pid) const {
 	total_page_migrations++;
 
 	#ifdef MIGRATION_OUTPUT
-		printf("Migrated page number %016lx to node %d, status=%d", (long unsigned int) elem, dest, status[0]);
-		if(status[0] < 0)
-			printf(", err: %s", strerror(-status[0]));
+		printf("Migrated page number %016lx to node %d, status=%d", (long unsigned int) elem, dest, status);
+		if(status < 0)
+			printf(", err: %s", strerror(-status));
 		printf("\n");
 	#endif
 }
