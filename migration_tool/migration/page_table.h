@@ -26,8 +26,7 @@ typedef struct table_cell {
 
 // For threads and memory pages
 typedef struct perf_data {
-	// [TODO]: reuse migration_cell??
-	long int elem; // Core or page address
+	// Reuse migration_cell??
 	unsigned char current_place; // Mem node for pages or core for TIDs
 
 	unsigned short int num_uniq_accesses;

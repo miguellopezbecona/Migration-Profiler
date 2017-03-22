@@ -13,7 +13,7 @@
 using namespace std;
 
 const double CROSS_PROB = 0.9;
-const double MUT_PROB = 1;
+const double MUT_PROB = 0.1;
 
 typedef struct genetic : strategy {
 	population p;
@@ -30,7 +30,7 @@ typedef struct genetic : strategy {
 	void print_best_sol();
 
 	// The following should not be written because it should inherit it from strategy
-	vector<migration_cell_t> get_pages_to_migrate(page_table_t *page_t);
-	vector<migration_cell_t> get_threads_to_migrate(page_table_t *page_t);
+	vector<migration_cell_t> get_pages_to_migrate(map<pid_t, page_table_t> *page_ts);
+	vector<migration_cell_t> get_threads_to_migrate(map<pid_t, page_table_t> *page_ts);
 } genetic_t;
 

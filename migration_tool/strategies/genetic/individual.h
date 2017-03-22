@@ -7,19 +7,19 @@
 #include <vector>
 using namespace std;
 
-#include "../../migration/page_table.h" // perf_data
+#include "gen_utils.h" // perf_data
 #include "../../migration/migration_cell.h"
 
 class individual {
 	private:
-	// Migration cell instead of just numbers (locations) so we can keep which memory page or TID is associated to that location
+	// Migration cell instead of just numbers (locations) so we can keep which PID and memory page/TID is associated to that location
 	//vector<migration_cell_t> v;
     
 	public:
 	vector<migration_cell_t> v;
 
 	individual();
-	individual(map<long int, perf_data_t> m);
+	individual(map<pid_t, page_table_t> ts);
 	individual(vector<migration_cell_t> vec);
 
 	int fitness() const;
@@ -28,7 +28,9 @@ class individual {
 	void set(int index, int value);
 	int get(int index);
 
-	void mutate(int idx1, int idx2);
+	migration_cell_t mutate(int index); // Changes location directly
+	void mutate(int idx1, int idx2); // Interchange
+
 	individual cross(individual r, int idx1, int idx2); // Using order crossover
 	individual get_copy();
 

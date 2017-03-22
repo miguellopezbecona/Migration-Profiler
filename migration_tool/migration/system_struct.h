@@ -23,7 +23,7 @@ extern int* cpu_node_map;
 extern vector<int> node_cpu_map[MAX_PACKAGES];
 
 // To know where each TID is
-extern map<int, int> tid_core_map;
+extern map<pid_t, int> tid_core_map;
 extern int* core_tid_map;
 
 int detect_system();

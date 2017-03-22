@@ -1,6 +1,6 @@
 #include "random.h"
 
-// Picks random page and destination
+// Picks random memory page and memory node destination
 vector<migration_cell_t> random_t::get_pages_to_migrate(page_table_t *page_t){
 	vector<migration_cell_t> ret;
 
@@ -13,13 +13,13 @@ vector<migration_cell_t> random_t::get_pages_to_migrate(page_table_t *page_t){
 	// Creates migration cell with data
 	long int page_addr = *it;
 	unsigned char mem_node = rand() % SYS_NUM_OF_MEMORIES;
-	migration_cell_t mc(page_addr, mem_node);
+	migration_cell_t mc(page_addr, mem_node, page_t->pid);
 
 	ret.push_back(mc);
 	return ret;
 }
 
-// Picks random thread and destination
+// Picks random thread and core destination
 vector<migration_cell_t> random_t::get_threads_to_migrate(page_table_t *page_t){
 	vector<migration_cell_t> ret;
 

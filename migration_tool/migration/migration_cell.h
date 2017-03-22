@@ -16,10 +16,13 @@
 typedef struct migration_cell {
 	long int elem; // Core or page address
 	unsigned char dest; // Mem node for pages or core for TIDs
+	pid_t pid; // -1 for thread-related elements
 
 	migration_cell(){}
 	migration_cell(long int elem, unsigned char dest);
-	void perform_page_migration(pid_t pid) const;
+	migration_cell(long int elem, unsigned char dest, pid_t pid);
+	void perform_page_migration() const;
 	void perform_thread_migration() const;
+	void perform_migration() const; // Can make private the two methods above
 } migration_cell_t;
 

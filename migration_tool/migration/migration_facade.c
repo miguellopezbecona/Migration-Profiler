@@ -6,14 +6,9 @@ set<pid_t> pids;
 map<pid_t, page_table_t> page_tables; // Each table is associated to a specific PID
 
 unsigned int step = 0;
-bool action = false;
-
-bool is_addr_sample(my_pebs_sample_t sample){
-	return sample.nr == 1;
-}
 
 void add_data_to_list(my_pebs_sample_t sample){
-	if(is_addr_sample(sample) && sample.dsrc != 0){
+	if(sample.is_addr_sample() && sample.dsrc != 0){
 		memory_data_list.add_cell(sample.cpu,sample.pid,sample.tid,sample.sample_addr,sample.weight,sample.dsrc,sample.time);
 		pids.insert(sample.pid); // Currently we only use memory list so we only consider a thread is active if we get a memory sample
 	} else
@@ -32,44 +27,25 @@ int begin_migration_process(int do_thread_migration, int do_page_migration){
 	//printf("\nPrinting instructions list...\n");
 	//inst_data_list.print();
 
-	inst_data_list.create_increments();
+	//inst_data_list.create_increments(); // Not necessary right now
 	//printf("Printing inst list after creating increments...\n");
 	//inst_data_list.print();
 
 	// Builds pages tables for each PID
 	pages(step, pids, memory_data_list, &page_tables);
 
-	// This can be uncommented to alternate between migrating pages and threads each iteration
-	/*
-	action = !action;
-	switch(action){
-		case ACTIVATE_THREAD_MIGRATION:
-			migrate_only_threads(...);
-			break;
-		case ACTIVATE_PAGE_MIGRATION:
-			migrate_only_pages(...);
-			break;
-	}
-	*/
-
 	// For each active PID, cleans "dead" TIDs from its table and performs a migration strategy
 	for (pid_t pid : pids){
-		if(page_tables.count(pid) == 0){
-			printf("This should not happen! It was requested a PID that has not entry in the map table: %d", pid);
-			fflush(stdout);
-			continue;
-		}
-
 		printf("Working over table associated to PID: %d\n", pid);
-		fflush(stdout);
 
 		page_table* table = &page_tables[pid];
 		table->remove_inactive_tids();
 		//table->print();
 
-		perform_migration_strategy(table); 
+		//perform_migration_strategy(table); // Commented because we are going to perform a migration strategy globally
 	}
-	printf("\n");
+	printf("Going to perform the global strategy.\n");
+	perform_migration_strategy(&page_tables);
 	
 	step++;
 

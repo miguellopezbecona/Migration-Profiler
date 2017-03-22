@@ -3,10 +3,17 @@
 migration_cell_t::migration_cell(long int elem, unsigned char dest) {
 	this->elem = elem;
 	this->dest = dest;
+	this->pid = -1;
+}
+
+migration_cell_t::migration_cell(long int elem, unsigned char dest, pid_t pid) {
+	this->elem = elem;
+	this->dest = dest;
+	this->pid = pid;
 }
 
 // It moves only one page at once, could be arrange to move more
-void migration_cell_t::perform_page_migration(pid_t pid) const {
+void migration_cell_t::perform_page_migration() const {
 	void **page = (void **)calloc(1,sizeof(long int *));
 	page[0] = (void*) &elem;
 	int dest_int = dest, status;
@@ -14,7 +21,6 @@ void migration_cell_t::perform_page_migration(pid_t pid) const {
 	// Key system call: numa_move_pages
 	int rc = numa_move_pages(pid, 1, page, &dest_int, &status, MPOL_MF_MOVE);
 	if (rc < 0){
-		printf("%d %lx %d, e: %d\n", pid, elem, dest, errno);
 		printf("Move pages did not work: %s\n", strerror(errno));
 		return;
 	}
@@ -29,6 +35,7 @@ void migration_cell_t::perform_page_migration(pid_t pid) const {
 	#endif
 }
 
+// Auxiliar function
 void set_affinity_error(pid_t tid){
 	switch(errno){
 		case EFAULT:
@@ -63,4 +70,11 @@ void migration_cell_t::perform_thread_migration() const {
 	#endif
 
 	total_thread_migrations++;
+}
+
+void migration_cell_t::perform_migration() const {
+	if(pid < 0)
+		perform_thread_migration();
+	else
+		perform_page_migration();
 }

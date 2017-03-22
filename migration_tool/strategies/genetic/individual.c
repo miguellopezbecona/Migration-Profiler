@@ -3,10 +3,21 @@
 individual::individual() {
 }
 
-individual::individual(map<long int, perf_data_t> m){
-	// [TODO]: redundant! Must be rewritten
-	for(auto const & it : m){
-		migration_cell_t mc(it.first, it.second.current_place);
+individual::individual(map<pid_t, page_table_t> ts){
+	// [TODO]: this is somewhat inefficient/redundant. A better solution should be achieved
+
+	// For each table (key/first=PID, value/second=table)...
+	for(auto const & t : ts){
+		// Creates gens based on its page maps
+		for(auto const & it : t.second.page_node_map){
+			migration_cell_t mc(it.first, it.second.current_place, t.first);
+			v.push_back(mc);
+		}
+	}
+
+	// Thread-related gens are collected by system_struct's TID map because it's global (pages are not)
+	for(auto const & m : tid_core_map){
+		migration_cell_t mc(m.first, m.second);
 		v.push_back(mc);
 	}
 }
@@ -31,6 +42,24 @@ void individual::set(int index, int value){
 
 int individual::get(int index){
 	return v[index].dest;
+}
+
+// Mutation by changing the location directly
+migration_cell_t individual::mutate(int index){
+	migration_cell *mc = &v[index];
+	int new_dest;
+
+	// Different value range depending on type of cell (page address or thread). Avoids repeating destiny
+	if(mc->pid > 0){
+		if(SYS_NUM_OF_MEMORIES == 1) // No possible memory node change. For testing in local only
+			return *mc;
+
+		new_dest = gen_utils::get_rand_int(SYS_NUM_OF_MEMORIES, mc->dest);
+	} else
+		new_dest = gen_utils::get_rand_int(SYS_NUM_OF_CORES, mc->dest);
+	mc->dest = new_dest;
+
+	return *mc;
 }
 
 // Simple interchange

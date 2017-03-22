@@ -93,51 +93,55 @@ individual genetic::cross(individual from_iter, individual chosen){
 
 }
        
-// Mutates current ind
+// Mutates current individual
 void genetic::mutation(individual *r, vector<migration_cell_t> *v){
-	// Just for current individual or for every one in population?
-	
-	//for(individual r : p.v){
-		size_t sz = r->size();
+	size_t sz = r->size();
 
-		// We mutate by interchanging elements, so it can't be done with just one element
-		if(sz < 2)
-			return;
+	for(size_t pos1=0;pos1<sz;pos1++){
 
-		for(size_t pos1=0;pos1<sz;pos1++){
+		// Obtains probability
+		double prob = gen_utils::get_rand_double();
 
-			// Obtains probability and mutation index
-			double prob = gen_utils::get_rand_double();
+		#ifdef GENETIC_OUTPUT
+		printf("\tposition: %lu (rand rum %.2f) -> ", pos1, prob);
+		#endif
+
+		if(prob > MUT_PROB){
+			#ifdef GENETIC_OUTPUT
+			printf("mutation not done\n");
+			#endif
+		} else {
+
+			// Mutation by changing the location directly
+			migration_cell_t mc = r->mutate(pos1);
+			v->push_back(mc);
 
 			#ifdef GENETIC_OUTPUT
-			printf("\tposition: %lu (rand rum %.2f) -> ", pos1, prob);
+			printf("mutated to %d\n", mc.dest);
 			#endif
 
-			if(prob > MUT_PROB){
-				#ifdef GENETIC_OUTPUT
-				printf("mutation not done\n");
-				#endif
-			} else {
-				int pos2 = gen_utils::get_rand_int(sz, pos1);
+			// Mutation by interchange
+/*
+			int pos2 = gen_utils::get_rand_int(sz, pos1);
 
-				// Generates two migration cells: r.v[pos1] goes to r.v[pos2] location and viceversa
-				migration_cell_t mc1(r->v[pos1].elem, r->v[pos2].dest);
-				migration_cell_t mc2(r->v[pos2].elem, r->v[pos1].dest);
-				v->push_back(mc1);
-				v->push_back(mc2);
+			// Generates two migration cells: r.v[pos1] goes to r.v[pos2] location and viceversa
+			migration_cell_t mc1(r->v[pos1].elem, r->v[pos2].dest);
+			migration_cell_t mc2(r->v[pos2].elem, r->v[pos1].dest);
+			v->push_back(mc1);
+			v->push_back(mc2);
 
-				#ifdef GENETIC_OUTPUT
-				printf("interchanges with position %d\n", pos2);
-				#endif
+			// Key function
+			r->mutate(pos1, pos2);
 
-				// Key function
-				r->mutate(pos1, pos2);
-			}
-
+			#ifdef GENETIC_OUTPUT
+			printf("interchanges with position %d\n", pos2);
+			#endif
+*/
 
 		}
 
-	//}
+
+	}
 }
 
 void genetic::print_best_sol(){
@@ -147,15 +151,14 @@ void genetic::print_best_sol(){
 	printf("Obtained in iteration: %d\n", best_it);
 }
 
-vector<migration_cell_t> genetic_t::get_pages_to_migrate(page_table_t *page_t){
-	// Convert node_map (in this case, page) to a individual. This may imply a slowdown, and there may be problems because those fields aren't "linear"
-	individual ind(page_t->page_node_map);
+vector<migration_cell_t> genetic_t::get_pages_to_migrate(map<pid_t, page_table_t> *page_ts){
+	// Converts both node_maps (page_node_map and tid_node_map) to a individual (list of cells). This may imply a slowdown
+	individual ind(*page_ts);
 	return do_genetic(ind);
 }
 
-vector<migration_cell_t> genetic_t::get_threads_to_migrate(page_table_t *page_t){
-	// Convert node_map (in this case, tid) to a individual. This may imply a slowdown, and there may be problems because those fields aren't "linear"
-	individual ind(page_t->tid_node_map);
-	return do_genetic(ind);
+// Right now, for simplicity:
+vector<migration_cell_t> genetic_t::get_threads_to_migrate(map<pid_t, page_table_t> *page_ts){
+	return get_pages_to_migrate(page_ts);
 }
 

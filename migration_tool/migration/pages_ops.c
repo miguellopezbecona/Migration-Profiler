@@ -27,7 +27,7 @@ void build_page_tables(memory_data_list_t memory_list, map<pid_t, page_table_t> 
 		if(page_node < 0)
 			page_node = 0;
 
-		set_tid_core(m_cell.tid, m_cell.cpu); // Set TID location (core)
+		set_tid_core(m_cell.tid, m_cell.cpu); // Sets TID location (core)
 
 		if(page_ts->count(m_cell.pid) == 0) // = !contains(pid). We init the entry if it doesn't exist
 			page_ts->operator[](m_cell.pid).init(m_cell.pid);

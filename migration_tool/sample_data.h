@@ -18,7 +18,7 @@ typedef struct my_pebs_sample{
 	uint64_t *values;
 	uint64_t dsrc;
 
-	//For use with no output
+	bool is_addr_sample();
 	void print(FILE *fp);
 	void print_for_3DyRM(FILE *fp);
 } my_pebs_sample_t;

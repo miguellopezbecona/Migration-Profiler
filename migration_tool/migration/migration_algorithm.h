@@ -15,5 +15,6 @@
 extern int total_thread_migrations;
 extern int total_page_migrations;
 
-int perform_migration_strategy(page_table_t *page_t);
+int perform_migration_strategy(page_table_t *page_t); // For a one process-only strategy
+int perform_migration_strategy(map<pid_t, page_table_t> *page_ts); // For a global strategy
 
