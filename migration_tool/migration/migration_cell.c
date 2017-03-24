@@ -12,7 +12,11 @@ migration_cell_t::migration_cell(long int elem, unsigned char dest, pid_t pid) {
 	this->pid = pid;
 }
 
-// It moves only one page at once, could be arrange to move more
+bool migration_cell_t::is_thread_cell() const{
+	return pid == -1;
+}
+
+// It moves only one page at once, could be arranged to move more
 void migration_cell_t::perform_page_migration() const {
 	void **page = (void **)calloc(1,sizeof(long int *));
 	page[0] = (void*) &elem;
@@ -73,7 +77,7 @@ void migration_cell_t::perform_thread_migration() const {
 }
 
 void migration_cell_t::perform_migration() const {
-	if(pid < 0)
+	if(is_thread_cell())
 		perform_thread_migration();
 	else
 		perform_page_migration();

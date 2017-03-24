@@ -9,7 +9,7 @@ vector<migration_cell_t> genetic::do_genetic(individual r){
 		//p.add(r); // Final result is appended to historic population
 		it = 1;
 		best_sol = r;
-		best_it = 0;
+		best_it = 1;
 		return v;
 	}
 
@@ -26,7 +26,7 @@ vector<migration_cell_t> genetic::do_genetic(individual r){
 	mutation(&aux);
 	
 	p.add(aux); // Final result is appended to population	
-	p.customSort(); // Sorts by fitness, not necessary
+	//p.customSort(); // Sorts by fitness, not necessary
 	//printf("Population sorted by fitness. End of iteration.\n");
 	p.print(); // Prints poblation content
 
@@ -35,7 +35,7 @@ vector<migration_cell_t> genetic::do_genetic(individual r){
 
 	// Updates best_sol if needed
 	if(best.fitness() < best_sol.fitness()){
-		best_sol = wot;
+		best_sol = best;
 		best_it = it;
 	}
 */

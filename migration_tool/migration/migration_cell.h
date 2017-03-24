@@ -21,6 +21,8 @@ typedef struct migration_cell {
 	migration_cell(){}
 	migration_cell(long int elem, unsigned char dest);
 	migration_cell(long int elem, unsigned char dest, pid_t pid);
+
+	bool is_thread_cell() const;
 	void perform_page_migration() const;
 	void perform_thread_migration() const;
 	void perform_migration() const; // Can make private the two methods above

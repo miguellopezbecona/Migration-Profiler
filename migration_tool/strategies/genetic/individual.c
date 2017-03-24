@@ -49,14 +49,15 @@ migration_cell_t individual::mutate(int index){
 	migration_cell *mc = &v[index];
 	int new_dest;
 
-	// Different value range depending on type of cell (page address or thread). Avoids repeating destiny
-	if(mc->pid > 0){
+	// Different value range depending on type of cell (thread or page address). Avoids repeating current location
+	if(mc->is_thread_cell())
+		new_dest = gen_utils::get_rand_int(SYS_NUM_OF_CORES, mc->dest);
+	else {
 		if(SYS_NUM_OF_MEMORIES == 1) // No possible memory node change. For testing in local only
 			return *mc;
 
 		new_dest = gen_utils::get_rand_int(SYS_NUM_OF_MEMORIES, mc->dest);
-	} else
-		new_dest = gen_utils::get_rand_int(SYS_NUM_OF_CORES, mc->dest);
+	}
 	mc->dest = new_dest;
 
 	return *mc;

@@ -29,7 +29,6 @@
 
 #include <signal.h>
 #include <getopt.h>
-#include <setjmp.h>
 #include <sys/wait.h>
 #include <sys/poll.h>
 #include <sys/ioctl.h>
@@ -70,7 +69,6 @@ typedef struct {
 unsigned int anti_inf_loop_counter = 0;
 int uid; // For PID filtering
 
-static jmp_buf jbuf;
 static uint64_t collected_samples_total[NUM_GROUPS], lost_samples_total[NUM_GROUPS],processed_samples_total[NUM_GROUPS];
 
 static int num_fds[NUM_GROUPS];
@@ -373,8 +371,35 @@ int open_cgroup(char *name) {
 	return cfd;
 }
 
-static void handler(int n) {
-	longjmp(jbuf, 1);
+static void clean_end(int n) {
+	perf_event_desc_t *fds = NULL;
+
+	printf("TERMINATING\n");
+
+	// Closes and frees resources	
+	for(int i=0;i<NUM_GROUPS;i++){
+		for(int j=0;j<SYS_NUM_OF_CORES;j++){
+			fds = all_fds[i][j];
+			for(int k=0; k < num_fds[i]; k++)
+				close(fds[k].fd);
+
+			munmap(fds[0].buf, map_size);
+			perf_free_fds(fds, num_fds[i]);
+		}
+	}
+
+	for(int i=0;i<NUM_GROUPS;i++)
+		free(all_fds[i]);
+
+	//This is information for the usual 2 groups (memory and instructions). Change if needed
+/*
+	printf("%lu(%lu) memory samples collected (processed) in total %lu poll events and %lu partial reads, %lu lost samples\n",collected_samples_total[0],processed_samples_total[0],ovfl_count_total[0],partial_read_total[0],lost_samples_total[0]);
+	printf("%lu(%lu) instruction samples collected in total (processed) %lu poll events and %lu partial reads, %lu lost samples\n\n",collected_samples_total[1],processed_samples_total[1],ovfl_count_total[1],partial_read_total[1],lost_samples_total[1]);
+*/
+	printf("%d thread migrations made.\n", total_thread_migrations);
+	printf("%d page migrations made.\n", total_page_migrations);
+
+	exit(0);
 }
 
 int mainloop(char **arg) {
@@ -389,11 +414,11 @@ int mainloop(char **arg) {
 	int ret;
 	int fd = -1;
 
+	perf_event_desc_t *fds = NULL;
+
 	//set overflows to zero
 	for(int i=0;i<NUM_GROUPS;i++)
 		ovfl_count_total[i]=0;
-
-	perf_event_desc_t *fds = NULL;
 
 	//ADDED TO USE MORE GROUPS
 	for(int i=0;i<NUM_GROUPS;i++){
@@ -421,8 +446,8 @@ int mainloop(char **arg) {
 			setup_cpu(j, fd,i);
 	}
 
-	signal(SIGALRM, handler);
-	signal(SIGINT, handler);
+	signal(SIGALRM, clean_end);
+	signal(SIGINT, clean_end);
 
 	//This is for polling the buffers of SYS_NUM_OF_CORES cpus and the A group of events
 	for(int i=0;i<SYS_NUM_OF_CORES;i++){
@@ -436,11 +461,6 @@ int mainloop(char **arg) {
 		fds = all_fds[1][i-SYS_NUM_OF_CORES];
 		pollfds[i].fd = fds[0].fd;
 		pollfds[i].events = POLLIN;
-	}
-
-	if (setjmp(jbuf) == 1){
-		printf("TERMINATING\n");
-		goto terminate_session;
 	}
 
 	for(int i=0;i<SYS_NUM_OF_CORES;i++){
@@ -469,31 +489,7 @@ int mainloop(char **arg) {
 		*/
 		perform_migration();
 		#endif
-	}//end core loop
-terminate_session:
-
-	// Closes and frees resources	
-	for(int i=0;i<NUM_GROUPS;i++){
-		for(int j=0;j<SYS_NUM_OF_CORES;j++){
-			fds = all_fds[i][j];
-			for(int k=0; k < num_fds[i]; k++)
-				close(fds[k].fd);
-
-			munmap(fds[0].buf, map_size);
-			perf_free_fds(fds, num_fds[i]);
-		}
-	}
-
-	for(int i=0;i<NUM_GROUPS;i++)
-		free(all_fds[i]);
-
-	//This is information for the usual 2 groups (memory and instructions). Change if needed
-/*
-	printf("%lu(%lu) memory samples collected (processed) in total %lu poll events and %lu partial reads, %lu lost samples\n",collected_samples_total[0],processed_samples_total[0],ovfl_count_total[0],partial_read_total[0],lost_samples_total[0]);
-	printf("%lu(%lu) instruction samples collected in total (processed) %lu poll events and %lu partial reads, %lu lost samples\n\n",collected_samples_total[1],processed_samples_total[1],ovfl_count_total[1],partial_read_total[1],lost_samples_total[1]);
-*/
-	printf("%d thread migrations made.\n", total_thread_migrations);
-	printf("%d page migrations made.\n", total_page_migrations);
+	} //end core loop
 
 	return 0;
 }
