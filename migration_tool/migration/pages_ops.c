@@ -29,8 +29,10 @@ void build_page_tables(memory_data_list_t memory_list, map<pid_t, page_table_t> 
 
 		set_tid_core(m_cell.tid, m_cell.cpu); // Sets TID location (core)
 
-		if(page_ts->count(m_cell.pid) == 0) // = !contains(pid). We init the entry if it doesn't exist
-			page_ts->operator[](m_cell.pid).init(m_cell.pid);
+		if(page_ts->count(m_cell.pid) == 0){ // = !contains(pid). We init the entry if it doesn't exist
+			page_table_t t(m_cell.pid);
+			page_ts->operator[](m_cell.pid) = t;
+		}
 
 		page_ts->operator[](m_cell.pid).add_cell(page_addr, page_node, m_cell.tid, m_cell.latency, m_cell.cpu, cpu_node, m_cell.is_cache_miss());
 	}
@@ -59,10 +61,9 @@ int pages(unsigned int step, set<pid_t> pids, memory_data_list_t memory_list, ma
 
 	// Some things are done every ITERATIONS_PER_PRINT iterations
 	if(current_step % ITERATIONS_PER_PRINT == 0){
-		#ifdef PRINT_CSVS
-		for (set<pid_t>::iterator it = pids.begin(); it != pids.end(); ++it){
-			pid_t pid = *it;
+		for (pid_t pid : pids){
 
+			#ifdef PRINT_CSVS
 			// Creates files
 			for(int i=0;i<NUM_FILES;i++){
 				char filename[32] = "\0";
@@ -81,15 +82,16 @@ int pages(unsigned int step, set<pid_t> pids, memory_data_list_t memory_list, ma
 			// Closes files
 			for(int i=0;i<NUM_FILES;i++)
 				fclose(fps[i]);
+			#endif
+
+			//page_ts->operator[](pid).print_table1();
+			//page_ts->operator[](pid).print_table2();
+
+			//page_ts->operator[](pid).calculate_performance_tid(1000);
+			//page_ts->operator[](pid).calculate_performance_page(1000);
+			page_ts->operator[](pid).print_performance();
 		}
-		#endif
 
-		//page_ts->operator[](main_pid).print_table1();
-		//page_ts->operator[](main_pid).print_table2();
-
-		//page_ts->operator[](main_pid).calculate_performance_tid(1000);
-		//page_ts->operator[](main_pid).calculate_performance_page(1000);
-		//page_ts->operator[](main_pid).print_performance();
 	}
 
 	return 0;

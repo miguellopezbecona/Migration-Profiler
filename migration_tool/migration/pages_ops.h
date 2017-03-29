@@ -11,7 +11,7 @@
 #include "page_table.h"
 
 //#define PRINT_CSVS
-#define ITERATIONS_PER_PRINT 5
+#define ITERATIONS_PER_PRINT 2
 
 #define NUM_FILES 5
 

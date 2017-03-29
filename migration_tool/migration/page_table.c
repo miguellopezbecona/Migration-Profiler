@@ -12,10 +12,15 @@ void table_cell_t::update(int latency, bool is_cache_miss){
 }
 
 void table_cell_t::print(){
-	printf("M_LAT %.2f, T_ACC %lu, CACH_MIS: %u\n", accumulate(latencies.begin(), latencies.end(), 0.0) / latencies.size(), latencies.size(), cache_misses);
+	printf("NUM_ACC %lu, MEAN_LAT %.2f, CACH_MIS: %u\n", latencies.size(), accumulate(latencies.begin(), latencies.end(), 0.0) / latencies.size(), cache_misses);
 }
 
 /*** page_table_t ***/
+page_table_t::page_table(pid_t p){
+	pid = p;
+	table.resize(SYS_NUM_OF_CORES);
+}
+
 int page_table_t::add_cell(long int page_addr, int current_node, pid_t tid, int latency, int cpu, int cpu_node, bool is_cache_miss){
 	table_cell_t *cell = get_cell(page_addr, tid);
 
@@ -37,7 +42,10 @@ int page_table_t::add_cell(long int page_addr, int current_node, pid_t tid, int 
 	} else
 		cell->update(latency, is_cache_miss);
 	
-	page_node_map[page_addr].current_place = current_node; // Creates/updates association in page node map
+	// Creates/updates association in page node map
+	perf_data_t *pd = &page_node_map[page_addr];
+	pd->current_place = current_node;
+	pd->acs_per_node[cpu_node]++;
 
 	return 0;
 }
@@ -109,6 +117,7 @@ void page_table_t::clear(){
 void page_table_t::print(){
 	printf("Page table for PID: %d\n", pid);
 
+	// Prints each row (TID)
 	for(auto const & t_it : tid_index) {
 		int tid = t_it.first;
 		int pos = t_it.second;
@@ -117,6 +126,7 @@ void page_table_t::print(){
 		if(table[pos].empty())
 			printf("\tEmpty.\n");
 		
+		// Prints each cell (TID + page address)
 		for(auto const & it : table[pos]) {
 			long int page_addr = it.first;
 			table_cell_t cell = it.second;
@@ -229,20 +239,20 @@ void page_table_t::print_table1(){
 	printf("\n");
 
 	// For each thread (row)...
-	for(map<int, short>::iterator t_it = tid_index.begin(); t_it != tid_index.end(); ++t_it) {
+	for(auto t_it : tid_index) {
 		memset(counters, 0, sizeof(counters)); // Zero reset
 		
 		// For each map entry, gets address and sums accesses to counters[page_node]
-		int pos = t_it->second;
-		for(map<long int, table_cell_t>::iterator it = table[pos].begin(); it != table[pos].end(); ++it) {
-			page_addr = it->first;
-			cell = it->second;
+		int pos = t_it.second;
+		for(auto it : table[pos]) {
+			page_addr = it.first;
+			cell = it.second;
 			page_node = page_node_map[page_addr].current_place;
 			counters[page_node] += cell.latencies.size(); // What if those accesses were done when page was in another node?...
 		}
 
 		// Prints results
-		printf("T-%d:", t_it->first);
+		printf("T-%d:", t_it.first);
 		for(int j=0;j<SYS_NUM_OF_MEMORIES;j++)
 			printf("\t%d", counters[j]);
 		printf("\n");
@@ -407,14 +417,18 @@ void page_table_t::print_performance(){
 	printf("\n");
 
 	for (auto const & it : tid_node_map){
-		printf("T%d: ", (int) it.first);
+		printf("T-%d: ", (int) it.first);
 		it.second.print();
 	}
 }
 
 /*** perf_data_t functions ***/
 void perf_data_t::print() const {
-	printf("MEM_NODE/CORE: %d, UNIQ_ACS: %d, ACS_THRES: %d", current_place, num_uniq_accesses, num_acs_thres);
+	printf("MEM_NODE/CORE: %d, UNIQ_ACS: %d, ACS_THRES: %d, ACS_PER_NODE: {", current_place, num_uniq_accesses, num_acs_thres);
+
+	for(size_t i=0;i<SYS_NUM_OF_MEMORIES;i++)
+		printf(" %d", acs_per_node[i]);
+	printf(" }");
 
 	if(num_acs_thres > 0)
 		printf(", MIN_LAT: %d, MEDIAN_LAT: %d, MAX_LAT: %d", min_latency, median_latency, max_latency);

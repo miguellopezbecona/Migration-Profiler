@@ -29,13 +29,21 @@ typedef struct perf_data {
 	// Reuse migration_cell??
 	unsigned char current_place; // Mem node for pages or core for TIDs
 
-	unsigned short int num_uniq_accesses;
-	unsigned short int num_acs_thres; // Always equal or lower than num_uniq_accesses
+	vector<unsigned short> acs_per_node; // Number of accesses from threads per memory node
+
+	unsigned short num_uniq_accesses;
+	unsigned short num_acs_thres; // Always equal or lower than num_uniq_accesses
 	int min_latency;
 	int median_latency;
 	int max_latency;
 
-	perf_data(){}
+	perf_data(){
+		num_acs_thres = 0;
+
+		vector<unsigned short> v(SYS_NUM_OF_MEMORIES, 0);
+		acs_per_node = v;
+	}
+
 	void print() const;
 } perf_data_t;
 
@@ -53,11 +61,9 @@ typedef struct page_table {
 
 	pid_t pid;
 
-	// No constructor because SYS_NUM_OF_CORES is not defined at constructor call time
-	void init(pid_t p){
-		pid = p;
-		table.resize(SYS_NUM_OF_CORES);
-	}
+	page_table(){}
+	page_table(pid_t p);
+
 	int add_cell(long int page_addr, int current_node, pid_t tid, int latency, int cpu, int cpu_node, bool is_cache_miss);
 	bool contains_addr(long int page_addr, int cpu);
 	table_cell_t* get_cell(long int page_addr, int cpu);

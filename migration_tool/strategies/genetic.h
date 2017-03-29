@@ -8,7 +8,7 @@
 #include "genetic/individual.h"
 #include "genetic/gen_utils.h"
 
-#define GENETIC_OUTPUT
+//#define GENETIC_OUTPUT
 
 using namespace std;
 

@@ -9,12 +9,17 @@ The app can also print, each N iterations, some CSV files that can be plotted a 
 * A line plot where X axis is the number of memory page and Y axis is the number of different threads that access to that memory page.
 
 ## Compiling and executing
-The app requires `libnuma-dev` package, so you need to install it first. It also uses [libpfm](http://perfmon2.sourceforge.net/) but it is already compiled and included in the repository. Note that, unless you are root, `perf_event_paranoid` system file should contain a zero or else the profiler will not be able to read the hardware counters. You can solve it with the following command:
+The app requires `libnuma-dev` package, so you need to install it first. It also uses [libpfm](http://perfmon2.sourceforge.net/) but it is already compiled (for a Linux *x86_64* architecture) and included in the repository. Note that, unless you are root, `perf_event_paranoid` system file should contain a zero or else the profiler will not be able to read the hardware counters. You can solve it with the following command:
 ```bash
 echo "0" | sudo tee /proc/sys/kernel/perf_event_paranoid > /dev/null
 ```
 
-If you just want to build the profiler, you can use the Makefile inside the source code folder. I have already facilitated a bash script to also execute it along the ABC program. Just go to the source code folder and execute "test" script:
+Some Linux systems may also require having the enviroment variable `LD_LIBRATY_PATH` defined with a path that includes the self directory, being the simplest way to solve it:
+```bash
+export LD_LIBRARY_PATH=.
+```
+
+If you just want to build the profiler, you can use the Makefile inside the source code folder. I have already facilitated a bash script to also execute it along with the ABC program. Just go to the source code folder and execute "test" script:
 ```bash
 bash test.sh [NUMA option]
 ```
@@ -33,7 +38,7 @@ The following list explains briefly the components regarding the main execution 
   - `migration/inst_list.c`: each element of the list consists in a structure that holds data for instructions samples. It contains data such as instruction number, source CPU, source PID, etc.
 * `migration/migration_facade.c`: serves as a facade to other migration functionalities and holds the main data structures (`memory_data_list`, `inst_data_list`, and `page_tables`). `begin_migration_process` creates increments (instruction count) for `inst_data_list` that might be used in the future, builds a page table for each wanted PID to profile by calling `pages`, and performs a migration strategy. At the end, `memory_data_list` and `inst_data_list` are emptied.
 * `migration/page_ops.c`: builds page tables (defined in the following file) and can do other stuff like generating the already described CSV files. Might be fused with `migration_facade`.
-* `migration/page_table.c`: it consists in a matrix defined as a vector of maps, where the rows (number of vectors) would be the number of TIDs, while the columns would be the memory pages' addresses. So, for each access a thread does to a memory page, this structure holds a cell with latencies and cache misses. Another option was implementing it as a single map with a pair of two values as key, but that would make inefficient the looping over a specific row (TID) or a specific column (page address). TID indexing is done by a simple "bad hash" using a counter rather than the actual TID, so we don't need two level of maps. This structure will be the main one to be used in future work to compute system's performance and migration decisions.
+* `migration/page_table.c`: it consists in a matrix defined as a vector of maps, where the rows (number of vectors) would be the number of TIDs, while the columns would be the memory pages' addresses. Each "profilable" process will be associated with one table. So, for each access a thread does to a memory page, this structure holds a cell with latencies, cache misses and another potential relevant information. Another option was implementing it as a single map with a pair of two values as key, but that would make inefficient the looping over a specific row (TID) or a specific column (page address). TID indexing is done by a simple "bad hash" using a counter rather than the actual TID, so we don't need two level of maps. Each table also holds other useful information such maps to know in which memory node each page address is located or performance data. This structure will be the main one to be used in future work to compute system's performance and migration decisions.
 * `migration/migration_algorithm.c`: it calls freely the strategies you want, defined in `strategies` folder, in order to do the following migrations.
 * `migration/migration_cell.*`: defines a migration, which needs an element to migrate (TID or memory page) and a destination (core or memory node) and functions to perform them.
 * `strategies/strategy.h`: defines which operations should define a scratch strategy.
