@@ -22,115 +22,69 @@
  * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/*
- * #define JUST_PROFILE, if you only want to use this tool for profiling
-*/
-
-
 #include <signal.h>
 #include <getopt.h>
-#include <sys/wait.h>
 #include <sys/poll.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 
-#include "perfmon/perf_util.h"
-
+#include "perfmon/perf_util.h" // transfer_data_from_buffer_to_structure
+#include "utils.h" // For time utils
 #include "sample_data.h"
 #include "migration/migration_facade.h" // begin_migration_process
 
-#define NUM_GROUPS 2 // Changing this does not make the app work automatically
-#define DEFAULT_MMAP_PAGES 16
+// If you only want to use this tool for profiling, uncomment the following:
+// #define JUST_PROFILE
 
+// Using a value greater than 2 requires additional changes in, at least, "events" and "periods" array
+#define NUM_GROUPS 1
+
+// For the cgroups option, necessary?
 #define MAX_PATH	1024
 #ifndef STR
 # define _STR(x) #x
 # define STR(x) _STR(x)
 #endif
 
-
 typedef struct {
-	int opt_no_show;
 	int mmap_pages;
 	int delay;
 	int sbm;
 	int th_mig;
 	int pag_mig;
-	char *eventsA;
-	char *eventsB;
 	char *cgroup;
-//	int reduced_output;
-	int periodA;
-	int periodB;
+	int periods[NUM_GROUPS];
 	int minimum_latency;
 } options_t;
 
-unsigned int anti_inf_loop_counter = 0;
+unsigned int anti_inf_loop_counter = 0; // For unknown samples
 int uid; // For PID filtering
 
-static uint64_t collected_samples_total[NUM_GROUPS], lost_samples_total[NUM_GROUPS],processed_samples_total[NUM_GROUPS];
+static uint64_t collected_samples_total[NUM_GROUPS], lost_samples_total[NUM_GROUPS], processed_samples_total[NUM_GROUPS];
+static uint64_t buffer_reads[NUM_GROUPS];
 
 static int num_fds[NUM_GROUPS];
 static options_t options;
 static size_t sz, pgsz;
 static size_t map_size;
 
-static struct option the_options[]={
-	{ "help", 0, 0,  1},
-	{0,0,0,0}
-};
-
-static const char *gen_events[NUM_GROUPS] = {
-	"MEM_TRANS_RETIRED:LATENCY_ABOVE_THRESHOLD:period=10000",
-	"INSTRUCTIONS:period=10000000,OFFCORE_REQUESTS:ALL_DATA_RD" // Changed ALL_DATA_READ by ALL_DATA_RD
+static const char *events[2] = {
+	"MEM_TRANS_RETIRED:LATENCY_ABOVE_THRESHOLD:period=10000"
+	,"INSTRUCTIONS:period=10000000"
 };
 
 #ifndef JUST_PROFILE
-/*
- * This is used for thread and page migration only
-*/
-int aux_counter=0;
-time_t last_migration;
-
-
-/*
- TIME COUNTING, move to file?
-*/
-
-#define SYS_TIME_NUM_VALUES 3
-//in ms
-#define SYS_TIME_VALUES const int sys_time_values[SYS_TIME_NUM_VALUES] = {1000, 2000, 4000};
-
-SYS_TIME_VALUES
-int current_time_value = 0;
 static perf_event_desc_t **all_fds[NUM_GROUPS];
 
-
-int time_go_up(){
-	current_time_value++;
-	if(current_time_value>=SYS_TIME_NUM_VALUES) current_time_value=SYS_TIME_NUM_VALUES-1;
-	return 0;
-}
-int time_go_down(){
-	current_time_value--;
-	if(current_time_value<0) current_time_value=0;
-	return 0;
-}
-int get_time_value(){
-	return sys_time_values[current_time_value];
-}
-		
-
+time_t last_migration;
 void perform_migration(){
-	if(aux_counter==0){
-		last_migration = time(NULL);
-		aux_counter++;
-		return;
-	}
+
 	time_t current_time = time(NULL);
-	if((difftime(current_time,last_migration))>(get_time_value()/1000)){
-		last_migration=current_time;
+
+	// We profile every 1, 2 or 4 seconds depending on current_time_value
+	if((difftime(current_time,last_migration)) > (get_time_value() * inv_1000)){
+		last_migration = current_time;
 		//printf("\n***********\nAt %s\n",ctime(&last_migration));
 
 		begin_migration_process(options.th_mig,options.pag_mig);
@@ -142,16 +96,12 @@ static void process_smpl_buf(perf_event_desc_t *hw, int cpu, perf_event_desc_t *
 	my_pebs_sample_t my_sample;
 	struct perf_event_header ehdr;
 	perf_event_desc_t *fds = NULL;
-	int ret;
 
-	size_t to_skip; // ADDED
-
-	//ADDED 
 	fds = all_fds_p[cpu];
 	my_sample.values = (uint64_t*)malloc(sizeof(uint64_t)*num_fds_p);	
 
 	for(;;) {
-		ret = perf_read_buffer(hw, &ehdr, sizeof(ehdr));
+		int ret = perf_read_buffer(hw, &ehdr, sizeof(ehdr));
 		if (ret)
 			return; /* nothing to read */
 
@@ -166,7 +116,6 @@ static void process_smpl_buf(perf_event_desc_t *hw, int cpu, perf_event_desc_t *
 				#ifndef JUST_PROFILE
 					add_data_to_list(my_sample);
 				#endif
-				//print_my_pebs_sample_for_3DyRM(&my_sample,options.output_file);
 					
 				if (ret)
 					errx(1, "cannot parse sample");
@@ -187,7 +136,7 @@ static void process_smpl_buf(perf_event_desc_t *hw, int cpu, perf_event_desc_t *
 				break;
 			default:
 				// Skips different entire map page or partial
-				to_skip = ehdr.size == 0 ? map_size : ehdr.size - sizeof(ehdr);
+				size_t to_skip = ehdr.size == 0 ? map_size : ehdr.size - sizeof(ehdr);
 				//printf("Unknown sample type %d, Skipping %lu bytes.\n", ehdr.type, to_skip);
 
 				perf_skip_buffer(hw, to_skip);
@@ -203,32 +152,31 @@ static void process_smpl_buf(perf_event_desc_t *hw, int cpu, perf_event_desc_t *
 	}
 }
 
-int setup_cpu(int cpu, int fd, int name) {
+int setup_cpu(int cpu, int fd, int group) {
 	perf_event_desc_t *fds = NULL;
 	uint64_t *val;
 	int ret, flags;
 
 	// Allocate fds
-	ret = perf_setup_list_events(gen_events[name], &fds, &num_fds[name]);
-	if (ret || !num_fds[name])
+	ret = perf_setup_list_events(events[group], &fds, &num_fds[group]);
+	if (ret || !num_fds[group])
 		errx(1, "cannot setup event list");
 
-	all_fds[name][cpu] = fds;
+	all_fds[group][cpu] = fds;
 	
-	//HERE DEFINE SPECIAL CONFIGURATION FOR EACH GROUP
-	if(name==0){
+	// Here we define special configuration for each group
+	if(group == 0){ // Memory
 		//Config for latency monitoring
 		fds[0].hw.config1 = options.minimum_latency;
-		fds[0].hw.sample_period	= options.periodA;	
 		fds[0].hw.precise_ip = 2;
-	} else
-		fds[0].hw.sample_period	= options.periodB;
+	}
+	fds[0].hw.sample_period	= options.periods[group];
 
 	if (!fds[0].hw.sample_period)
 		errx(1, "need to set sampling period or freq on first event, use :period= or :freq=");
 
 	fds[0].fd = -1;
-	for(int i=0; i < num_fds[name]; i++) {
+	for(int i=0; i < num_fds[group]; i++) {
 		fds[i].hw.disabled = !i; // start immediately
 
 		if (options.cgroup)
@@ -247,17 +195,14 @@ int setup_cpu(int cpu, int fd, int name) {
 			printf("%s period=%lu freq=%lu\n", fds[i].name, (long unsigned int) fds[i].hw.sample_period, fds[i].hw.freq);
 
 			fds[i].hw.read_format = PERF_FORMAT_SCALE;
-			if (num_fds[name] > 1)
+			if (num_fds[group] > 1)
 				fds[i].hw.read_format |= PERF_FORMAT_GROUP|PERF_FORMAT_ID;
-			//if (fds[i].hw.freq)
-				//fds[i].hw.sample_type |= PERF_SAMPLE_PERIOD;
 		}
 
 		fds[i].hw.exclude_guest = 1;
-		//lets exlcude kernel
-		fds[i].hw.exclude_kernel = 1;
+		fds[i].hw.exclude_kernel = 1; // Let's exlcude kernel
 
-		fds[i].fd = perf_event_open(&fds[i].hw, -1, cpu, fds[0].fd, flags);
+		fds[i].fd = perf_event_open(&fds[i].hw, -1, cpu, fds[0].fd, flags); // Profile every PID for a given CPU
 		if (fds[i].fd == -1) {
 			if (fds[i].hw.precise_ip)
 				err(1, "cannot attach event %s: precise mode may not be supported", fds[i].name);
@@ -265,20 +210,16 @@ int setup_cpu(int cpu, int fd, int name) {
 		}
 	}
 
-	/*
-	 * kernel adds the header page to the size of the mmapped region
-	 */
+	// kernel adds the header page to the size of the mmapped region
 	fds[0].buf = mmap(NULL, map_size, PROT_READ|PROT_WRITE, MAP_SHARED, fds[0].fd, 0);
 	if (fds[0].buf == MAP_FAILED)
 		err(1, "cannot mmap buffer");
 
-	/* does not include header page */
+	// does not include header page
 	fds[0].pgmsk = (options.mmap_pages*pgsz)-1;
 
-	/*
-	 * send samples for all events to first event's buffer
-	 */
-	for (int i = 1; i < num_fds[name]; i++) {
+	// send samples for all events to first event's buffer
+	for (int i = 1; i < num_fds[group]; i++) {
 		if (!fds[i].hw.sample_period)
 			continue;
 		ret = ioctl(fds[i].fd, PERF_EVENT_IOC_SET_OUTPUT, fds[0].fd);
@@ -300,8 +241,8 @@ int setup_cpu(int cpu, int fd, int name) {
 	 * We are skipping the first 3 values (nr, time_enabled, time_running)
 	 * and then for each event we get a pair of values.
 	 */
-	if (num_fds[name] > 1) {
-		sz = (3+2*num_fds[name])*sizeof(uint64_t);
+	if (num_fds[group] > 1) {
+		sz = (3+2*num_fds[group])*sizeof(uint64_t);
 		val = (uint64_t*)malloc(sz);
 		if (!val)
 			err(1, "cannot allocated memory");
@@ -310,23 +251,13 @@ int setup_cpu(int cpu, int fd, int name) {
 		if (ret == -1)
 			err(1, "cannot read id %zu", sizeof(val));
 
-		for(int i=0; i < num_fds[name]; i++) {
+		for(int i=0; i < num_fds[group]; i++) {
 			fds[i].id = val[2*i+1+3];
 			printf("%lu  %s\n", fds[i].id, fds[i].name);
 		}
 		free(val);
 	}
 	return 0;
-}
-
-static void start_cpu(int c, perf_event_desc_t **all_fds_p) {
-	perf_event_desc_t *fds = all_fds_p[c];
-
-	if (fds[0].fd == -1)
-		return;
-	int ret = ioctl(fds[0].fd, PERF_EVENT_IOC_ENABLE, 0);
-	if (ret)
-		err(1, "cannot start counter");
 }
 
 static const char* cgroupfs_find_mountpoint(void) {
@@ -391,11 +322,10 @@ static void clean_end(int n) {
 	for(int i=0;i<NUM_GROUPS;i++)
 		free(all_fds[i]);
 
-	//This is information for the usual 2 groups (memory and instructions). Change if needed
-/*
-	printf("%lu(%lu) memory samples collected (processed) in total %lu poll events and %lu partial reads, %lu lost samples\n",collected_samples_total[0],processed_samples_total[0],ovfl_count_total[0],partial_read_total[0],lost_samples_total[0]);
-	printf("%lu(%lu) instruction samples collected in total (processed) %lu poll events and %lu partial reads, %lu lost samples\n\n",collected_samples_total[1],processed_samples_total[1],ovfl_count_total[1],partial_read_total[1],lost_samples_total[1]);
-*/
+	const char* types[2] = {"memory", "instruction"};
+	for(int i=0;i<NUM_GROUPS;i++)
+		printf("%lu (%lu) %s samples collected (processed) in total %lu poll events and %lu lost samples\n",collected_samples_total[i],processed_samples_total[i], types[i], buffer_reads[i], lost_samples_total[i]);
+
 	printf("%d thread migrations made.\n", total_thread_migrations);
 	printf("%d page migrations made.\n", total_page_migrations);
 
@@ -403,93 +333,93 @@ static void clean_end(int n) {
 }
 
 int mainloop(char **arg) {
+	// Obtains some important "constants" in execution time
 	detect_system();
 	uid = getuid();
+	pgsz = sysconf(_SC_PAGESIZE);
+	map_size = (options.mmap_pages+1)*pgsz;
 
-	static uint64_t ovfl_count_total[NUM_GROUPS]; /* static to avoid setjmp issue */
-	static uint64_t partial_read_total[NUM_GROUPS]; /* static to avoid setjmp issue */
+	const unsigned short TOTAL_BUFFS = SYS_NUM_OF_CORES*NUM_GROUPS;
+	last_migration = time(NULL);
 
-	// This is the struct for polling the buffers of SYS_NUM_OF_CORES for 2 different groups of events
-	struct pollfd pollfds[SYS_NUM_OF_CORES*NUM_GROUPS];
-	int ret;
+	// This is the struct for polling the buffers of SYS_NUM_OF_CORES for different groups of events
+	struct pollfd pollfds[TOTAL_BUFFS];
 	int fd = -1;
-
 	perf_event_desc_t *fds = NULL;
 
-	//set overflows to zero
-	for(int i=0;i<NUM_GROUPS;i++)
-		ovfl_count_total[i]=0;
+	// Sets buffer reads to zero
+	memset(buffer_reads, 0, sizeof(buffer_reads));
 
-	//ADDED TO USE MORE GROUPS
+	// Allocates memory for all_fds
 	for(int i=0;i<NUM_GROUPS;i++){
-		//ADDED TO USE ALL CPUS
 		all_fds[i] = (perf_event_desc_t**)malloc(SYS_NUM_OF_CORES * sizeof(perf_event_desc_t *));
 		if (!all_fds[i])
 			err(1, "cannot allocate memory for all_fds[%d]",i);
 	}
 
+	// Initializes PFM
 	if (pfm_initialize() != PFM_SUCCESS)
 		errx(1, "libpfm initialization failed\n");
 
-	pgsz = sysconf(_SC_PAGESIZE);
-	map_size = (options.mmap_pages+1)*pgsz;
-
+	// Can use cgroups (useful in this case?)
 	if (options.cgroup) {
 		fd = open_cgroup(options.cgroup);
 		if (fd == -1)
 			err(1, "cannot open cgroup file %s\n", options.cgroup);
 	}
 
-	//END ADDED
+	// Sets up counter configuration
 	for(int i=0;i<NUM_GROUPS;i++){
 		for(int j=0;j<SYS_NUM_OF_CORES;j++)
-			setup_cpu(j, fd,i);
+			setup_cpu(j, fd, i);
 	}
 
+	// Sets up handler for some signals for a clean end
 	signal(SIGALRM, clean_end);
 	signal(SIGINT, clean_end);
 
-	//This is for polling the buffers of SYS_NUM_OF_CORES cpus and the A group of events
-	for(int i=0;i<SYS_NUM_OF_CORES;i++){
-		fds = all_fds[0][i];
-		pollfds[i].fd = fds[0].fd;
-		pollfds[i].events = POLLIN;
-	}
-	
-	//This is for polling the buffers of SYS_NUM_OF_CORES cpus and the B group of events
-	for(int i=SYS_NUM_OF_CORES;i<SYS_NUM_OF_CORES*NUM_GROUPS;i++){
-		fds = all_fds[1][i-SYS_NUM_OF_CORES];
+	// This is for polling the buffers of SYS_NUM_OF_CORES cpus for the available groups
+	for(int i=0;i<TOTAL_BUFFS;i++){
+		int gr = i / SYS_NUM_OF_CORES;
+		int cpu = i % SYS_NUM_OF_CORES;
+		fds = all_fds[gr][cpu];
 		pollfds[i].fd = fds[0].fd;
 		pollfds[i].events = POLLIN;
 	}
 
+	// Starts counters
 	for(int i=0;i<SYS_NUM_OF_CORES;i++){
-		for(int j=0;j<NUM_GROUPS;j++)
-			start_cpu(i,all_fds[j]);
+		for(int j=0;j<NUM_GROUPS;j++){
+			fds = all_fds[j][i];
+
+			if (fds[0].fd == -1)
+				continue;
+			int ret = ioctl(fds[0].fd, PERF_EVENT_IOC_ENABLE, 0);
+			if (ret)
+				err(1, "cannot start counter");
+		}
 	}
 
-	// core loop HAS PROBLEMS
+	// Core loop where the polling to the buffers is done, has some issues
 	for(;;) {
 
-		ret = poll(pollfds, SYS_NUM_OF_CORES*2, options.sbm);
+		int ret = poll(pollfds, TOTAL_BUFFS, options.sbm);
 		if (ret < 0 && errno == EINTR)
 			break;
 
-		//timed out, read what we have got
+		// Reads buffers
 		for(int i=0;i<NUM_GROUPS;i++){
 			for(int j=0;j<SYS_NUM_OF_CORES;j++){
-				process_smpl_buf(all_fds[i][j],j,all_fds[i],num_fds[i],i);
-				partial_read_total[i]++;
+				process_smpl_buf(all_fds[i][j], j, all_fds[i], num_fds[i], i);
+				buffer_reads[i]++;
 			}
 		}
 
 		#ifndef JUST_PROFILE
-		/*
-		 * Here we should perform the migration, we have the data
-		*/
+		// We have the data, so we can begin the migration process
 		perform_migration();
 		#endif
-	} //end core loop
+	}
 
 	return 0;
 }
@@ -499,16 +429,26 @@ static void usage(void){
 }
 
 int main(int argc, char **argv){
-	int c;
+	char c;
 
+	// Defaults
 	options.delay = -1;
-//	options.reduced_output=0;
-	options.periodA=1000;
-	options.periodB=10000000;
-	options.minimum_latency=200;
+	options.periods[0] = 1000;
+
+	if(NUM_GROUPS > 1)
+		options.periods[1] = 10000000;
+
+	options.minimum_latency = 200;
 	options.sbm = 1;
 	options.th_mig = 0;
 	options.pag_mig = 0;
+	options.mmap_pages = 16;
+	options.delay = 10;
+
+	static struct option the_options[]= {
+		{ "help", 0, 0,  1},
+		{0,0,0,0}
+	};
 
 	while ((c=getopt_long(argc, argv,"+hrmMd:G:p:P:l:s:", the_options, 0)) != -1) {
 		switch(c) {
@@ -522,16 +462,18 @@ int main(int argc, char **argv){
 				//printf("Migrating Pages\n");
 				break;
 			case 'r':
-//				options.reduced_output = 1;
+				//options.reduced_output = 1;
 				break;
 			case 'd':
 				options.delay = atoi(optarg);
 				break;
 			case 'p':
-				options.periodA = atoi(optarg);
+				// This needs to be redefined in the future, probably with something like "period_g0;period_g1;"...
+				options.periods[0] = atoi(optarg);
 				break;
 			case 'P':
-				options.periodB = atoi(optarg);
+				if(NUM_GROUPS > 1)
+					options.periods[1] = atoi(optarg);
 				break;
 			case 'l':
 				options.minimum_latency = atoi(optarg);
@@ -549,18 +491,6 @@ int main(int argc, char **argv){
 				errx(1, "unknown option");
 		}
 	}
-
-	if (!options.eventsA)
-		options.eventsA = strdup(gen_events[0]);
-
-	if (!options.eventsB)
-		options.eventsB = strdup(gen_events[1]);
-
-	if (!options.mmap_pages)
-		options.mmap_pages = DEFAULT_MMAP_PAGES;
-
-	if (options.delay == -1)
-		options.delay = 10;
 
 	if (options.mmap_pages > 1 && ((options.mmap_pages) & 0x1))
 		errx(1, "number of pages must be power of 2\n");

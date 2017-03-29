@@ -71,3 +71,7 @@ void set_tid_core(pid_t tid, int core){
 	tid_core_map[tid] = core;
 	core_tid_map[core] = tid;
 }
+
+void remove_tid(pid_t tid){
+	tid_core_map.erase(tid);
+}

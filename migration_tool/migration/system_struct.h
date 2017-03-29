@@ -27,8 +27,10 @@ extern map<pid_t, int> tid_core_map;
 extern int* core_tid_map;
 
 int detect_system();
+
 int get_cpu_memory_cell(int cpu);
 bool is_in_same_memory_cell(int cpu1, int cpu2);
 int get_random_core_in_cell(int cell);
 int get_tid_core(pid_t tid);
 void set_tid_core(pid_t tid, int core);
+void remove_tid(pid_t tid);

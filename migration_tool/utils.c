@@ -46,3 +46,23 @@ bool is_tid_alive(pid_t pid, pid_t tid){
 
 	return access(dir, F_OK ) != -1;
 }
+
+/*** Time-related utils ***/
+int current_time_value = 0;
+void time_go_up(){
+	current_time_value++;
+	if(current_time_value >= SYS_TIME_NUM_VALUES)
+		current_time_value = SYS_TIME_NUM_VALUES - 1;
+}
+
+void time_go_down(){
+	current_time_value--;
+	if(current_time_value < 0)
+		current_time_value = 0;
+}
+
+int get_time_value(){
+	return sys_time_values[current_time_value];
+}
+
+

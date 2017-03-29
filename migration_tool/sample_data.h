@@ -23,8 +23,3 @@ typedef struct my_pebs_sample{
 	void print_for_3DyRM(FILE *fp);
 } my_pebs_sample_t;
 
-// Defined in my_profiler.c
-int get_time_value();
-int time_go_up();
-int time_go_down();
-

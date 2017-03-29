@@ -96,13 +96,14 @@ void page_table_t::remove_inactive_tids(){
 		pid_t tid = it->first;
 		int pos = it->second;
 
-		// Removing a thread (row) implies deleting the map association, deleting the element in the vector, and updating following positions
+		// Removing a thread (row) implies deleting the map association (also in system struct), deleting the element in the vector, and updating following positions
 		if(!is_tid_alive(pid, tid)){
 			printf("TID %d is dead. It will be removed from the table.\n", tid);
 			tid_index.erase(it);
 			++it;
 			table.erase(table.begin() + pos - erased);
 			erased++;
+			remove_tid(tid); // From system struct
 		}
 		else
 			tid_index[tid] = pos - erased;
@@ -424,13 +425,13 @@ void page_table_t::print_performance(){
 
 /*** perf_data_t functions ***/
 void perf_data_t::print() const {
-	printf("MEM_NODE/CORE: %d, UNIQ_ACS: %d, ACS_THRES: %d, ACS_PER_NODE: {", current_place, num_uniq_accesses, num_acs_thres);
+	printf("MEM_NODE/CORE: %d, ACS_PER_NODE: {", current_place);
 
 	for(size_t i=0;i<SYS_NUM_OF_MEMORIES;i++)
 		printf(" %d", acs_per_node[i]);
 	printf(" }");
 
 	if(num_acs_thres > 0)
-		printf(", MIN_LAT: %d, MEDIAN_LAT: %d, MAX_LAT: %d", min_latency, median_latency, max_latency);
+		printf(", UNIQ_ACS: %d, ACS_THRES: %d, MIN_LAT: %d, MEDIAN_LAT: %d, MAX_LAT: %d", num_uniq_accesses, num_acs_thres, min_latency, median_latency, max_latency);
 	printf("\n");
 }
