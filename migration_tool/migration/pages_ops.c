@@ -62,6 +62,7 @@ int pages(unsigned int step, set<pid_t> pids, memory_data_list_t memory_list, ma
 	// Some things are done every ITERATIONS_PER_PRINT iterations
 	if(current_step % ITERATIONS_PER_PRINT == 0){
 		for (pid_t pid : pids){
+			page_table_t t = page_ts->operator[](pid);
 
 			#ifdef PRINT_CSVS
 			// Creates files
@@ -76,20 +77,20 @@ int pages(unsigned int step, set<pid_t> pids, memory_data_list_t memory_list, ma
 				}
 			}
 
-			page_ts->operator[](pid).print_heatmaps(fps, NUM_FILES-1);
-			page_ts->operator[](pid).print_alt_graph(fps[NUM_FILES-1]);
+			t.print_heatmaps(fps, NUM_FILES-1);
+			t.print_alt_graph(fps[NUM_FILES-1]);
 
 			// Closes files
 			for(int i=0;i<NUM_FILES;i++)
 				fclose(fps[i]);
 			#endif
 
-			//page_ts->operator[](pid).print_table1();
-			//page_ts->operator[](pid).print_table2();
+			//t.print_table1();
+			//t.print_table2();
 
-			//page_ts->operator[](pid).calculate_performance_tid(1000);
-			//page_ts->operator[](pid).calculate_performance_page(1000);
-			page_ts->operator[](pid).print_performance();
+			//t.calculate_performance_tid(1000);
+			//t.calculate_performance_page(1000);
+			//t.print_performance();
 		}
 
 	}

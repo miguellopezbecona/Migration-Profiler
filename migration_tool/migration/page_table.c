@@ -78,15 +78,26 @@ table_cell_t* page_table_t::get_cell(long int page_addr, int tid){
 		return NULL;
 }
 
-int page_table_t::reset_column(long int page_addr, int current_node){
+// Somewhat ugly. You can't just remove a single TID without iterating because you need to change the following indexes
+void page_table_t::remove_tid(pid_t tid){
+	bool erased = false;
+
 	for(map<int, short>::iterator it = tid_index.begin(); it != tid_index.end(); ++it) {
-		table_cell_t *cell = get_cell(page_addr, it->first);
-		if(cell != NULL)
-			cell->latencies.clear();
+		pid_t it_tid = it->first;
+		int pos = it->second;
+
+		// Removing a thread (row) implies deleting the map association (also in system struct), deleting the element in the vector, and updating following positions
+		if(tid == it_tid){
+			printf("TID %d will be removed from the table.\n", tid);
+			tid_index.erase(it);
+			++it;
+			table.erase(table.begin() + pos - erased);
+			erased = true;
+			remove_tid(tid); // From system struct
+		}
+		else
+			tid_index[it_tid] = pos - erased;
 	}
-	
-	page_node_map[page_addr].current_place = current_node;
-	return 0;
 }
 
 void page_table_t::remove_inactive_tids(){
@@ -108,11 +119,6 @@ void page_table_t::remove_inactive_tids(){
 		else
 			tid_index[tid] = pos - erased;
 	}
-}
-
-void page_table_t::clear(){
-	for(int i=0;i<SYS_NUM_OF_CORES;i++)
-		table[i].clear();
 }
 
 void page_table_t::print(){

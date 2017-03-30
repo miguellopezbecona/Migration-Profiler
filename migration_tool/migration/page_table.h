@@ -63,14 +63,23 @@ typedef struct page_table {
 
 	page_table(){}
 	page_table(pid_t p);
+	~page_table(){ // Destructor. We clear everything
+		for(column c : table)
+			c.clear();
+
+		table.clear();
+		uniq_addrs.clear();
+		tid_index.clear();
+		page_node_map.clear();
+		tid_node_map.clear();
+	}
 
 	int add_cell(long int page_addr, int current_node, pid_t tid, int latency, int cpu, int cpu_node, bool is_cache_miss);
 	bool contains_addr(long int page_addr, int cpu);
 	table_cell_t* get_cell(long int page_addr, int cpu);
 	vector<int> get_latencies_from_cell(long int page_addr, int cpu);
-	int reset_column(long int page_addr, int current_node);
+	void remove_tid(pid_t tid);
 	void remove_inactive_tids();
-	void clear();
 	void print();
 
 	void calculate_performance_page(int threshold);

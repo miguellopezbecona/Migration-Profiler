@@ -7,18 +7,22 @@ individual::individual(map<pid_t, page_table_t> ts){
 	// [TODO]: this is somewhat inefficient/redundant. A better solution should be achieved
 
 	// For each table (key/first=PID, value/second=table)...
-	for(auto const & t : ts){
+	for(auto const & it : ts){
+		pid_t pid = it.first;
+		page_table t = it.second;
+
 		// Creates gens based on its page maps
-		for(auto const & it : t.second.page_node_map){
-			migration_cell_t mc(it.first, it.second.current_place, t.first);
+		for(auto const & it2 : t.page_node_map){
+			migration_cell_t mc(it2.first, it2.second.current_place, pid, false);
 			v.push_back(mc);
 		}
-	}
 
-	// Thread-related gens are collected by system_struct's TID map because it's global (pages are not)
-	for(auto const & m : tid_core_map){
-		migration_cell_t mc(m.first, m.second);
-		v.push_back(mc);
+		// Creates gens based on its TID maps
+		for(auto const & it2 : t.tid_index){
+			pid_t tid = it2.first;
+			migration_cell_t mc(tid, get_tid_core(tid), pid, true);
+			v.push_back(mc);
+		}
 	}
 }
     

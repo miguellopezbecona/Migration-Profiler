@@ -13,7 +13,7 @@ vector<migration_cell_t> random_t::get_pages_to_migrate(page_table_t *page_t){
 	// Creates migration cell with data
 	long int page_addr = *it;
 	unsigned char mem_node = rand() % SYS_NUM_OF_MEMORIES;
-	migration_cell_t mc(page_addr, mem_node, page_t->pid);
+	migration_cell_t mc(page_addr, mem_node, page_t->pid, false);
 
 	ret.push_back(mc);
 	return ret;
@@ -32,7 +32,7 @@ vector<migration_cell_t> random_t::get_threads_to_migrate(page_table_t *page_t){
 	// Creates migration cell with data
 	long int tid = it->first;
 	unsigned char core = rand() % SYS_NUM_OF_CORES;
-	migration_cell_t mc(tid, core);
+	migration_cell_t mc(tid, core, page_t->pid, true);
 
 	ret.push_back(mc);
 	return ret;

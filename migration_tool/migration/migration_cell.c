@@ -1,32 +1,27 @@
 #include "migration_cell.h"
 
-migration_cell_t::migration_cell(long int elem, unsigned char dest) {
-	this->elem = elem;
-	this->dest = dest;
-	this->pid = -1;
-}
-
-migration_cell_t::migration_cell(long int elem, unsigned char dest, pid_t pid) {
+migration_cell_t::migration_cell(long int elem, unsigned char dest, pid_t pid, bool thread_cell) {
 	this->elem = elem;
 	this->dest = dest;
 	this->pid = pid;
+	this->thread_cell = thread_cell;
 }
 
-bool migration_cell_t::is_thread_cell() const{
-	return pid == -1;
+bool migration_cell_t::is_thread_cell() const {
+	return thread_cell;
 }
 
 // It moves only one page at once, could be arranged to move more
-void migration_cell_t::perform_page_migration() const {
+int migration_cell_t::perform_page_migration() const {
 	void **page = (void **)calloc(1,sizeof(long int *));
 	page[0] = (void*) &elem;
 	int dest_int = dest, status;
 
 	// Key system call: numa_move_pages
-	int rc = numa_move_pages(pid, 1, page, &dest_int, &status, MPOL_MF_MOVE);
-	if (rc < 0){
+	int ret = numa_move_pages(pid, 1, page, &dest_int, &status, MPOL_MF_MOVE);
+	if (ret < 0){
 		printf("Move pages did not work: %s\n", strerror(errno));
-		return;
+		return errno;
 	}
 
 	total_page_migrations++;
@@ -37,6 +32,8 @@ void migration_cell_t::perform_page_migration() const {
 			printf(", err: %s", strerror(-status));
 		printf("\n");
 	#endif
+
+	return ret;
 }
 
 // Auxiliar function
@@ -57,16 +54,17 @@ void set_affinity_error(pid_t tid){
 	}
 }
 
-void migration_cell_t::perform_thread_migration() const {
+int migration_cell_t::perform_thread_migration() const {
 	cpu_set_t affinity;
 	sched_getaffinity(elem, sizeof(cpu_set_t), &affinity);
+	int ret = 0;
 
 	CPU_ZERO(&affinity);
 	CPU_SET(dest, &affinity);
 
-	if(sched_setaffinity(elem, sizeof(cpu_set_t), &affinity)){
+	if((ret = sched_setaffinity(elem, sizeof(cpu_set_t), &affinity))){
 		set_affinity_error(elem);
-		return;
+		return errno;
 	}
 
 	#ifdef MIGRATION_OUTPUT
@@ -74,11 +72,20 @@ void migration_cell_t::perform_thread_migration() const {
 	#endif
 
 	total_thread_migrations++;
+
+	return ret;
 }
 
-void migration_cell_t::perform_migration() const {
+int migration_cell_t::perform_migration() const {
 	if(is_thread_cell())
-		perform_thread_migration();
+		return perform_thread_migration();
 	else
-		perform_page_migration();
+		return perform_page_migration();
+}
+
+void migration_cell_t::print() const {
+	if(is_thread_cell())
+		printf("Thread migration cell. %lu TID, %d core to migrate, %d PID.\n", elem, dest, pid);
+	else
+		printf("Page migration cell. %lu memory page, %d memory node to migrate, %d PID.\n", elem, dest, pid);
 }
