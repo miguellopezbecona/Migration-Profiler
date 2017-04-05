@@ -1,7 +1,8 @@
 #!/bin/bash
 
 execname=my_profiler_tm
-profparams="-s2000 -l400 -p5000 -P50000000"
+profparams="-s1000 -l250 -p750 -P50000000"
+#profparams="-s500 -l50 -p300 -P50000000"
 #profparams="-s3500 -l750 -p1000 -P7500000"
 #profparams="-s1000 -l500 -p5000 -P1000000"
 
@@ -34,12 +35,12 @@ else
 fi
 
 # Set to what you want to profile. A bit deprecated since now the profiler analyzes everything
-toprofile="./ABC -b1 -m0 -r5000 -s1000000 -t8"
+toprofile="./ABC -m0 -r5000 -s100000 -t8"
 #toprofile=~/NPB3.3.1/NPB3.3-OMP/bin/lu.C.x
 #toprofile=~/NPB3.3.1/NPB3.3-OMP/bin/bt.C.x
 
-# Executes app to profile in background along with the app to profile
-#$toprofile > /dev/null &
+# Executes app to profile in background along with the profiler
+nohup $toprofile &>/dev/null &
 $numacommand ./$execname -M $profparams
 
 # Does not continue if there was an error

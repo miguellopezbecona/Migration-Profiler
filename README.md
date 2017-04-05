@@ -1,12 +1,14 @@
 ## Overview
 This application is a profiler which potentially will use thread and page migration in order to improve efficiency in multi-threaded applications, specially in NUMA systems. It uses PEBS sampling to obtain information from hardware counters so it can analyze system's performance and make choices to improve it. It is heavily based on the work done by Óscar García Lorenzo for his PhD.
 
-The repository includes a test application to be profilled called `ABC`. It performs a simple element by element vector product which can be very customizable with options such as array size, CPUs to be used, number of repetitions, intensity of each iteration, etc.
+The repository includes a test application to be profiled called `ABC`. It performs a simple element by element vector product which can be very customizable with options such as array size, CPUs to be used, number of repetitions, intensity of each iteration, etc.
 
-The app can also print, each N iterations, some CSV files that can be plotted a posteriori using *heatmaps.R* file to analyze the system's "state". It depends if the `PRINT_CSVS` macro is defined, currently commented in `page_ops.h` file. Nowadays, 5 files are generated:
+The app can also print, each N iterations, some CSV files that can be plotted a posteriori using *heatmaps.R* file to analyze the system's "state". It depends if the `PRINT_CSVS` macro is defined, currently commented in `migration/page_ops.h` file. Nowadays, 5 files can be generated:
 
 * Four heatmaps where X axis is the number of memory page, Y axis is the number of thread, and the value itself is the mean/maximum/mininum/number of latency accesses depending of the file.
 * A line plot where X axis is the number of memory page and Y axis is the number of different threads that access to that memory page.
+
+The app also includes a simple mode where it just dumps to a file the hardware counter data. To activate it, you have to uncomment the `JUST_PROFILE` macro defined in `migration/migration_facade.h`. While using the normal mode, other macros can be commented/uncommented to increase/decrease the amount of printing, such as `GENETIC_OUTPUT` in `strategies/genetic.h` or `MIGRATION_OUTPUT` in `migration/migration.algorithm.h`.
 
 ## Compiling and executing
 The app requires `libnuma-dev` package, so you need to install it first. It also uses [libpfm](http://perfmon2.sourceforge.net/) but it is already compiled (for a Linux *x86_64* architecture) and included in the repository. Note that, unless you are root, `perf_event_paranoid` system file should contain a zero or else the profiler will not be able to read the hardware counters. You can solve it with the following command:
@@ -14,7 +16,7 @@ The app requires `libnuma-dev` package, so you need to install it first. It also
 echo "0" | sudo tee /proc/sys/kernel/perf_event_paranoid > /dev/null
 ```
 
-Some Linux systems may also require having the enviroment variable `LD_LIBRATY_PATH` defined with a path that includes the self directory, being the simplest way to solve it:
+Some Linux systems may also require having the enviroment variable `LD_LIBRARY_PATH` defined with a path that includes the self directory, being the simplest way to solve it:
 ```bash
 export LD_LIBRARY_PATH=.
 ```
@@ -24,7 +26,24 @@ If you just want to build the profiler, you can use the Makefile inside the sour
 bash test.sh [NUMA option]
 ```
 
-Apart from building the profiler, it will execute it along the ABC program with some static parameters. You can edit the script freely so it profiles another application. Furthermore, the test script allows you to indicate a NUMA configuration:
+Both the ABC and the profiler use some static parameters described below. You can obviously edit the script freely to change them. The profiler never ends and needs a `SIGINT` (Ctrl+C) signal to end in a clean way. Now the ABC and profiler parameters will be described:
+
+* `ABC`
+  - `-b`: how many consecutive chunks will every thread work in (default: 1).
+  - `-c`: binary vector of CPUs to be used (0 -> not used, 1 -> used). For example, 0011 means we only select CPUs 2 and 3 (default: uses all available CPUs).
+  - `-m`: memory node to allocate data in (default: 0).
+  - `-o`: number of float operations per inner iteration (default: 1).
+  - `-r`: number of repetitions of the main flow (default: 100).
+  - `-s`: array basic size. Actual array size will be that value multiplied by the number of threads (default: 1000).
+  - `-t`: array stride while operating (default: 1).
+* `my_profiler`
+  - `-G`: whether uses cgroups or not (default: not). It will probably be discarded.
+  - `-l`: minimum memory latency access to sample (default: 200).
+  - `-p`: period for memory samples (default: 1000). It will probably be rewritten to include all event groups' periods.
+  - `-P`: period for instruction samples (default: 10000000). It will probably be discarded.
+  - `-s`: polling timeout in milliseconds (default: -1, which implies no timeout). Using default value seems to give issues. 1000 is a good value.
+
+Furthermore, the test script allows you to indicate a NUMA configuration:
 
 * *d* (direct): uses all CPUs from memory node 0 and allocates data in memory node 0. This is considered a "good" case that should not require any migrations.
 * *ind* (indirect): uses all CPUs from memory node 1 and allocates data in memory node 0.  This is considered a "bad" case that should require some migrations.
@@ -38,7 +57,7 @@ The following list explains briefly the components regarding the main execution 
   - `migration/inst_list.c`: each element of the list consists in a structure that holds data for instructions samples. It contains data such as instruction number, source CPU, source PID, etc.
 * `migration/migration_facade.c`: serves as a facade to other migration functionalities and holds the main data structures (`memory_data_list`, `inst_data_list`, and `page_tables`). `begin_migration_process` creates increments (instruction count) for `inst_data_list` that might be used in the future, builds a page table for each wanted PID to profile by calling `pages`, and performs a migration strategy. At the end, `memory_data_list` and `inst_data_list` are emptied.
 * `migration/page_ops.c`: builds page tables (defined in the following file) and can do other stuff like generating the already described CSV files. Might be fused with `migration_facade`.
-* `migration/page_table.c`: it consists in a matrix defined as a vector of maps, where the rows (number of vectors) would be the number of TIDs, while the columns would be the memory pages' addresses. Each "profilable" process will be associated with one table. So, for each access a thread does to a memory page, this structure holds a cell with latencies, cache misses and another potential relevant information. Another option was implementing it as a single map with a pair of two values as key, but that would make inefficient the looping over a specific row (TID) or a specific column (page address). TID indexing is done by a simple "bad hash" using a counter rather than the actual TID, so we don't need two level of maps. Each table also holds other useful information such maps to know in which memory node each page address is located or performance data. This structure will be the main one to be used in future work to compute system's performance and migration decisions.
+* `migration/page_table.c`: it consists in a matrix defined as a vector of maps, where the rows (number of vectors) would be the number of TIDs, while the columns would be the memory pages' addresses. Each "profilable" process will be associated with one table. So, for each access a thread does to a memory page, this structure holds a cell with latencies, cache misses and another potential relevant information. Another option was implementing it as a single map with a pair of two values as key, but that would make inefficient the looping over a specific row (TID) or a specific column (page address). TID indexing is done by a simple "bad hash" using a counter rather than the actual TID, so we don't need two level of maps. Each table also holds other useful information such as maps to know in which memory node each page address is located or performance data. This structure will be the main one to be used in future work to compute system's performance and migration decisions.
 * `migration/migration_algorithm.c`: it calls freely the strategies you want, defined in `strategies` folder, in order to do the following migrations.
 * `migration/migration_cell.*`: defines a migration, which needs an element to migrate (TID or memory page) and a destination (core or memory node) and functions to perform them. A PID field was also added to ease some operations, and a boolean that indicates that it is a thread or a memory cell.
 * `strategies/strategy.h`: defines which operations should define a scratch strategy.

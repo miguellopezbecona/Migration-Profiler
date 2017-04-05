@@ -1,10 +1,10 @@
 #pragma once
 
 #include <stdio.h>
-#include <unistd.h>
+#include <stdlib.h>
 #include <inttypes.h>
 
-typedef struct my_pebs_sample{
+typedef struct my_pebs_sample {
 	uint64_t iip;
 	int pid;
 	int tid;
@@ -18,8 +18,9 @@ typedef struct my_pebs_sample{
 	uint64_t *values;
 	uint64_t dsrc;
 
-	bool is_addr_sample();
-	void print(FILE *fp);
-	void print_for_3DyRM(FILE *fp);
+	bool is_mem_sample() const;
+	void print(FILE *fp) const;
+	void print_for_3DyRM(FILE *fp) const;
+	static void print_header(FILE *fp);
 } my_pebs_sample_t;
 

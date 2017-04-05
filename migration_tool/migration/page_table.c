@@ -21,6 +21,27 @@ page_table_t::page_table(pid_t p){
 	table.resize(SYS_NUM_OF_CORES);
 }
 
+// Destructor. We clear everything
+page_table_t::~page_table(){
+		// Table itself
+		for(column& c : table)
+			c.clear();
+		table.clear();
+
+		// Vectors from maps, and maps itself
+		for(auto& it : page_node_map)
+			it.second.acs_per_node.clear();
+		page_node_map.clear();
+
+		for(auto& it : tid_node_map)
+			it.second.acs_per_node.clear();
+		tid_node_map.clear();
+
+		table.clear();
+		uniq_addrs.clear();
+		tid_index.clear();
+}
+
 int page_table_t::add_cell(long int page_addr, int current_node, pid_t tid, int latency, int cpu, int cpu_node, bool is_cache_miss){
 	table_cell_t *cell = get_cell(page_addr, tid);
 

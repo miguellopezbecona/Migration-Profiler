@@ -34,11 +34,8 @@
 #include "sample_data.h"
 #include "migration/migration_facade.h" // begin_migration_process
 
-// If you only want to use this tool for profiling, uncomment the following:
-// #define JUST_PROFILE
-
 // Using a value greater than 2 requires additional changes in, at least, "events" and "periods" array
-#define NUM_GROUPS 1
+#define NUM_GROUPS 2
 
 // For the cgroups option, necessary?
 #define MAX_PATH	1024
@@ -49,7 +46,6 @@
 
 typedef struct {
 	int mmap_pages;
-	int delay;
 	int sbm;
 	int th_mig;
 	int pag_mig;
@@ -58,26 +54,28 @@ typedef struct {
 	int minimum_latency;
 } options_t;
 
-unsigned int anti_inf_loop_counter = 0; // For unknown samples
 int uid; // For PID filtering
 
-static uint64_t collected_samples_total[NUM_GROUPS], lost_samples_total[NUM_GROUPS], processed_samples_total[NUM_GROUPS];
+static uint64_t collected_samples_group[NUM_GROUPS], lost_samples_group[NUM_GROUPS], processed_samples_group[NUM_GROUPS];
 static uint64_t buffer_reads[NUM_GROUPS];
+uint64_t unknown_samples = 0;
 
+static perf_event_desc_t **all_fds[NUM_GROUPS];
 static int num_fds[NUM_GROUPS];
 static options_t options;
 static size_t sz, pgsz;
 static size_t map_size;
+
+time_t last_migration;
 
 static const char *events[2] = {
 	"MEM_TRANS_RETIRED:LATENCY_ABOVE_THRESHOLD:period=10000"
 	,"INSTRUCTIONS:period=10000000"
 };
 
-#ifndef JUST_PROFILE
-static perf_event_desc_t **all_fds[NUM_GROUPS];
+static void clean_end(int n);
 
-time_t last_migration;
+#ifndef JUST_PROFILE
 void perform_migration(){
 
 	time_t current_time = time(NULL);
@@ -108,25 +106,23 @@ static void process_smpl_buf(perf_event_desc_t *hw, int cpu, perf_event_desc_t *
 		switch(ehdr.type) {
 			case PERF_RECORD_SAMPLE:
 				ret = transfer_data_from_buffer_to_structure(fds, num_fds_p, hw - fds, &ehdr, &my_sample, uid);
-				processed_samples_total[name]++;
+				processed_samples_group[name]++;
 
 				if(ret < 0) // PID from process we can't migrate so it will be skipped
 					break;
 
-				#ifndef JUST_PROFILE
-					add_data_to_list(my_sample);
-				#endif
+				add_data_to_list(my_sample);
 					
 				if (ret)
 					errx(1, "cannot parse sample");
 
-				collected_samples_total[name]++;
+				collected_samples_group[name]++;
 				break;
 			case PERF_RECORD_EXIT:
 				//display_exit(hw, options.output_file);
 				break;
 			case PERF_RECORD_LOST:
-				//lost_samples_total[name] += display_lost(hw, fds, num_fds_p,options.output_file);
+				lost_samples_group[name] += display_lost(hw, fds, num_fds_p, NULL);
 				break;
 			case PERF_RECORD_THROTTLE:
 				//display_freq(1, hw, options.output_file);
@@ -137,15 +133,21 @@ static void process_smpl_buf(perf_event_desc_t *hw, int cpu, perf_event_desc_t *
 			default:
 				// Skips different entire map page or partial
 				size_t to_skip = ehdr.size == 0 ? map_size : ehdr.size - sizeof(ehdr);
-				//printf("Unknown sample type %d, Skipping %lu bytes.\n", ehdr.type, to_skip);
+				//printf("Unknown sample type %d, skipping %lu bytes.\n", ehdr.type, to_skip);
 
 				perf_skip_buffer(hw, to_skip);
 
-				//anti_inf_loop_counter++;
-				if(anti_inf_loop_counter>50){
-					printf("error in read buffer, too many unknown samples, exiting\n");
+				unknown_samples++;
+
+				// Let's assume we don't get trapped in a infinite loop
+				/*
+				if(unknown_samples > 50){
+					printf("Error while reading buffer, too many unknown samples, exiting...\n");
+					clean_end(-1);
 					exit(-1);
 				}
+				*/
+
 				break;
 		}
 		
@@ -321,13 +323,19 @@ static void clean_end(int n) {
 
 	for(int i=0;i<NUM_GROUPS;i++)
 		free(all_fds[i]);
+	pfm_terminate();
+
+	clean_migration_structures();
 
 	const char* types[2] = {"memory", "instruction"};
 	for(int i=0;i<NUM_GROUPS;i++)
-		printf("%lu (%lu) %s samples collected (processed) in total %lu poll events and %lu lost samples\n",collected_samples_total[i],processed_samples_total[i], types[i], buffer_reads[i], lost_samples_total[i]);
+		printf("%lu (%lu) %s samples collected (processed) in total %lu poll events and %lu lost samples\n", collected_samples_group[i],processed_samples_group[i], types[i], buffer_reads[i], lost_samples_group[i]);
+	printf("%lu unknown samples.\n", unknown_samples);
 
+	#ifndef JUST_PROFILE
 	printf("%d thread migrations made.\n", total_thread_migrations);
 	printf("%d page migrations made.\n", total_page_migrations);
+	#endif
 
 	exit(0);
 }
@@ -347,8 +355,11 @@ int mainloop(char **arg) {
 	int fd = -1;
 	perf_event_desc_t *fds = NULL;
 
-	// Sets buffer reads to zero
+	// Initializes arrays to zero
+	memset(collected_samples_group, 0, sizeof(collected_samples_group));
+	memset(processed_samples_group, 0, sizeof(processed_samples_group));
 	memset(buffer_reads, 0, sizeof(buffer_reads));
+	memset(lost_samples_group, 0, sizeof(lost_samples_group));
 
 	// Allocates memory for all_fds
 	for(int i=0;i<NUM_GROUPS;i++){
@@ -416,8 +427,7 @@ int mainloop(char **arg) {
 		}
 
 		#ifndef JUST_PROFILE
-		// We have the data, so we can begin the migration process
-		perform_migration();
+		perform_migration(); // We have the data, so we can begin the migration process
 		#endif
 	}
 
@@ -432,25 +442,23 @@ int main(int argc, char **argv){
 	char c;
 
 	// Defaults
-	options.delay = -1;
 	options.periods[0] = 1000;
 
 	if(NUM_GROUPS > 1)
 		options.periods[1] = 10000000;
 
 	options.minimum_latency = 200;
-	options.sbm = 1;
+	options.sbm = -1; // Infinite timeout by default
 	options.th_mig = 0;
 	options.pag_mig = 0;
 	options.mmap_pages = 16;
-	options.delay = 10;
 
 	static struct option the_options[]= {
 		{ "help", 0, 0,  1},
 		{0,0,0,0}
 	};
 
-	while ((c=getopt_long(argc, argv,"+hrmMd:G:p:P:l:s:", the_options, 0)) != -1) {
+	while ((c=getopt_long(argc, argv,"+hmM:G:p:P:l:s:", the_options, 0)) != -1) {
 		switch(c) {
 			case 0: continue;
 			case 'm':				
@@ -460,12 +468,6 @@ int main(int argc, char **argv){
 			case 'M':
 				options.pag_mig = 1;
 				//printf("Migrating Pages\n");
-				break;
-			case 'r':
-				//options.reduced_output = 1;
-				break;
-			case 'd':
-				options.delay = atoi(optarg);
 				break;
 			case 'p':
 				// This needs to be redefined in the future, probably with something like "period_g0;period_g1;"...

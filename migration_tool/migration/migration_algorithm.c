@@ -27,8 +27,6 @@ int perform_migration_strategy(page_table_t *page_t){
 void handle_error(int errn, migration_cell_t mc, map<pid_t, page_table_t> *page_ts) {
 	switch(errn){
 		case ESRCH: // Non-existing PID/TID. It has to be removed
-
-
 			if(mc.is_thread_cell()){
 				printf("Removing inexistent TID %lu...\n", mc.elem);
 				page_ts->operator[](mc.pid).remove_tid(mc.elem);

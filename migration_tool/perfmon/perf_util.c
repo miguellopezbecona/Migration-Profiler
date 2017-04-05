@@ -291,12 +291,7 @@ static size_t __perf_handle_raw(perf_event_desc_t *hw) {
 	return sz + raw_sz;
 }
 
-
-
-
-/*
-* IIP PID TID TIME SAMPLE_ADDR CPU WEIGHT grp.value (events 1--N) DSCR  
-*/
+// IIP PID TID TIME SAMPLE_ADDR CPU WEIGHT grp.value (events 1--N) DSCR
 int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, int idx, struct perf_event_header *ehdr, my_pebs_sample_t *sample, int uid) {
 	perf_event_desc_t *hw;
 	struct { uint32_t pid, tid; } pid;
@@ -308,7 +303,6 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 	const char *str;
 	int ret, e;
 
-	//if (!fds || !fp || !ehdr  || num_fds < 0 || idx < 0 ||  idx >= num_fds)
 	if (!fds || !ehdr  || num_fds < 0 || idx < 0 ||  idx >= num_fds)
 		return -1;
 
@@ -326,7 +320,6 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 	 * That order is different from the enum perf_event_sample_format
 	 */
 	if (type & PERF_SAMPLE_IP) {
-		const char *xtra = " ";
 		ret = perf_read_buffer_64(hw, &val64);
 		if (ret) {
 			warnx("cannot read IP");
@@ -338,11 +331,8 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 		 * th  IIP of an instruction which caused the event, i.e.,
 		 * no skid
 		 */
-		if (hw->hw.precise_ip && (ehdr->misc & PERF_RECORD_MISC_EXACT_IP))
-			//xtra = " (exact) ";
+		//if (hw->hw.precise_ip && (ehdr->misc & PERF_RECORD_MISC_EXACT_IP)) // (exact)
 
-		//fprintf(fp, "IIP:%#016lx%s", val64, xtra);
-		//fprintf(fp, "%#016lx ", val64);
 		sample->iip = val64;
 		sz -= sizeof(val64);
 	}else{
@@ -356,15 +346,19 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 			return -1;
 		}
 
-		// Important step: we skip the data if PID is about a process we can't migrate
-		if(!is_migratable(uid, pid.pid))
-			return -1;
-
 		//fprintf(fp, "PID:%d TID:%d ", pid.pid, pid.tid);
 		//fprintf(fp, "%d %d ", pid.pid, pid.tid);
 		sample->tid = pid.tid;
 		sample->pid = pid.pid;
 		sz -= sizeof(pid);
+
+		// If we are just profiling, we don't filter by PID
+		#ifndef JUST_PROFILE
+		if(!is_migratable(uid, pid.pid)){ // Important step: we skip the data if PID is about a process we can't migrate
+			perf_skip_buffer(hw, sz);
+			return -1;
+		}
+		#endif
 	}
 
 	if (type & PERF_SAMPLE_TIME) {
@@ -374,8 +368,6 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 			return -1;
 		}
 
-		//fprintf(fp, "TIME:%lu ", val64);
-		//fprintf(fp, "%lu ", val64);
 		sample->time = val64;
 		sz -= sizeof(val64);
 	}
@@ -387,8 +379,6 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 			return -1;
 		}
 
-		//fprintf(fp, "ADDR:%#016lx ", val64);
-		//fprintf(fp, "%#016lx ", val64);
 		sample->sample_addr = val64;
 		sz -= sizeof(val64);
 	}
@@ -400,17 +390,16 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 			return -1;
 		}
 
-		//fprintf(fp, "ID:%lu ", val64);
 		sz -= sizeof(val64);
 	}
 
 	if (type & PERF_SAMPLE_STREAM_ID) {
 		ret = perf_read_buffer_64(hw, &val64);
 		if (ret) {
-			warnx( "cannot read stream_id");
+			warnx("cannot read stream_id");
 			return -1;
 		}
-		//fprintf(fp, "STREAM_ID:%lu ", val64);
+
 		sz -= sizeof(val64);
 	}
 
@@ -418,11 +407,10 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 		struct { uint32_t cpu, reserved; } cpu;
 		ret = perf_read_buffer(hw, &cpu, sizeof(cpu));
 		if (ret) {
-			warnx( "cannot read cpu");
+			warnx("cannot read cpu");
 			return -1;
 		}
-		//fprintf(fp, "CPU:%u ", cpu.cpu);
-		//fprintf(fp, "%u ", cpu.cpu);
+
 		sample->cpu = cpu.cpu;
 		sz -= sizeof(cpu);
 	}
@@ -431,10 +419,10 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 	if (type & PERF_SAMPLE_PERIOD) {
 		ret = perf_read_buffer_64(hw, &val64);
 		if (ret) {
-			warnx( "cannot read period");
+			warnx("cannot read period");
 			return -1;
 		}
-		//fprintf(fp, "PERIOD:%lu ", val64);
+
 		sz -= sizeof(val64);
 	}
 	
@@ -487,7 +475,6 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 				sz -= sizeof(time_running);
 			}
 
-			//fprintf(fp, "ENA=%lu RUN=%lu NR=%lu\n", time_enabled, time_running, nr);
 			sample->time_enabled = time_enabled;
 			sample->time_running = time_running;
 			sample->nr = nr;
@@ -521,13 +508,6 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 				values[0] = grp.value;
 				grp.value = perf_scale(values);
 			
-				/*
-				fprintf(fp, "\t%lu %s (%lu%s)\n",
-					grp.value, str,
-					grp.id,
-					time_running != time_enabled ? ", scaled":"");
-				*/
-				//fprintf(fp, "%lu ",grp.value);
 				sample->values[nr] = grp.value;
 				
 
@@ -569,7 +549,6 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 				sz -= sizeof(val64);
 			}
 
-			//fprintf(fp, "ENA=%lu RUN=%lu\n", time_enabled, time_running);
 			sample->time_enabled = time_enabled;
 			sample->time_running = time_running;
 			sample->nr = 1;
@@ -578,13 +557,7 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 			values[1] = time_enabled;
 			values[2] = time_running;
 			val64 = perf_scale(values);
-				
-			/*
-			fprintf(fp, "\t%lu %s %s\n",
-				val64, fds[0].name,
-				time_running != time_enabled ? ", scaled":"");
-			*/
-			//fprintf(fp, "%lu ",val64);
+			
 			sample->values[0] = val64;
 			
 		}
@@ -608,8 +581,6 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 			}
 
 			sz -= sizeof(ip);
-
-			//fprintf(fp, "\t0x%lx\n", ip);
 		}
 	}
 
@@ -627,13 +598,11 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 			return -1;
 		}
 
-		//fprintf(fp, "WEIGHT:%lu ", val64);
-		//fprintf(fp, "%lu ", val64);
 		sample->weight = val64;
 		sz -= sizeof(val64);
 	}
 
-			//Should be here
+	//Should be here
 	if (type & PERF_SAMPLE_DATA_SRC) {
 		ret = perf_read_buffer_64(hw, &val64);
 		if (ret) {
@@ -641,8 +610,6 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 			return -1;
 		}
 
-		//fprintf(fp, "DSRC:%#016lx\n", val64);
-		//fprintf(fp, "%#016lx", val64);
 		sample->dsrc = val64;
 		// print detailed
 		//print_dsrc((void *) &val64,fp);
@@ -661,7 +628,6 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 		perf_skip_buffer(hw, sz);
 	}
 
-	//fputc('\n',fp);
 	return 0;
 }
 
@@ -682,9 +648,7 @@ uint64_t display_lost(perf_event_desc_t *hw, perf_event_desc_t *fds, int num_fds
 	else
 		str = fds[e].name;
 
-	fprintf(fp, "<<<LOST %lu SAMPLES FOR EVENT %s>>>\n",
-		lost.lost,
-		str);
+	//fprintf(fp, "<<<LOST %lu SAMPLES FOR EVENT %s>>>\n", lost.lost,str);
 
 	return lost.lost;
 }
