@@ -450,6 +450,21 @@ void page_table_t::print_performance(){
 	}
 }
 
+// Gets the mean of the number of accesses of all pages for the whole table
+double page_table_t::get_mean_acs_to_pages(){
+	vector<short> v;
+
+	// We collect the sums of the accesses per node for each page
+	for (auto const & it : page_node_map){
+		vector<unsigned short> vaux = it.second.acs_per_node;
+		int num_acs = accumulate(vaux.begin(), vaux.end(), 0);
+		v.push_back(num_acs);
+	}
+
+	// ... and then we calculate the mean
+	return accumulate(v.begin(), v.end(), 0) / v.size();
+}
+
 /*** perf_data_t functions ***/
 void perf_data_t::print() const {
 	printf("MEM_NODE/CORE: %d, ACS_PER_NODE: {", current_place);

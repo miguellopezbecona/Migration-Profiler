@@ -29,6 +29,7 @@
 #include "pfmlib_perf_event.h"
 #include "../sample_data.h"
 #include "../utils.h"
+#include "../migration/migration_facade.h" // Just for knowing if JUST_PROFILE macro was defined
 
 typedef struct {
 	struct perf_event_attr hw;

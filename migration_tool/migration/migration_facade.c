@@ -13,7 +13,7 @@ void add_data_to_list(my_pebs_sample_t sample){
 	#ifdef JUST_PROFILE
 	samples.push_back(sample);
 	#else
-	if(sample.is_addr_sample() && sample.dsrc != 0){
+	if(sample.is_mem_sample() && sample.dsrc != 0){
 		memory_list.add_cell(sample.cpu,sample.pid,sample.tid,sample.sample_addr,sample.weight,sample.dsrc,sample.time);
 		pids.insert(sample.pid); // Currently we only use memory list so we only consider a thread is active if we get a memory sample
 	} else
@@ -46,6 +46,29 @@ void clean_migration_structures(){
 	print_samples();
 	samples.clear();
 	#endif
+}
+
+// For testing purposes, specially on a non-native Linux system
+void work_with_fake_data(){
+	page_table_t t1(500);
+	t1.add_cell(0x12345000, 0, 500, 10, 0, 0, false);
+	t1.add_cell(0x12345000, 0, 500, 30, 0, 0, false);
+	t1.add_cell(0x12345000, 0, 501, 5, 0, 0, false);
+	t1.add_cell(0x12346000, 0, 500, 1, 0, 0, false);
+
+	page_table_t t2(1000);
+	t2.add_cell(0x12341000, 0, 1000, 5, 0, 0, false);
+	t2.add_cell(0x12342000, 0, 1000, 100, 0, 0, false);
+	t2.add_cell(0x12343000, 0, 1000, 200, 0, 0, false);
+
+	page_tables[500] = t1;
+	page_tables[1000] = t2;
+
+	for(auto & it : page_tables){
+		it.second.print();
+		it.second.print_performance();
+		printf("Mean of the number of page accesses for that PID: %.2f\n\n", it.second.get_mean_acs_to_pages());
+	}
 }
 
 int begin_migration_process(int do_thread_migration, int do_page_migration){

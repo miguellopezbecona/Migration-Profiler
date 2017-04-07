@@ -35,7 +35,10 @@
 #include "migration/migration_facade.h" // begin_migration_process
 
 // Using a value greater than 2 requires additional changes in, at least, "events" and "periods" array
-#define NUM_GROUPS 2
+#define NUM_GROUPS 1
+
+// Uncomment the following for testing functionalities without using the hardware counters
+//#define FAKE_DATA
 
 // For the cgroups option, necessary?
 #define MAX_PATH	1024
@@ -346,6 +349,11 @@ int mainloop(char **arg) {
 	uid = getuid();
 	pgsz = sysconf(_SC_PAGESIZE);
 	map_size = (options.mmap_pages+1)*pgsz;
+
+	#ifdef FAKE_DATA
+	work_with_fake_data();
+	return 0;
+	#endif
 
 	const unsigned short TOTAL_BUFFS = SYS_NUM_OF_CORES*NUM_GROUPS;
 	last_migration = time(NULL);
