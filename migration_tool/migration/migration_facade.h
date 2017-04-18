@@ -9,6 +9,9 @@
 // If you only want to use this tool for profiling, uncomment the following:
 //#define JUST_PROFILE
 
+// How many samples do you want to log in the CSV files in JUST_PROFILE mode?
+#define ELEMS_PER_PRINT 1000
+
 #define ACTIVATE_THREAD_MIGRATION 0
 #define ACTIVATE_PAGE_MIGRATION 1
 

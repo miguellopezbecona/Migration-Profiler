@@ -40,6 +40,8 @@
 // Uncomment the following for testing functionalities without using the hardware counters
 //#define FAKE_DATA
 
+//#define EVENT_OUTPUT
+
 // For the cgroups option, necessary?
 #define MAX_PATH	1024
 #ifndef STR
@@ -80,7 +82,6 @@ static void clean_end(int n);
 
 #ifndef JUST_PROFILE
 void perform_migration(){
-
 	time_t current_time = time(NULL);
 
 	// We profile every 1, 2 or 4 seconds depending on current_time_value
@@ -115,7 +116,7 @@ static void process_smpl_buf(perf_event_desc_t *hw, int cpu, perf_event_desc_t *
 					break;
 
 				add_data_to_list(my_sample);
-					
+				
 				if (ret)
 					errx(1, "cannot parse sample");
 
@@ -197,7 +198,9 @@ int setup_cpu(int cpu, int fd, int group) {
 			}
 
 			fds[i].hw.sample_type = PERF_SAMPLE_IP|PERF_SAMPLE_TID|PERF_SAMPLE_READ|PERF_SAMPLE_TIME|PERF_SAMPLE_PERIOD|PERF_SAMPLE_STREAM_ID|PERF_SAMPLE_ADDR|PERF_SAMPLE_CPU|PERF_SAMPLE_WEIGHT|PERF_SAMPLE_DATA_SRC;
+			#ifdef EVENT_OUTPUT
 			printf("%s period=%lu freq=%lu\n", fds[i].name, (long unsigned int) fds[i].hw.sample_period, fds[i].hw.freq);
+			#endif
 
 			fds[i].hw.read_format = PERF_FORMAT_SCALE;
 			if (num_fds[group] > 1)
@@ -310,7 +313,9 @@ int open_cgroup(char *name) {
 static void clean_end(int n) {
 	perf_event_desc_t *fds = NULL;
 
+	#ifdef EVENT_OUTPUT
 	printf("TERMINATING\n");
+	#endif
 
 	// Closes and frees resources	
 	for(int i=0;i<NUM_GROUPS;i++){
@@ -328,14 +333,18 @@ static void clean_end(int n) {
 		free(all_fds[i]);
 	pfm_terminate();
 
+	// Special print for a specific analysis: period,minlat,samples,meanacs
+	printf("%d,%d,%lu\n", options.periods[0], options.minimum_latency,processed_samples_group[0]);
 	clean_migration_structures();
 
+	#ifdef EVENT_OUTPUT
 	const char* types[2] = {"memory", "instruction"};
 	for(int i=0;i<NUM_GROUPS;i++)
 		printf("%lu (%lu) %s samples collected (processed) in total %lu poll events and %lu lost samples\n", collected_samples_group[i],processed_samples_group[i], types[i], buffer_reads[i], lost_samples_group[i]);
 	printf("%lu unknown samples.\n", unknown_samples);
+	#endif
 
-	#ifndef JUST_PROFILE
+	#if ! defined(JUST_PROFILE) && defined(EVENT_OUTPUT)
 	printf("%d thread migrations made.\n", total_thread_migrations);
 	printf("%d page migrations made.\n", total_page_migrations);
 	#endif
@@ -450,12 +459,12 @@ int main(int argc, char **argv){
 	char c;
 
 	// Defaults
-	options.periods[0] = 1000;
+	options.periods[0] = 750;
 
 	if(NUM_GROUPS > 1)
 		options.periods[1] = 10000000;
 
-	options.minimum_latency = 200;
+	options.minimum_latency = 250;
 	options.sbm = -1; // Infinite timeout by default
 	options.th_mig = 0;
 	options.pag_mig = 0;

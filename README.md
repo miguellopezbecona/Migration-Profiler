@@ -8,7 +8,7 @@ The app can also print, each N iterations, some CSV files that can be plotted a 
 * Four heatmaps where X axis is the number of memory page, Y axis is the number of thread, and the value itself is the mean/maximum/mininum/number of latency accesses depending of the file.
 * A line plot where X axis is the number of memory page and Y axis is the number of different threads that access to that memory page.
 
-The app also includes a simple mode where it just dumps to a file the hardware counter data. To activate it, you have to uncomment the `JUST_PROFILE` macro defined in `migration/migration_facade.h`. While using the normal mode, other macros can be commented/uncommented to increase/decrease the amount of printing, such as `GENETIC_OUTPUT` in `strategies/genetic.h` or `MIGRATION_OUTPUT` in `migration/migration.algorithm.h`.
+The app also includes a simple mode where it just dumps the hardware counter data to CSV files. To activate it, you have to uncomment the `JUST_PROFILE` macro defined in `migration/migration_facade.h`. Each file will be generated each `ELEMS_PER_PRINT` (defined in the same header) general samples (mixing instructions and memory ones). Other macros can be commented/uncommented to increase/decrease the amount of printing, such as `GENETIC_OUTPUT` in `strategies/genetic.h` or `MIGRATION_OUTPUT` in `migration/migration.algorithm.h`.
 
 ## Compiling and executing
 The app requires `libnuma-dev` package, so you need to install it first. It also uses [libpfm](http://perfmon2.sourceforge.net/) but it is already compiled (for a Linux *x86_64* architecture) and included in the repository. Note that, unless you are root, `perf_event_paranoid` system file should contain a zero or else the profiler will not be able to read the hardware counters. You can solve it with the following command:
@@ -66,7 +66,7 @@ The following list explains briefly the components regarding the main execution 
 
 The following is the brief explanation of some of the other files:
 * `perfmon/*`: most of its content comes from `libpfm` library, so in general it should not be modified. `perf_util.c` may be interesting because it defines how to get the counter data into the structure defined in `sample_data`.
-* `sample_data.*`: defines a simple structure that holds the data obtained by the counters.
+* `sample_data.*`: defines a simple structure that holds the data obtained by the counters. It can be printed to a CSV file.
 * `utils.*`: self descriptive.
 * `migration/system_struct.*`: defines system's structure (number of cores, number of memory nodes, distribution of CPUs/threads on memory nodes...) and functions to get this data. It is intended to detect all these parameters in a dynamic way.
 

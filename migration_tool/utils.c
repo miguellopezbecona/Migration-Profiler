@@ -47,6 +47,26 @@ bool is_tid_alive(pid_t pid, pid_t tid){
 	return access(dir, F_OK ) != -1;
 }
 
+
+void print_samples(vector<my_pebs_sample_t> samples){
+	char filename[32];
+	get_formatted_current_time(filename);
+
+	FILE* fp = fopen(filename, "w");
+
+	if(fp == NULL){
+		printf("Error opening file %s to log samples.\n", "samples.csv");
+		return;
+	}
+
+	my_pebs_sample_t::print_header(fp);
+	for(my_pebs_sample_t const & s : samples)
+		s.print_for_3DyRM(fp);
+
+	fclose(fp);
+}
+
+
 /*** Time-related utils ***/
 int current_time_value = 0;
 void time_go_up(){
@@ -65,4 +85,13 @@ int get_time_value(){
 	return sys_time_values[current_time_value];
 }
 
+void get_formatted_current_time(char *output){
+    time_t rawtime = time(NULL);
+    struct tm *timeinfo;
+
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+
+    sprintf(output, "%d-%d-%d_%d:%d:%d.csv",timeinfo->tm_mday, timeinfo->tm_mon + 1, timeinfo->tm_year + 1900, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+}
 

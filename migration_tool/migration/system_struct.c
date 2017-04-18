@@ -45,7 +45,7 @@ int detect_system() {
 		}
 	}
 
-	printf("Detected system: %d total cores, %d memory nodes, %d cores per node.\n", SYS_NUM_OF_CORES, SYS_NUM_OF_MEMORIES, SYS_CORES_PER_MEMORY);
+	//printf("Detected system: %d total cores, %d memory nodes, %d cores per node.\n", SYS_NUM_OF_CORES, SYS_NUM_OF_MEMORIES, SYS_CORES_PER_MEMORY);
 
 	return 0;
 }

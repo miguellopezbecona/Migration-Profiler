@@ -5,13 +5,19 @@ inst_data_list_t inst_list;
 set<pid_t> pids;
 map<pid_t, page_table_t> page_tables; // Each table is associated to a specific PID
 
+#ifdef JUST_PROFILE
 vector<my_pebs_sample_t> samples;
+#endif
 
 unsigned int step = 0;
 
 void add_data_to_list(my_pebs_sample_t sample){
 	#ifdef JUST_PROFILE
 	samples.push_back(sample);
+	if(samples.size() == ELEMS_PER_PRINT){
+		print_samples(samples);
+		samples.clear();
+	}
 	#else
 	if(sample.is_mem_sample() && sample.dsrc != 0){
 		memory_list.add_cell(sample.cpu,sample.pid,sample.tid,sample.sample_addr,sample.weight,sample.dsrc,sample.time);
@@ -21,29 +27,24 @@ void add_data_to_list(my_pebs_sample_t sample){
 	#endif
 }
 
-void print_samples(){
-	FILE* fp = fopen("samples.txt", "w");
-
-	if(fp == NULL){
-		printf("Error opening file %s to log samples.\n", "samples.txt");
-		return;
-	}
-
-	my_pebs_sample_t::print_header(fp);
-	for(my_pebs_sample_t const & s : samples)
-		s.print_for_3DyRM(fp);
-
-	fclose(fp);
-}
-
 void clean_migration_structures(){
 	memory_list.clear();
 	inst_list.clear();
 	pids.clear();
+
+	// Final print for a specific analysis
+	for(auto & it : page_tables){
+		page_table_t t = it.second;
+		size_t sz = t.uniq_addrs.size();
+		double mean = t.get_mean_acs_to_pages();
+		if(sz > 10 && mean > 1.25) // Trying to print only wanted PID
+			printf("\t%d,%.2f,%lu\n", it.first, mean, sz);
+	}
 	page_tables.clear();
 
 	#ifdef JUST_PROFILE
-	print_samples();
+	// Prints remaining samples
+	print_samples(samples);
 	samples.clear();
 	#endif
 }
@@ -65,9 +66,10 @@ void work_with_fake_data(){
 	page_tables[1000] = t2;
 
 	for(auto & it : page_tables){
-		it.second.print();
-		it.second.print_performance();
-		printf("Mean of the number of page accesses for that PID: %.2f\n\n", it.second.get_mean_acs_to_pages());
+		page_table_t t = it.second;
+		t.print();
+		t.print_performance();
+		printf("Mean of the number of page accesses for that PID: %.2f\n\n", t.get_mean_acs_to_pages());
 	}
 }
 
@@ -91,8 +93,9 @@ int begin_migration_process(int do_thread_migration, int do_page_migration){
 	pages(step, pids, memory_list, &page_tables);
 
 	// For each active PID, cleans "dead" TIDs from its table and it can perform a single-process migration strategy
+/*
 	for (pid_t pid : pids){
-		printf("Working over table associated to PID: %d\n", pid);
+		//printf("Working over table associated to PID: %d\n", pid);
 
 		// Sanity checking. It can seem redundant but it is necessary!
 		if(!is_pid_alive(pid)){
@@ -107,9 +110,11 @@ int begin_migration_process(int do_thread_migration, int do_page_migration){
 
 		//perform_migration_strategy(table); // Commented because we are going to perform a migration strategy globally
 	}
-	printf("Going to perform the global strategy.\n");
+	//printf("Going to perform the global strategy.\n");
 	perform_migration_strategy(&page_tables);
 	
+*/
+
 	step++;
 
 	//printf("Mem list size: %lu, inst list size: %lu\n", memory_list.list.size(), inst_list.list.size());

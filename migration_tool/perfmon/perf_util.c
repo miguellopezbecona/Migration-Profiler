@@ -342,7 +342,7 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 	if (type & PERF_SAMPLE_TID) {
 		ret = perf_read_buffer(hw, &pid, sizeof(pid));
 		if (ret) {
-			warnx( "cannot read PID");
+			warnx("cannot read PID");
 			return -1;
 		}
 
@@ -364,7 +364,7 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 	if (type & PERF_SAMPLE_TIME) {
 		ret = perf_read_buffer_64(hw, &val64);
 		if (ret) {
-			warnx( "cannot read time");
+			warnx("cannot read time");
 			return -1;
 		}
 
@@ -375,7 +375,7 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 	if (type & PERF_SAMPLE_ADDR) {
 		ret = perf_read_buffer_64(hw, &val64);
 		if (ret) {
-			warnx( "cannot read addr");
+			warnx("cannot read addr");
 			return -1;
 		}
 
@@ -386,7 +386,7 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 	if (type & PERF_SAMPLE_ID) {
 		ret = perf_read_buffer_64(hw, &val64);
 		if (ret) {
-			warnx( "cannot read id");
+			warnx("cannot read id");
 			return -1;
 		}
 
@@ -449,7 +449,7 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 		if (fmt & PERF_FORMAT_GROUP) {
 			ret = perf_read_buffer_64(hw, &nr);
 			if (ret) {
-				warnx( "cannot read nr");
+				warnx("cannot read nr");
 				return -1;
 			}
 
@@ -460,7 +460,7 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 			if (fmt & PERF_FORMAT_TOTAL_TIME_ENABLED) {
 				ret = perf_read_buffer_64(hw, &time_enabled);
 				if (ret) {
-					warnx( "cannot read timing info");
+					warnx("cannot read timing info");
 					return -1;
 				}
 				sz -= sizeof(time_enabled);
@@ -469,7 +469,7 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 			if (fmt & PERF_FORMAT_TOTAL_TIME_RUNNING) {
 				ret = perf_read_buffer_64(hw, &time_running);
 				if (ret) {
-					warnx( "cannot read timing info");
+					warnx("cannot read timing info");
 					return -1;
 				}
 				sz -= sizeof(time_running);
@@ -485,7 +485,7 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 				grp.id = -1;
 				ret = perf_read_buffer_64(hw, &grp.value);
 				if (ret) {
-					warnx( "cannot read group value");
+					warnx("cannot read group value");
 					return -1;
 				}
 				sz -= sizeof(grp.value);
@@ -493,7 +493,7 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 				if (fmt & PERF_FORMAT_ID) {
 					ret = perf_read_buffer_64(hw, &grp.id);
 					if (ret) {
-						warnx( "cannot read leader id");
+						warnx("cannot read leader id");
 						return -1;
 					}
 					sz -= sizeof(grp.id);
@@ -518,7 +518,7 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 			 */
 			ret = perf_read_buffer_64(hw, &val64);
 			if (ret) {
-				warnx( "cannot read value");
+				warnx("cannot read value");
 				return -1;
 			}
 			sz -= sizeof(val64);
@@ -526,7 +526,7 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 			if (fmt & PERF_FORMAT_TOTAL_TIME_ENABLED) {
 				ret = perf_read_buffer_64(hw, &time_enabled);
 				if (ret) {
-					warnx( "cannot read timing info");
+					warnx("cannot read timing info");
 					return -1;
 				}
 				sz -= sizeof(time_enabled);
@@ -535,7 +535,7 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 			if (fmt & PERF_FORMAT_TOTAL_TIME_RUNNING) {
 				ret = perf_read_buffer_64(hw, &time_running);
 				if (ret) {
-					warnx( "cannot read timing info");
+					warnx("cannot read timing info");
 					return -1;
 				}
 				sz -= sizeof(time_running);
@@ -543,7 +543,7 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 			if (fmt & PERF_FORMAT_ID) {
 				ret = perf_read_buffer_64(hw, &val64);
 				if (ret) {
-					warnx( "cannot read leader id");
+					warnx("cannot read leader id");
 					return -1;
 				}
 				sz -= sizeof(val64);
@@ -568,7 +568,7 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 
 		ret = perf_read_buffer_64(hw, &nr);
 		if (ret) {
-			warnx( "cannot read callchain nr");
+			warnx("cannot read callchain nr");
 			return -1;
 		}
 		sz -= sizeof(nr);
@@ -576,7 +576,7 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 		while(nr--) {
 			ret = perf_read_buffer_64(hw, &ip);
 			if (ret) {
-				warnx( "cannot read ip");
+				warnx("cannot read ip");
 				return -1;
 			}
 
@@ -594,7 +594,7 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 	if (type & PERF_SAMPLE_WEIGHT) {
 		ret = perf_read_buffer_64(hw, &val64);
 		if (ret) {
-			warnx( "cannot read weight");
+			warnx("cannot read weight");
 			return -1;
 		}
 
@@ -606,7 +606,7 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 	if (type & PERF_SAMPLE_DATA_SRC) {
 		ret = perf_read_buffer_64(hw, &val64);
 		if (ret) {
-			warnx( "cannot read dsrc");
+			warnx("cannot read dsrc");
 			return -1;
 		}
 
