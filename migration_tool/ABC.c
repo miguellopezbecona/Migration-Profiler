@@ -17,6 +17,8 @@
 #define DEFAULT_NUMBER_OPS 1
 #define DEFAULT_STRIDE 1
 
+//#define OUTPUT
+
 int max_cpus; // Detected by the system
 
 // Main data
@@ -97,12 +99,14 @@ void data_initialization(){
 			C[offset+i] = 0.0;
 		}
 
+		#ifdef OUTPUT
 		// Gets the memory range where each thread will work in
 		printf("ABC: A[%d] from %lx to %lx\nB[%d] from %lx to %lx\nC[%d] from %lx to %lx\n",
 			th,(long unsigned int)&A[offset],(long unsigned int)&A[offset+array_basic_size],
 			th,(long unsigned int)&B[offset],(long unsigned int)&B[offset+array_basic_size],
 			th,(long unsigned int)&C[offset],(long unsigned int)&C[offset+array_basic_size]
 		);
+		#endif
 	}
 }
 
@@ -210,9 +214,11 @@ int main(int argc, char *argv[]){
 	// Reallocs correct size of selected_cpus
 	selected_cpus = (unsigned char*)realloc(selected_cpus, num_th*sizeof(unsigned char));
 
+	#ifdef OUTPUT
 	// Just printings
 	print_params();
 	print_selected_cpus();
+	#endif
 
 	// Sets number of threads to use
 	omp_set_num_threads(num_th);
@@ -233,9 +239,15 @@ int main(int argc, char *argv[]){
 		if(sched_setaffinity(0,sizeof(cpu_set_t),&my_affinity))
 			set_affinity_error();
 
+		#ifdef OUTPUT
 		printf("I am thread (%d,%d) and I have got cpu %u\n", ompid, tid, my_cpu);
+		#endif
+
 		operation(ompid); // Kernel
+
+		#ifdef OUTPUT
 		printf("I am thread (%d,%d) in cpu %d and I just finished\n", ompid, tid, my_cpu);
+		#endif
 	}
 
 	// Frees resources and end
