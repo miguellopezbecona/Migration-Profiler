@@ -462,7 +462,7 @@ double page_table_t::get_mean_acs_to_pages(){
 	}
 
 	// ... and then we calculate the mean
-	return accumulate(v.begin(), v.end(), 0) / v.size();
+	return accumulate(v.begin(), v.end(), 0.0) / v.size();
 }
 
 /*** perf_data_t functions ***/
