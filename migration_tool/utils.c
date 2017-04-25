@@ -55,7 +55,7 @@ void print_samples(vector<my_pebs_sample_t> samples){
 	FILE* fp = fopen(filename, "w");
 
 	if(fp == NULL){
-		printf("Error opening file %s to log samples.\n", "samples.csv");
+		printf("Error opening file %s to log samples.\n", filename);
 		return;
 	}
 

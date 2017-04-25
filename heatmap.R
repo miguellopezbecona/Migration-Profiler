@@ -90,14 +90,14 @@ plot_alt <- function(df, filename = "") {
 #node0_cpus <- seq(0,11,2) + 1
 #node1_cpus <- seq(1,11,2) + 1
 
-data <- read_data_from_dir("~/migrCPP") # Adjust to the desired folder
+data <- read_data_from_dir("~/csvs") # Adjust to the desired folder
 #d <- read_data_from_dir("~/data/direct")
-ind <- read_data_from_dir("~/data/indirect")
-int <- read_data_from_dir("~/data/inter")
-all <- read_data_from_dir("~/data/all")
+#ind <- read_data_from_dir("~/data/indirect")
+#int <- read_data_from_dir("~/data/inter")
+#all <- read_data_from_dir("~/data/all")
 
 # Let's do some plots for avg file in list
-make_plot(d[["avg"]])
+make_plot(data[["avg"]])
 #plot_alt(d[["alt"]])
 
 # For testing plots

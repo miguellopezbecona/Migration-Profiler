@@ -1,7 +1,7 @@
 #!/bin/bash
 
 execname=my_profiler_tm
-profparams="-s1000 -l250 -p750 -P50000000"
+profparams="-s1000 -l250 -p750 -P1000000"
 #profparams="-s500 -l50 -p300 -P50000000"
 #profparams="-s3500 -l750 -p1000 -P7500000"
 #profparams="-s1000 -l500 -p5000 -P1000000"
@@ -35,7 +35,7 @@ else
 fi
 
 # Set to what you want to profile. A bit deprecated since now the profiler analyzes everything
-toprofile="./ABC -m0 -r5000 -s100000 -t8"
+toprofile="./ABC -m0 -r500000 -s10000 -o32 -t8 -c1110"
 #toprofile=~/NPB3.3.1/NPB3.3-OMP/bin/lu.C.x
 #toprofile=~/NPB3.3.1/NPB3.3-OMP/bin/bt.C.x
 
@@ -47,6 +47,8 @@ $numacommand ./$execname -M $profparams
 if [ $? -ne 0 ]; then
 	exit $?
 fi
+
+exit 1
 
 # Does file preprocessing if any CSV file exists
 ls .csv &> /dev/null

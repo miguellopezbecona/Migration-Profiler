@@ -74,8 +74,8 @@ static size_t map_size;
 time_t last_migration;
 
 static const char *events[2] = {
-	"MEM_TRANS_RETIRED:LATENCY_ABOVE_THRESHOLD:period=10000"
-	,"INSTRUCTIONS:period=10000000"
+	"MEM_TRANS_RETIRED:LATENCY_ABOVE_THRESHOLD:period=1000"
+	,"INSTRUCTIONS:period=1000000,OFFCORE_REQUESTS:ALL_DATA_RD"
 };
 
 static void clean_end(int n);
@@ -160,7 +160,6 @@ static void process_smpl_buf(perf_event_desc_t *hw, int cpu, perf_event_desc_t *
 
 int setup_cpu(int cpu, int fd, int group) {
 	perf_event_desc_t *fds = NULL;
-	uint64_t *val;
 	int ret, flags;
 
 	// Allocate fds
@@ -251,7 +250,7 @@ int setup_cpu(int cpu, int fd, int group) {
 	 */
 	if (num_fds[group] > 1) {
 		sz = (3+2*num_fds[group])*sizeof(uint64_t);
-		val = (uint64_t*)malloc(sz);
+		uint64_t val[3+2*num_fds[group]];
 		if (!val)
 			err(1, "cannot allocated memory");
 
@@ -261,9 +260,10 @@ int setup_cpu(int cpu, int fd, int group) {
 
 		for(int i=0; i < num_fds[group]; i++) {
 			fds[i].id = val[2*i+1+3];
+			#ifdef EVENT_OUTPUT
 			printf("%lu  %s\n", fds[i].id, fds[i].name);
+			#endif
 		}
-		free(val);
 	}
 	return 0;
 }
