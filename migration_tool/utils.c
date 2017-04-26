@@ -47,26 +47,6 @@ bool is_tid_alive(pid_t pid, pid_t tid){
 	return access(dir, F_OK ) != -1;
 }
 
-
-void print_samples(vector<my_pebs_sample_t> samples){
-	char filename[32];
-	get_formatted_current_time(filename);
-
-	FILE* fp = fopen(filename, "w");
-
-	if(fp == NULL){
-		printf("Error opening file %s to log samples.\n", filename);
-		return;
-	}
-
-	my_pebs_sample_t::print_header(fp);
-	for(my_pebs_sample_t const & s : samples)
-		s.print_for_3DyRM(fp);
-
-	fclose(fp);
-}
-
-
 /*** Time-related utils ***/
 int current_time_value = 0;
 void time_go_up(){
@@ -95,3 +75,116 @@ void get_formatted_current_time(char *output){
     sprintf(output, "%d-%d-%d_%d:%d:%d.csv",timeinfo->tm_mday, timeinfo->tm_mon + 1, timeinfo->tm_year + 1900, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
 }
 
+/*** For getting children processes and writting them into a JSON file ***/
+vector<pid_t> get_tids(pid_t pid){
+	vector<pid_t> tids;
+	pid_t tid;
+	char folder[20] = "\0";
+	struct dirent *buffer = NULL;
+	DIR *dir = NULL;
+
+	sprintf(folder, "/proc/%d/task/", pid);
+
+	if( (dir=opendir(folder)) == NULL)
+		return tids;
+
+	while( (buffer = readdir(dir)) !=NULL){
+		if(buffer->d_name[0] == '.') // No self-directory/parent
+			continue;
+		tid = atoi(buffer->d_name);
+		tids.push_back(tid);
+	}
+
+	closedir(dir);
+
+	return tids;
+}
+
+vector<pid_t> get_children_processes(pid_t pid){
+	vector<pid_t> v;
+	vector<pid_t> tids = get_tids(pid); // To know which task folders to search
+
+	for(pid_t tid : tids){
+		pid_t cpid;
+		char filename[32] = "\0";
+		FILE *file = NULL;
+
+		sprintf(filename, "/proc/%d/task/%d/children", pid, tid);
+		file = fopen(filename, "r");
+
+		if(file == NULL)
+			return v;
+
+		while(fscanf(file, "%d", &cpid) == 1)
+			v.push_back(cpid);
+		fclose(file);
+	}
+
+	return v;
+}
+
+/*** For printing stuff ***/
+void print_map_to_json(map<pid_t, vector<pid_t>> m, char const* base){
+	char filename[32];
+	sprintf(filename, "%s.json", base);
+
+	FILE* fp = fopen(filename, "w");
+
+	if(fp == NULL){
+		printf("Error opening file %s to log process structure.\n", filename);
+		return;
+	}
+
+	fprintf(fp, "[\n");
+
+	// To know when stop printing commas
+	auto &m_last = *(--m.end());
+	for(auto const & it : m){
+		pid_t parent = it.first;
+		vector<pid_t> children = it.second;
+
+		fprintf(fp, "\t{ \"pid\" : %d, \"children\" : [\n\t\t", parent);
+
+		auto &l_last = *(--children.end());
+		for(pid_t const & c : children){
+			fprintf(fp, " %d", c);
+
+			if (&c != &l_last)
+				fprintf(fp, ",");
+		}
+		fprintf(fp, "\n\t\t]\n\t}\n"); // End of children
+
+		if (&it != &m_last)
+			fprintf(fp, ",\n");
+
+	}
+	fprintf(fp, "]\n"); // End of file
+
+	fclose(fp);
+}
+
+void print_samples(vector<my_pebs_sample_t> samples, const char* base){
+	char filename[32];
+	sprintf(filename, "%s.csv", base);
+
+	FILE* fp = fopen(filename, "w");
+
+	if(fp == NULL){
+		printf("Error opening file %s to log samples.\n", filename);
+		return;
+	}
+
+	my_pebs_sample_t::print_header(fp);
+	for(my_pebs_sample_t const & s : samples)
+		s.print_for_3DyRM(fp);
+
+	fclose(fp);
+}
+
+void print_everything(vector<my_pebs_sample_t> samples, map<pid_t, vector<pid_t>> m){
+	char base[32];
+	get_formatted_current_time(base);
+
+	print_samples(samples, base);
+	print_map_to_json(m, base);
+}

@@ -219,7 +219,7 @@ int main(int argc, char *argv[]){
 	print_params();
 	print_selected_cpus();
 	#endif
-	printf("My PID is %d\n", getpid());
+	//printf("My PID is %d\n", getpid());
 
 	// Sets number of threads to use
 	omp_set_num_threads(num_th);

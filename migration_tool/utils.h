@@ -4,7 +4,9 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h> // access, F_OK
+#include <dirent.h> // Getting task folders from each process
 
+#include <map>
 #include <vector>
 #include <algorithm> // sort
 using namespace std;
@@ -12,14 +14,9 @@ using namespace std;
 #include "sample_data.h"
 
 int get_median_from_list(vector<int> l);
-
 bool is_migratable(pid_t my_uid, pid_t pid);
-
 bool is_pid_alive(pid_t pid);
-
 bool is_tid_alive(pid_t pid, pid_t tid);
-
-void print_samples(vector<my_pebs_sample_t> samples);
 
 /*** Time-related utils mainly used in my_profiler.c ***/
 const int SYS_TIME_NUM_VALUES = 3;
@@ -34,3 +31,7 @@ int get_time_value();
 
 void get_formatted_current_time(char *output);
 
+/*** For getting children processes and writting them into a JSON file ***/
+vector<pid_t> get_children_processes(pid_t pid);
+
+void print_everything(vector<my_pebs_sample_t> samples, map<pid_t, vector<pid_t>> m);

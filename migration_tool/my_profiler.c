@@ -40,7 +40,7 @@
 // Uncomment the following for testing functionalities without using the hardware counters
 //#define FAKE_DATA
 
-//#define EVENT_OUTPUT
+#define EVENT_OUTPUT
 
 // For the cgroups option, necessary?
 #define MAX_PATH	1024
@@ -334,7 +334,7 @@ static void clean_end(int n) {
 	pfm_terminate();
 
 	// Special print for a specific analysis: period,minlat,samples,meanacs
-	printf("%d,%d,%lu\n", options.periods[0], options.minimum_latency,processed_samples_group[0]);
+	//printf("%d,%d,%lu\n", options.periods[0], options.minimum_latency,processed_samples_group[0]);
 	clean_migration_structures();
 
 	#ifdef EVENT_OUTPUT

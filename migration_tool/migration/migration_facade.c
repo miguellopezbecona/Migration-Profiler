@@ -7,6 +7,7 @@ map<pid_t, page_table_t> page_tables; // Each table is associated to a specific 
 
 #ifdef JUST_PROFILE
 vector<my_pebs_sample_t> samples;
+map<pid_t, vector<pid_t>> pmap;
 #endif
 
 unsigned int step = 0;
@@ -14,9 +15,18 @@ unsigned int step = 0;
 void add_data_to_list(my_pebs_sample_t sample){
 	#ifdef JUST_PROFILE
 	samples.push_back(sample);
+
+	// Gets children processes por sample's PID
+	pid_t pid = sample.pid;
+	if(pmap.count(pid) == 0) // !contains(pid)
+		pmap[pid] = get_children_processes(pid);
+
+	// Time to do a periodic print!
 	if(samples.size() == ELEMS_PER_PRINT){
-		print_samples(samples);
+		print_everything(samples, pmap);
+
 		samples.clear();
+		pmap.clear();
 	}
 	#else
 	if(sample.is_mem_sample() && sample.dsrc != 0){
@@ -33,6 +43,7 @@ void clean_migration_structures(){
 	pids.clear();
 
 	// Final print for a specific analysis
+/*
 	for(auto & it : page_tables){
 		page_table_t t = it.second;
 		size_t sz = t.uniq_addrs.size();
@@ -40,12 +51,15 @@ void clean_migration_structures(){
 		if(sz > 10 && mean > 1.25) // Trying to print only wanted PID
 			printf("\t%d,%.2f,%lu\n", it.first, mean, sz);
 	}
+*/
 	page_tables.clear();
 
 	#ifdef JUST_PROFILE
 	// Prints remaining samples
-	print_samples(samples);
+	print_everything(samples, pmap);
+
 	samples.clear();
+	pmap.clear();
 	#endif
 }
 
@@ -93,9 +107,8 @@ int begin_migration_process(int do_thread_migration, int do_page_migration){
 	pages(step, pids, memory_list, &page_tables);
 
 	// For each active PID, cleans "dead" TIDs from its table and it can perform a single-process migration strategy
-/*
 	for (pid_t pid : pids){
-		//printf("Working over table associated to PID: %d\n", pid);
+		printf("Working over table associated to PID: %d\n", pid);
 
 		// Sanity checking. It can seem redundant but it is necessary!
 		if(!is_pid_alive(pid)){
@@ -112,8 +125,6 @@ int begin_migration_process(int do_thread_migration, int do_page_migration){
 	}
 	//printf("Going to perform the global strategy.\n");
 	perform_migration_strategy(&page_tables);
-	
-*/
 
 	step++;
 

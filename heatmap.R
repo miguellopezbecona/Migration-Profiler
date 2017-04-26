@@ -87,9 +87,6 @@ plot_alt <- function(df, filename = "") {
 		dev.off()
 }
 
-#node0_cpus <- seq(0,11,2) + 1
-#node1_cpus <- seq(1,11,2) + 1
-
 data <- read_data_from_dir("~/csvs") # Adjust to the desired folder
 #d <- read_data_from_dir("~/data/direct")
 #ind <- read_data_from_dir("~/data/indirect")
@@ -98,7 +95,7 @@ data <- read_data_from_dir("~/csvs") # Adjust to the desired folder
 
 # Let's do some plots for avg file in list
 make_plot(data[["avg"]])
-#plot_alt(d[["alt"]])
+#plot_alt(data[["alt"]])
 
 # For testing plots
 #m9 <- matrix(c(NA, 0, 100, 500, 1000, 100, 7000, NA, 10), nc=3, nr=3, byrow = TRUE); View(m9); plot_matrix(m9)

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 execname=my_profiler_tm
-profparams="-s1000 -l250 -p750 -P1000000"
+profparams="-s1000 -l200 -p750 -P1000000"
 #profparams="-s500 -l50 -p300 -P50000000"
 #profparams="-s3500 -l750 -p1000 -P7500000"
 #profparams="-s1000 -l500 -p5000 -P1000000"

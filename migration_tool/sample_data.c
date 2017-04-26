@@ -30,8 +30,9 @@ void my_pebs_sample_t::print_for_3DyRM(FILE *fp) const {
 		fprintf(fp, "%lu,%lu,", time_enabled, time_running);
 		fprintf(fp, "%#016lx,", dsrc);
 		fprintf(fp, "%d,", 0); // No INST data
+		fprintf(fp, "%d,", 0); // No REQ_DR
 
-		// More zeros can be added depending on instruction additional fields
+		// More zeros can be added depending on instruction additional fields (SSE_D, SSE_S...)
 		/*
 		fprintf(fp, "%d,", 0);
 		fprintf(fp, "%d,", 0);
