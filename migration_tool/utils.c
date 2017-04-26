@@ -72,7 +72,7 @@ void get_formatted_current_time(char *output){
     time(&rawtime);
     timeinfo = localtime(&rawtime);
 
-    sprintf(output, "%d-%d-%d_%d:%d:%d.csv",timeinfo->tm_mday, timeinfo->tm_mon + 1, timeinfo->tm_year + 1900, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+    sprintf(output, "%d-%d-%d_%d:%d:%d",timeinfo->tm_mday, timeinfo->tm_mon + 1, timeinfo->tm_year + 1900, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
 }
 
 /*** For getting children processes and writting them into a JSON file ***/

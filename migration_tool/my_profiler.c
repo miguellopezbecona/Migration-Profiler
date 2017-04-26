@@ -35,12 +35,12 @@
 #include "migration/migration_facade.h" // begin_migration_process
 
 // Using a value greater than 2 requires additional changes in, at least, "events" and "periods" array
-#define NUM_GROUPS 1
+#define NUM_GROUPS 2
 
 // Uncomment the following for testing functionalities without using the hardware counters
 //#define FAKE_DATA
 
-#define EVENT_OUTPUT
+//#define EVENT_OUTPUT
 
 // For the cgroups option, necessary?
 #define MAX_PATH	1024

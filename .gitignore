@@ -1,4 +1,5 @@
 migration_tool/*.csv
+migration_tool/*.json
 migration_tool/*.txt
 migration_tool/ABC
 migration_tool/my_profiler_tm

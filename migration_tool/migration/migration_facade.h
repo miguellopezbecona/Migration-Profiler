@@ -10,7 +10,7 @@
 #define JUST_PROFILE
 
 // How many samples do you want to log in the CSV files in JUST_PROFILE mode?
-#define ELEMS_PER_PRINT 100
+#define ELEMS_PER_PRINT 1000000
 
 #define ACTIVATE_THREAD_MIGRATION 0
 #define ACTIVATE_PAGE_MIGRATION 1
