@@ -72,7 +72,7 @@ void get_formatted_current_time(char *output){
     time(&rawtime);
     timeinfo = localtime(&rawtime);
 
-    sprintf(output, "%d-%d-%d_%d:%d:%d",timeinfo->tm_mday, timeinfo->tm_mon + 1, timeinfo->tm_year + 1900, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+    sprintf(output, "%02d-%02d-%d_%02d-%02d-%02d",timeinfo->tm_mday, timeinfo->tm_mon + 1, timeinfo->tm_year + 1900, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
 }
 
 /*** For getting children processes and writting them into a JSON file ***/
@@ -152,7 +152,7 @@ void print_map_to_json(map<pid_t, vector<pid_t>> m, char const* base){
 			if (&c != &l_last)
 				fprintf(fp, ",");
 		}
-		fprintf(fp, "\n\t\t]\n\t}\n"); // End of children
+		fprintf(fp, "\n\t\t]\n\t}"); // End of children
 
 		if (&it != &m_last)
 			fprintf(fp, ",\n");
