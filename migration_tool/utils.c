@@ -72,7 +72,11 @@ void get_formatted_current_time(char *output){
     time(&rawtime);
     timeinfo = localtime(&rawtime);
 
-    sprintf(output, "%02d-%02d-%d_%02d-%02d-%02d",timeinfo->tm_mday, timeinfo->tm_mon + 1, timeinfo->tm_year + 1900, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+	// Year-month-day. It's ugly but it's the correct way to sort correcly by filename later
+	sprintf(output, "%02d-%02d-%d_%02d-%02d-%02d", timeinfo->tm_year + 1900, timeinfo->tm_mon + 1, timeinfo->tm_mday, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+
+	// Day-month-year
+    //sprintf(output, "%02d-%02d-%d_%02d-%02d-%02d",timeinfo->tm_mday, timeinfo->tm_mon + 1, timeinfo->tm_year + 1900, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
 }
 
 /*** For getting children processes and writting them into a JSON file ***/
@@ -125,6 +129,10 @@ vector<pid_t> get_children_processes(pid_t pid){
 
 /*** For printing stuff ***/
 void print_map_to_json(map<pid_t, vector<pid_t>> m, char const* base){
+	// No data to dump
+	if(m.empty())
+		return;
+
 	char filename[32];
 	sprintf(filename, "%s.json", base);
 
@@ -164,6 +172,10 @@ void print_map_to_json(map<pid_t, vector<pid_t>> m, char const* base){
 }
 
 void print_samples(vector<my_pebs_sample_t> samples, const char* base){
+	// No data to dump
+	if(samples.empty())
+		return;
+
 	char filename[32];
 	sprintf(filename, "%s.csv", base);
 
