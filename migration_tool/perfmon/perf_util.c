@@ -611,8 +611,6 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 		}
 
 		sample->dsrc = val64;
-		// print detailed
-		//print_dsrc((void *) &val64,fp);
 		
 		sz -= sizeof(val64);
 	}
@@ -680,51 +678,4 @@ void display_freq(int mode, perf_event_desc_t *hw, FILE *fp) {
 		mode ? "Throttled" : "Unthrottled",
 		thr.id,
 		thr.stream_id);
-}
-
-void print_dsrc(void * pointer, FILE *fp) {
-	union perf_mem_data_src *dsrc = (perf_mem_data_src*) pointer;
-
-	fprintf(fp,"mem_op: %lu ->\n", dsrc->mem_op);
-	if (dsrc->mem_op&PERF_MEM_OP_NA)			fprintf(fp,"\tnot available\n");
-	if (dsrc->mem_op&PERF_MEM_OP_LOAD) 			fprintf(fp,"\tload instruction\n");
-	if (dsrc->mem_op&PERF_MEM_OP_STORE) 			fprintf(fp,"\tstore instruction\n");
-	if (dsrc->mem_op&PERF_MEM_OP_PFETCH)			fprintf(fp,"\tprefetch\n");
-	if (dsrc->mem_op&PERF_MEM_OP_EXEC) 			fprintf(fp,"\tcode (execution)\n");
-
-	fprintf(fp,"mem_lvl: %lu ->\n", dsrc->mem_lvl);
-	if (dsrc->mem_lvl&PERF_MEM_LVL_NA)			fprintf(fp,"\tnot available\n");
-	if (dsrc->mem_lvl&PERF_MEM_LVL_HIT)			fprintf(fp,"\thit level\n");
-	if (dsrc->mem_lvl&PERF_MEM_LVL_MISS)			fprintf(fp,"\tmiss level\n");
-	if (dsrc->mem_lvl&PERF_MEM_LVL_L1)			fprintf(fp,"\tL1\n");
-	if (dsrc->mem_lvl&PERF_MEM_LVL_LFB)			fprintf(fp,"\tLine Fill Buffer\n");
-	if (dsrc->mem_lvl&PERF_MEM_LVL_L2)			fprintf(fp,"\tL2\n");
-	if (dsrc->mem_lvl&PERF_MEM_LVL_L3)			fprintf(fp,"\tL3\n");
-	if (dsrc->mem_lvl&PERF_MEM_LVL_LOC_RAM)			fprintf(fp,"\tLocal DRAM\n");
-	if (dsrc->mem_lvl&PERF_MEM_LVL_REM_RAM1)		fprintf(fp,"\tRemote DRAM (1 hop)\n");
-	if (dsrc->mem_lvl&PERF_MEM_LVL_REM_RAM2)		fprintf(fp,"\tRemote DRAM (2 hops)\n");
-	if (dsrc->mem_lvl&PERF_MEM_LVL_REM_CCE1)		fprintf(fp,"\tRemote Cache (1 hop)\n");
-	if (dsrc->mem_lvl&PERF_MEM_LVL_REM_CCE2)		fprintf(fp,"\tRemote Cache (2 hops)\n");
-	if (dsrc->mem_lvl&PERF_MEM_LVL_IO)			fprintf(fp,"\tI/O memory\n");
-	if (dsrc->mem_lvl&PERF_MEM_LVL_UNC)			fprintf(fp,"\tUncached memory\n");
-
-	fprintf(fp,"mem_snoop: %lu ->\n", dsrc->mem_snoop);
-	if (dsrc->mem_snoop&PERF_MEM_SNOOP_NA)			fprintf(fp,"\tnot available\n");
-	if (dsrc->mem_snoop&PERF_MEM_SNOOP_NONE)		fprintf(fp,"\tno snoop\n");
-	if (dsrc->mem_snoop&PERF_MEM_SNOOP_HIT)			fprintf(fp,"\tsnoop hit\n");
-	if (dsrc->mem_snoop&PERF_MEM_SNOOP_MISS)		fprintf(fp,"\tsnoop miss\n");
-	if (dsrc->mem_snoop&PERF_MEM_SNOOP_HITM)		fprintf(fp,"\tsnoop hit modified\n");
-	
-	fprintf(fp,"mem_lock: %lu ->\n", dsrc->mem_lock);
-	if (dsrc->mem_lock&PERF_MEM_LOCK_NA)			fprintf(fp,"\tnot available\n");
-	if (dsrc->mem_lock&PERF_MEM_LOCK_LOCKED)		fprintf(fp,"\tlocked transaction\n");
-
-	fprintf(fp,"mem_dtlb: %lu ->\n", dsrc->mem_dtlb);
-	if (dsrc->mem_dtlb&PERF_MEM_TLB_NA)			fprintf(fp,"\tnot available\n");
-	if (dsrc->mem_dtlb&PERF_MEM_TLB_HIT)			fprintf(fp,"\thit level\n");
-	if (dsrc->mem_dtlb&PERF_MEM_TLB_MISS)			fprintf(fp,"\tmiss level\n");
-	if (dsrc->mem_dtlb&PERF_MEM_TLB_L1)			fprintf(fp,"\tL1\n");
-	if (dsrc->mem_dtlb&PERF_MEM_TLB_L2)			fprintf(fp,"\tL2\n");
-	if (dsrc->mem_dtlb&PERF_MEM_TLB_WK)			fprintf(fp,"\tHardware Walker\n");
-	if (dsrc->mem_dtlb&PERF_MEM_TLB_OS)			fprintf(fp,"\tOS fault handler\n");
 }

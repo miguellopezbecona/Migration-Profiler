@@ -20,6 +20,7 @@ typedef struct memory_data_cell{
 	memory_data_cell(uint32_t cpu, int pid, int tid, uint64_t addr, uint64_t latency, uint64_t dsrc, uint64_t time);
 	void print();
 	bool is_cache_miss();
+	void print_dsrc();
 } memory_data_cell_t;
 
 typedef struct memory_data_list{

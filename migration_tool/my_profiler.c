@@ -74,8 +74,9 @@ static size_t map_size;
 time_t last_migration;
 
 static const char *events[2] = {
+	//"RAPL_ENERGY_CORES:period=1000",
 	"MEM_TRANS_RETIRED:LATENCY_ABOVE_THRESHOLD:period=1000"
-	,"INSTRUCTIONS:period=1000000,OFFCORE_REQUESTS:ALL_DATA_RD"
+	,"INST_RETIRED:period=1000000,OFFCORE_REQUESTS:ALL_DATA_RD"
 };
 
 static void clean_end(int n);

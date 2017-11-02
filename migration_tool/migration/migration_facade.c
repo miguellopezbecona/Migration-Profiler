@@ -31,6 +31,8 @@ void add_data_to_list(my_pebs_sample_t sample){
 	#else
 	if(sample.is_mem_sample() && sample.dsrc != 0){
 		memory_list.add_cell(sample.cpu,sample.pid,sample.tid,sample.sample_addr,sample.weight,sample.dsrc,sample.time);
+		memory_list.list.back().print_dsrc(); // Temporal, for testing dsrc printing
+		printf("\n");
 		pids.insert(sample.pid); // Currently we only use memory list so we only consider a thread is active if we get a memory sample
 	} else
 		inst_list.add_cell(sample.cpu,sample.pid,sample.tid,sample.values[1],sample.values[0],sample.time);
@@ -42,16 +44,23 @@ void clean_migration_structures(){
 	inst_list.clear();
 	pids.clear();
 
-	// Final print for a specific analysis
+	// Final print for a specific analysis: PID, mean accesses and amount of pages
 /*
 	for(auto & it : page_tables){
 		page_table_t t = it.second;
 		size_t sz = t.uniq_addrs.size();
 		double mean = t.get_mean_acs_to_pages();
-		if(sz > 10 && mean > 1.25) // Trying to print only wanted PID
+		//if(sz > 10 && mean > 1.25) // Trying to print only wanted PID
 			printf("\t%d,%.2f,%lu\n", it.first, mean, sz);
 	}
 */
+
+	// Final print for a specific analysis: PID, mean latencies
+	for(auto & it : page_tables){
+		page_table_t t = it.second;
+		double mean = t.get_mean_lat_to_pages();
+		printf("%d,%.2f\n", it.first, mean);
+	}
 	page_tables.clear();
 
 	#ifdef JUST_PROFILE
@@ -108,7 +117,7 @@ int begin_migration_process(int do_thread_migration, int do_page_migration){
 
 	// For each active PID, cleans "dead" TIDs from its table and it can perform a single-process migration strategy
 	for (pid_t pid : pids){
-		printf("Working over table associated to PID: %d\n", pid);
+		//printf("Working over table associated to PID: %d\n", pid);
 
 		// Sanity checking. It can seem redundant but it is necessary!
 		if(!is_pid_alive(pid)){
@@ -124,7 +133,7 @@ int begin_migration_process(int do_thread_migration, int do_page_migration){
 		//perform_migration_strategy(table); // Commented because we are going to perform a migration strategy globally
 	}
 	//printf("Going to perform the global strategy.\n");
-	perform_migration_strategy(&page_tables);
+	//perform_migration_strategy(&page_tables);
 
 	step++;
 

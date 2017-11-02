@@ -66,17 +66,17 @@ int get_time_value(){
 }
 
 void get_formatted_current_time(char *output){
-    time_t rawtime = time(NULL);
-    struct tm *timeinfo;
+	time_t rawtime = time(NULL);
+	struct tm *timeinfo;
 
-    time(&rawtime);
-    timeinfo = localtime(&rawtime);
+	time(&rawtime);
+	timeinfo = localtime(&rawtime);
 
-	// Year-month-day. It's ugly but it's the correct way to sort correcly by filename later
-	sprintf(output, "%02d-%02d-%d_%02d-%02d-%02d", timeinfo->tm_year + 1900, timeinfo->tm_mon + 1, timeinfo->tm_mday, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+	// Year-month-day. It's ugly but it's the correct way to sort correctly by filename later
+	//sprintf(output, "%02d-%02d-%d_%02d-%02d-%02d", timeinfo->tm_year + 1900, timeinfo->tm_mon + 1, timeinfo->tm_mday, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
 
 	// Day-month-year
-    //sprintf(output, "%02d-%02d-%d_%02d-%02d-%02d",timeinfo->tm_mday, timeinfo->tm_mon + 1, timeinfo->tm_year + 1900, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+	sprintf(output, "%02d-%02d-%d_%02d-%02d-%02d",timeinfo->tm_mday, timeinfo->tm_mon + 1, timeinfo->tm_year + 1900, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
 }
 
 /*** For getting children processes and writting them into a JSON file ***/

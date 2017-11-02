@@ -465,6 +465,29 @@ double page_table_t::get_mean_acs_to_pages(){
 	return accumulate(v.begin(), v.end(), 0.0) / v.size();
 }
 
+// Gets the mean of the latencies of all pages for the whole table
+double page_table_t::get_mean_lat_to_pages(){
+	vector<double> v;
+
+	/// We collect the means of the latencies for each page
+
+	// We loop over TIDs
+	for(auto const & t_it : tid_index) {
+		int pos = t_it.second;
+		
+		// We get latencies for each cell for that TID
+		for(auto const & it : table[pos]) {
+			table_cell_t cell = it.second;
+			vector<int> ls = cell.latencies;
+			double mean_ls = accumulate(ls.begin(), ls.end(), 0.0) / ls.size();
+			v.push_back(mean_ls);
+		}
+	}
+
+	// ... and then we calculate the total mean for all the table
+	return accumulate(v.begin(), v.end(), 0.0) / v.size();
+}
+
 /*** perf_data_t functions ***/
 void perf_data_t::print() const {
 	printf("MEM_NODE/CORE: %d, ACS_PER_NODE: {", current_place);

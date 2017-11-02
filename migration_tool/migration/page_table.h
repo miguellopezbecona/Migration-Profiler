@@ -79,6 +79,7 @@ typedef struct page_table {
 	void print_performance();
 
 	double get_mean_acs_to_pages();
+	double get_mean_lat_to_pages();
 
 	// More info on the definitions in .c file
 	void print_heatmaps(FILE **fps, int num_fps);
