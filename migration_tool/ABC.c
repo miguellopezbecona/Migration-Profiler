@@ -11,13 +11,14 @@
 
 // Default macro values
 #define DEFAULT_BLOCKS 1
-#define DEFAULT_ARRAY_SIZE 1000
+#define DEFAULT_ARRAY_SIZE 1000000
 #define DEFAULT_MEM_NODE 0
-#define DEFAULT_REP 100
+#define DEFAULT_REP 1000
 #define DEFAULT_NUMBER_OPS 1
 #define DEFAULT_STRIDE 1
 
-//#define OUTPUT
+#define OUTPUT
+#define DOGETPID
 
 int max_cpus; // Detected by the system
 
@@ -26,7 +27,8 @@ float *A, *B, *C;
 
 // Options
 int blocks_per_thread;
-int array_basic_size; // Actual array size will be array_basic_size*num_th elements
+long int array_basic_size; // array_total_size / num_th
+long int array_total_size;
 int mem_node;
 int rep;
 int ops;
@@ -53,11 +55,11 @@ void print_selected_cpus(){
 }
 
 void print_params(){
-	printf("Initialising data in %d memory node.\nBlocks per thread: %d.\nRepetitions: %d.\nArray size: %d.\nStride: %d.\nNumber of threads: %d.\n",mem_node,blocks_per_thread,rep,array_basic_size,stride,num_th);
+	printf("Initialising data in %d memory node.\nBlocks per thread: %d.\nRepetitions: %d.\nArray base size: %lu.\nArray total size: %lu.\nStride: %d.\nNumber of threads: %d.\n",mem_node,blocks_per_thread,rep,array_basic_size,array_total_size,stride,num_th);
 }
 
 void usage(char **argv) {
-	printf("Usage: %s [-bblocks_per_thread] [-mmemory-cpu] [-rrepetitions] [-ooperations_per_iteration] [-sarray_basic_size] [-ccpus] [-tstride]\n\n", argv[0]);
+	printf("Usage: %s [-bblocks_per_thread] [-mmemory-cpu] [-rrepetitions] [-ooperations_per_iteration] [-sarray_total_size] [-ccpus] [-tstride]\n\n", argv[0]);
 }
 
 void set_affinity_error(){
@@ -85,9 +87,9 @@ void data_initialization(){
 	int i, th, offset;
 
 	// Memory allocation on memory node
-	A = numa_alloc_onnode(array_basic_size*sizeof(float)*num_th, mem_node);
-	B = numa_alloc_onnode(array_basic_size*sizeof(float)*num_th, mem_node);
-	C = numa_alloc_onnode(array_basic_size*sizeof(float)*num_th, mem_node);
+	A = numa_alloc_onnode(array_total_size*sizeof(float), mem_node);
+	B = numa_alloc_onnode(array_total_size*sizeof(float), mem_node);
+	C = numa_alloc_onnode(array_total_size*sizeof(float), mem_node);
 
 	// Random initialization
 	for(th=0;th<num_th;th++){
@@ -152,7 +154,7 @@ void set_options_from_parameters(int argc, char** argv){
 				stride = atoi(optarg);
 				break;
 			case 's': // Array size
-				array_basic_size = atol(optarg);
+				array_total_size = atol(optarg);
 				break;
 			case 'c': // Binary vector of CPUs to be used (0 -> not used, 1 -> used). For example, 0011 means we only select CPUs 2 and 3
 				if(strlen(optarg) != max_cpus){
@@ -183,6 +185,19 @@ void set_options_from_parameters(int argc, char** argv){
 	}
 }
 
+void get_basic_size_and_optional_padding(){
+	// We force the array size to be divisible by the number of threads
+	if(array_total_size % num_th != 0){
+		array_basic_size = (array_total_size / num_th) + 1;
+		array_total_size = array_basic_size*num_th;
+
+		#ifdef OUTPUT
+		printf("Array size slightly increased to be divisible by number of threads.\n");
+		#endif
+	} else
+		array_basic_size = array_total_size / num_th;
+}
+
 int main(int argc, char *argv[]){
 	max_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 	selected_cpus = (unsigned char*)calloc(max_cpus, sizeof(unsigned char));
@@ -192,7 +207,7 @@ int main(int argc, char *argv[]){
 	mem_node = DEFAULT_MEM_NODE;
 	rep = DEFAULT_REP;
 	ops = DEFAULT_NUMBER_OPS;
-	array_basic_size = DEFAULT_ARRAY_SIZE;
+	array_total_size = DEFAULT_ARRAY_SIZE;
 	stride = DEFAULT_STRIDE;
 	num_th = 0;
 
@@ -211,6 +226,8 @@ int main(int argc, char *argv[]){
 
 	set_options_from_parameters(argc, argv);
 
+	get_basic_size_and_optional_padding();
+
 	// Reallocs correct size of selected_cpus
 	selected_cpus = (unsigned char*)realloc(selected_cpus, num_th*sizeof(unsigned char));
 
@@ -219,7 +236,9 @@ int main(int argc, char *argv[]){
 	print_params();
 	print_selected_cpus();
 	#endif
-	printf("My PID is %d\n", getpid());
+	#ifdef DOGETPID
+	printf("PID: %d\n", getpid()); // May be useful sometimes
+	#endif
 
 	// Sets number of threads to use
 	omp_set_num_threads(num_th);
@@ -253,8 +272,8 @@ int main(int argc, char *argv[]){
 
 	// Frees resources and end
 	free(selected_cpus);
-	numa_free(A, array_basic_size*sizeof(float)*num_th);
-	numa_free(B, array_basic_size*sizeof(float)*num_th);
-	numa_free(C, array_basic_size*sizeof(float)*num_th);
+	numa_free(A, array_total_size*sizeof(float));
+	numa_free(B, array_total_size*sizeof(float));
+	numa_free(C, array_total_size*sizeof(float));
 	return 0;
 }
