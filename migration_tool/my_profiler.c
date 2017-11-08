@@ -345,7 +345,7 @@ static void clean_end(int n) {
 	printf("%lu unknown samples.\n", unknown_samples);
 	#endif
 
-	#if ! defined(JUST_PROFILE) && defined(EVENT_OUTPUT)
+	#if ! defined(JUST_PROFILE) //&& defined(EVENT_OUTPUT)
 	printf("%d thread migrations made.\n", total_thread_migrations);
 	printf("%d page migrations made.\n", total_page_migrations);
 	#endif

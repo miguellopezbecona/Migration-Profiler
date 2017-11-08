@@ -31,8 +31,7 @@ void add_data_to_list(my_pebs_sample_t sample){
 	#else
 	if(sample.is_mem_sample() && sample.dsrc != 0){
 		memory_list.add_cell(sample.cpu,sample.pid,sample.tid,sample.sample_addr,sample.weight,sample.dsrc,sample.time);
-		memory_list.list.back().print_dsrc(); // Temporal, for testing dsrc printing
-		printf("\n");
+		//memory_list.list.back().print_dsrc(); printf("\n"); // Temporal, for testing dsrc printing
 		pids.insert(sample.pid); // Currently we only use memory list so we only consider a thread is active if we get a memory sample
 	} else
 		inst_list.add_cell(sample.cpu,sample.pid,sample.tid,sample.values[1],sample.values[0],sample.time);
@@ -55,12 +54,14 @@ void clean_migration_structures(){
 	}
 */
 
-	// Final print for a specific analysis: PID, mean latencies
+	// Final print for a specific analysis: PID, mean latency
+/*
 	for(auto & it : page_tables){
 		page_table_t t = it.second;
 		double mean = t.get_mean_lat_to_pages();
 		printf("%d,%.2f\n", it.first, mean);
 	}
+*/
 	page_tables.clear();
 
 	#ifdef JUST_PROFILE
@@ -130,7 +131,7 @@ int begin_migration_process(int do_thread_migration, int do_page_migration){
 		table->remove_inactive_tids();
 		//table->print();
 
-		//perform_migration_strategy(table); // Commented because we are going to perform a migration strategy globally
+		perform_migration_strategy(table);
 	}
 	//printf("Going to perform the global strategy.\n");
 	//perform_migration_strategy(&page_tables);

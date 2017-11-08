@@ -1,18 +1,20 @@
 #include "page_table.h"
 
 /*** table_cell_t ***/
-table_cell_t::table_cell(int latency, bool is_cache_miss){
+table_cell_t::table_cell(int latency, bool is_cache_miss, int cpu){
 	latencies.push_back(latency);
 	cache_misses = (unsigned) is_cache_miss;
+	last_cpu_access = cpu;
 }
 
-void table_cell_t::update(int latency, bool is_cache_miss){
+void table_cell_t::update(int latency, bool is_cache_miss, int cpu){
 	latencies.push_back(latency);
 	cache_misses += (unsigned) is_cache_miss;
+	last_cpu_access = cpu;
 }
 
 void table_cell_t::print(){
-	printf("NUM_ACC %lu, MEAN_LAT %.2f, CACH_MIS: %u\n", latencies.size(), accumulate(latencies.begin(), latencies.end(), 0.0) / latencies.size(), cache_misses);
+	printf("NUM_ACC %lu, MEAN_LAT %.2f, CACH_MIS: %u, LAST_CPU = %d\n", latencies.size(), accumulate(latencies.begin(), latencies.end(), 0.0) / latencies.size(), cache_misses, last_cpu_access);
 }
 
 /*** page_table_t ***/
@@ -46,7 +48,7 @@ int page_table_t::add_cell(long int page_addr, int current_node, pid_t tid, int 
 	table_cell_t *cell = get_cell(page_addr, tid);
 
 	if(cell == NULL) {
-		table_cell_t aux(latency, is_cache_miss);
+		table_cell_t aux(latency, is_cache_miss, cpu);
 		uniq_addrs.insert(page_addr); // Adds address to the set, won't be inserted if already added by other threads
 
 		// If TID does not exist in map, we associate a index to it
@@ -61,7 +63,7 @@ int page_table_t::add_cell(long int page_addr, int current_node, pid_t tid, int 
 		int pos = tid_index[tid];
 		table[pos][page_addr] = aux;
 	} else
-		cell->update(latency, is_cache_miss);
+		cell->update(latency, is_cache_miss, cpu);
 	
 	// Creates/updates association in page node map
 	perf_data_t *pd = &page_node_map[page_addr];

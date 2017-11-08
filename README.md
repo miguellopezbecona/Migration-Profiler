@@ -3,7 +3,7 @@ This application is a profiler which potentially will use thread and page migrat
 
 The repository includes a test application to be profiled called `ABC`. It performs a simple element by element vector product which can be very customizable with options such as array size, CPUs to be used, number of repetitions, intensity of each iteration, etc.
 
-The app includes a simple mode where it just dumps the hardware counter data to CSV files, and the process hierarchy into JSON files. To activate it, you have to uncomment the `JUST_PROFILE` macro defined in `migration/migration_facade.h`. Each pair of files will be generated each `ELEMS_PER_PRINT` (defined in the same header) general samples (mixing instructions and memory ones). Other macros can be commented/uncommented to increase/decrease the amount of printing, such as `EVENT_OUTPUT` in `my_profiler.c`, `GENETIC_OUTPUT` in `strategies/genetic.h` or `MIGRATION_OUTPUT` in `migration/migration.algorithm.h`.
+The app includes a simple mode where it just dumps the hardware counter data to CSV files, and the process hierarchy into JSON files. To activate it, you have to uncomment the `JUST_PROFILE` macro defined in `migration/migration_facade.h`. Each pair of files will be generated each `ELEMS_PER_PRINT` (defined in the same header) general samples (mixing instructions and memory ones). Other macros can be commented/uncommented to increase/decrease the amount of printing, such as `EVENT_OUTPUT` in `my_profiler.c`, `GENETIC_OUTPUT` in `strategies/genetic.h` or `MIGRATION_OUTPUT` in `migration/migration_algorithm.h`.
 
 Aside from that mode, the app can also print, each `ITERATIONS_PER_PRINT` (defined in `migration/page_ops.h`) iterations, some additional CSV files that can be plotted a posteriori using *heatmaps.R* file to analyze the system's "state". It depends if the `PRINT_CSVS` macro is defined, currently commented in the previously mentioned header file. Currently, 5 different CSV are generated each time:
 
@@ -33,8 +33,8 @@ Both the ABC and the profiler use some static parameters described below. You ca
   - `-c`: binary vector of CPUs to be used (0 -> not used, 1 -> used). For example, 0011 means we only select CPUs 2 and 3 (default: uses all available CPUs).
   - `-m`: memory node to allocate data in (default: 0).
   - `-o`: number of float operations per inner iteration (default: 1).
-  - `-r`: number of repetitions of the main flow (default: 100).
-  - `-s`: array basic size. Actual array size will be that value multiplied by the number of threads (default: 1000).
+  - `-r`: number of repetitions of the main flow (default: 1000).
+  - `-s`: array total size. Each thread will work in same-size chunks, so this value can be altered to distribute the work problem perfectly (default: 1000000).
   - `-t`: array stride while operating (default: 1).
 * `my_profiler`
   - `-G`: whether uses cgroups or not (default: not). It will probably be discarded.
@@ -63,6 +63,7 @@ The following list explains briefly the components regarding the main execution 
 * `strategies/strategy.h`: defines which operations should define a scratch strategy.
 * `strategies/random.*`: there is a simple strategy implemented which is a simple random approach.
 * `strategies/genetic.*` and `strategies/genetic/*`: I am working in a strategy based on a genetic algorithm, but in a simplified way.
+* `strategies/first_touch.*`: simple strategy for memory pages which migrates the ones accessed by CPUs from different nodes.
 
 The following is the brief explanation of some of the other files:
 * `perfmon/*`: most of its content comes from `libpfm` library, so in general it should not be modified. `perf_util.c` may be interesting because it defines how to get the counter data into the structure defined in `sample_data`.

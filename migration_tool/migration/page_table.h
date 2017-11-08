@@ -17,11 +17,12 @@ using namespace std;
 typedef struct table_cell {
 	vector<int> latencies;
 	unsigned cache_misses;
+	unsigned last_cpu_access;
 
 	table_cell(){}
-	table_cell(int latency, bool is_cache_miss);
+	table_cell(int latency, bool is_cache_miss, int cpu);
 	void print();
-	void update(int latency, bool is_cache_miss);
+	void update(int latency, bool is_cache_miss, int cpu);
 } table_cell_t;
 
 // For threads and memory pages

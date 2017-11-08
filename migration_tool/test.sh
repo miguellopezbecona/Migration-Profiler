@@ -35,7 +35,7 @@ else
 fi
 
 # Set to what you want to profile. A bit deprecated since now the profiler analyzes everything
-toprofile="./ABC -m0 -r5000000 -s10000 -o32 -t8 -c1110"
+toprofile=" ./ABC -m0 -r5000 -s5000000 -t8 -c1110"
 #toprofile=~/NPB3.3.1/NPB3.3-OMP/bin/lu.C.x
 #toprofile=~/NPB3.3.1/NPB3.3-OMP/bin/bt.C.x
 

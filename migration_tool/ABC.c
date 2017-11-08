@@ -17,7 +17,7 @@
 #define DEFAULT_NUMBER_OPS 1
 #define DEFAULT_STRIDE 1
 
-#define OUTPUT
+//#define OUTPUT
 #define DOGETPID
 
 int max_cpus; // Detected by the system
