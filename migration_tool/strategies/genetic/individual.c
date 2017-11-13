@@ -20,7 +20,7 @@ individual::individual(map<pid_t, page_table_t> ts){
 		// Creates gens based on its TID maps
 		for(auto const & it2 : t.tid_index){
 			pid_t tid = it2.first;
-			migration_cell_t mc(tid, get_tid_core(tid), pid, true);
+			migration_cell_t mc(tid, system_struct_t::get_tid_core(tid), pid, true);
 			v.push_back(mc);
 		}
 	}
@@ -55,12 +55,12 @@ migration_cell_t individual::mutate(int index){
 
 	// Different value range depending on type of cell (thread or page address). Avoids repeating current location
 	if(mc->is_thread_cell())
-		new_dest = gen_utils::get_rand_int(SYS_NUM_OF_CORES, mc->dest);
+		new_dest = gen_utils::get_rand_int(system_struct_t::NUM_OF_CORES, mc->dest);
 	else {
-		if(SYS_NUM_OF_MEMORIES == 1) // No possible memory node change. For testing in local only
+		if(system_struct_t::NUM_OF_MEMORIES == 1) // No possible memory node change. For testing in local only
 			return *mc;
 
-		new_dest = gen_utils::get_rand_int(SYS_NUM_OF_MEMORIES, mc->dest);
+		new_dest = gen_utils::get_rand_int(system_struct_t::NUM_OF_MEMORIES, mc->dest);
 	}
 	mc->dest = new_dest;
 

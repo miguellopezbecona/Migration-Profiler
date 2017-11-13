@@ -75,6 +75,15 @@ void clean_migration_structures(){
 
 // For testing purposes, specially on a non-native Linux system
 void work_with_fake_data(){
+	memory_list.add_cell(0,500,500,0x12345000,10,0,0);
+	memory_list.add_cell(0,500,500,0x12345000,100,0,1000);
+	memory_list.add_cell(0,500,501,0x12345000,500,0,2000);
+	inst_list.add_cell(0,500,500,50000000L,1000,0);
+	inst_list.add_cell(0,500,500,50000000L,500,1000);
+	inst_list.add_cell(0,500,501,50000000L,1500,1000);
+	inst_list.add_cell(0,500,501,50000000L,100,2000);
+
+/*
 	page_table_t t1(500);
 	t1.add_cell(0x12345000, 0, 500, 10, 0, 0, false);
 	t1.add_cell(0x12345000, 0, 500, 30, 0, 0, false);
@@ -88,6 +97,8 @@ void work_with_fake_data(){
 
 	page_tables[500] = t1;
 	page_tables[1000] = t2;
+*/
+	pages(step, pids, memory_list, &page_tables);
 
 	for(auto & it : page_tables){
 		page_table_t t = it.second;

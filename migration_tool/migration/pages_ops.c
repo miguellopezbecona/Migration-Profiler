@@ -21,13 +21,13 @@ void build_page_tables(memory_data_list_t memory_list, map<pid_t, page_table_t> 
 		//long int page_num = m_cell.addr >> expn;
 
 		page_node = get_page_current_node(m_cell.tid, page_addr);
-		cpu_node = get_cpu_memory_cell(m_cell.cpu);
+		cpu_node = system_struct_t::get_cpu_memory_cell(m_cell.cpu);
 
 		// Page node 0 by default
 		if(page_node < 0)
 			page_node = 0;
 
-		set_tid_core(m_cell.tid, m_cell.cpu); // Sets TID location (core)
+		system_struct_t::set_tid_core(m_cell.tid, m_cell.cpu); // Sets TID location (core)
 
 		if(page_ts->count(m_cell.pid) == 0){ // = !contains(pid). We init the entry if it doesn't exist
 			page_table_t t(m_cell.pid);

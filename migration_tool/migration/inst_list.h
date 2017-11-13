@@ -7,7 +7,7 @@
 #include <vector> // std::vector
 using namespace std;
 
-#include "system_struct.h" // SYS_NUM_OF_CORES
+#include "system_struct.h" // NUM_OF_CORES
 
 typedef struct inst_data_cell{
 	uint32_t cpu;

@@ -41,7 +41,7 @@ typedef struct perf_data {
 	perf_data(){
 		num_acs_thres = 0;
 
-		vector<unsigned short> v(SYS_NUM_OF_MEMORIES, 0);
+		vector<unsigned short> v(system_struct_t::NUM_OF_MEMORIES, 0);
 		acs_per_node = v;
 	}
 

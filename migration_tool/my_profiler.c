@@ -38,7 +38,7 @@
 #define NUM_GROUPS 2
 
 // Uncomment the following for testing functionalities without using the hardware counters
-//#define FAKE_DATA
+#define FAKE_DATA
 
 //#define EVENT_OUTPUT
 
@@ -320,7 +320,7 @@ static void clean_end(int n) {
 
 	// Closes and frees resources	
 	for(int i=0;i<NUM_GROUPS;i++){
-		for(int j=0;j<SYS_NUM_OF_CORES;j++){
+		for(int j=0;j<system_struct_t::NUM_OF_CORES;j++){
 			fds = all_fds[i][j];
 			for(int k=0; k < num_fds[i]; k++)
 				close(fds[k].fd);
@@ -355,7 +355,7 @@ static void clean_end(int n) {
 
 int mainloop(char **arg) {
 	// Obtains some important "constants" in execution time
-	detect_system();
+	system_struct_t::detect_system();
 	uid = getuid();
 	pgsz = sysconf(_SC_PAGESIZE);
 	map_size = (options.mmap_pages+1)*pgsz;
@@ -365,10 +365,10 @@ int mainloop(char **arg) {
 	return 0;
 	#endif
 
-	const unsigned short TOTAL_BUFFS = SYS_NUM_OF_CORES*NUM_GROUPS;
+	const unsigned short TOTAL_BUFFS = system_struct_t::NUM_OF_CORES*NUM_GROUPS;
 	last_migration = time(NULL);
 
-	// This is the struct for polling the buffers of SYS_NUM_OF_CORES for different groups of events
+	// This is the struct for polling the buffers of system_struct_t::NUM_OF_CORES for different groups of events
 	struct pollfd pollfds[TOTAL_BUFFS];
 	int fd = -1;
 	perf_event_desc_t *fds = NULL;
@@ -381,7 +381,7 @@ int mainloop(char **arg) {
 
 	// Allocates memory for all_fds
 	for(int i=0;i<NUM_GROUPS;i++){
-		all_fds[i] = (perf_event_desc_t**)malloc(SYS_NUM_OF_CORES * sizeof(perf_event_desc_t *));
+		all_fds[i] = (perf_event_desc_t**)malloc(system_struct_t::NUM_OF_CORES * sizeof(perf_event_desc_t *));
 		if (!all_fds[i])
 			err(1, "cannot allocate memory for all_fds[%d]",i);
 	}
@@ -399,7 +399,7 @@ int mainloop(char **arg) {
 
 	// Sets up counter configuration
 	for(int i=0;i<NUM_GROUPS;i++){
-		for(int j=0;j<SYS_NUM_OF_CORES;j++)
+		for(int j=0;j<system_struct_t::NUM_OF_CORES;j++)
 			setup_cpu(j, fd, i);
 	}
 
@@ -407,17 +407,17 @@ int mainloop(char **arg) {
 	signal(SIGALRM, clean_end);
 	signal(SIGINT, clean_end);
 
-	// This is for polling the buffers of SYS_NUM_OF_CORES cpus for the available groups
+	// This is for polling the buffers of system_struct_t::NUM_OF_CORES cpus for the available groups
 	for(int i=0;i<TOTAL_BUFFS;i++){
-		int gr = i / SYS_NUM_OF_CORES;
-		int cpu = i % SYS_NUM_OF_CORES;
+		int gr = i / system_struct_t::NUM_OF_CORES;
+		int cpu = i % system_struct_t::NUM_OF_CORES;
 		fds = all_fds[gr][cpu];
 		pollfds[i].fd = fds[0].fd;
 		pollfds[i].events = POLLIN;
 	}
 
 	// Starts counters
-	for(int i=0;i<SYS_NUM_OF_CORES;i++){
+	for(int i=0;i<system_struct_t::NUM_OF_CORES;i++){
 		for(int j=0;j<NUM_GROUPS;j++){
 			fds = all_fds[j][i];
 
@@ -438,7 +438,7 @@ int mainloop(char **arg) {
 
 		// Reads buffers
 		for(int i=0;i<NUM_GROUPS;i++){
-			for(int j=0;j<SYS_NUM_OF_CORES;j++){
+			for(int j=0;j<system_struct_t::NUM_OF_CORES;j++){
 				process_smpl_buf(all_fds[i][j], j, all_fds[i], num_fds[i], i);
 				buffer_reads[i]++;
 			}

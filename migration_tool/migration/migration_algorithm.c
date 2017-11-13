@@ -29,6 +29,8 @@ int perform_migration_strategy(page_table_t *page_t){
 	for(migration_cell_t const & pgm : pages_migr)
 		pgm.perform_page_migration();
 
+
+
 	return 0;
 }
 

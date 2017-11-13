@@ -36,17 +36,17 @@ void inst_data_list_t::print(){
 int inst_data_list_t::create_increments(){
 	if(list.empty()) return -1;
 
-	uint64_t last_inst[SYS_NUM_OF_CORES];
-	uint64_t last_req_dr[SYS_NUM_OF_CORES];
-	uint64_t last_time[SYS_NUM_OF_CORES];
+	uint64_t last_inst[system_struct_t::NUM_OF_CORES];
+	uint64_t last_req_dr[system_struct_t::NUM_OF_CORES];
+	uint64_t last_time[system_struct_t::NUM_OF_CORES];
 	uint64_t temp_inst;
 	uint64_t temp_req_dr;
 	uint64_t temp_time;
 
 	// Zero initialization
-	memset(last_inst, 0, sizeof(uint64_t)*SYS_NUM_OF_CORES);
-	memset(last_req_dr, 0, sizeof(uint64_t)*SYS_NUM_OF_CORES);
-	memset(last_time, 0, sizeof(uint64_t)*SYS_NUM_OF_CORES);
+	memset(last_inst, 0, sizeof(uint64_t)*system_struct_t::NUM_OF_CORES);
+	memset(last_req_dr, 0, sizeof(uint64_t)*system_struct_t::NUM_OF_CORES);
+	memset(last_time, 0, sizeof(uint64_t)*system_struct_t::NUM_OF_CORES);
 			
 	//now let us suppose data are ordered by time FOR EACH CPU
 	inst_data_cell_t* cell;
@@ -59,7 +59,7 @@ int inst_data_list_t::create_increments(){
 			cell->inst=0;
 			cell->req_dr=0;
 			cell->time=0;
-		}else{
+		} else {
 			cell->inst -= last_inst[cell->cpu];
 			cell->req_dr -= last_req_dr[cell->cpu];
 			cell->time -= last_time[cell->cpu];	

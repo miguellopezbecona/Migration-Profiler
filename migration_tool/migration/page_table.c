@@ -20,7 +20,7 @@ void table_cell_t::print(){
 /*** page_table_t ***/
 page_table_t::page_table(pid_t p){
 	pid = p;
-	table.resize(SYS_NUM_OF_CORES);
+	table.resize(system_struct_t::NUM_OF_CORES);
 }
 
 // Destructor. We clear everything
@@ -170,7 +170,7 @@ void page_table_t::print(){
 
 void page_table_t::print_heatmaps(FILE **fps, int num_fps){
 	// This is for writing number of accesses by each thread in the last row
-	int accesses[SYS_NUM_OF_CORES];
+	int accesses[system_struct_t::NUM_OF_CORES];
 	memset(accesses, 0, sizeof(accesses));
 
 	// First line of each CSV file: column header
@@ -224,7 +224,7 @@ void page_table_t::print_heatmaps(FILE **fps, int num_fps){
 	// After all addresses (rows) are processed, we print number of accesses by each thread in the last row
 	for(int i=0;i<num_fps;i++){
 		fprintf(fps[i], "num_accesses,"); // Rowname
-		for(int j=0;j<SYS_NUM_OF_CORES;j++)
+		for(int j=0;j<system_struct_t::NUM_OF_CORES;j++)
 			fprintf(fps[i], "%d,", accesses[j]);
 	}
 
@@ -260,11 +260,11 @@ acc_i_nj: thread_i accesses to pages in node_j
 void page_table_t::print_table1(){
 	long int page_addr;
 	table_cell_t cell;
-	int counters[SYS_NUM_OF_MEMORIES];
+	int counters[system_struct_t::NUM_OF_MEMORIES];
 	int page_node;
 
 	// Initial print
-	for(int i=0;i<SYS_NUM_OF_MEMORIES;i++)
+	for(int i=0;i<system_struct_t::NUM_OF_MEMORIES;i++)
 		printf("\tN%d", i);
 	printf("\n");
 
@@ -283,7 +283,7 @@ void page_table_t::print_table1(){
 
 		// Prints results
 		printf("T-%d:", t_it.first);
-		for(int j=0;j<SYS_NUM_OF_MEMORIES;j++)
+		for(int j=0;j<system_struct_t::NUM_OF_MEMORIES;j++)
 			printf("\t%d", counters[j]);
 		printf("\n");
 	}
@@ -301,11 +301,11 @@ p1	acc_1_n0	acc_1_n1
 acc_i_nj: accesses to page_i from threads in node_j
 */
 void page_table_t::print_table2(){
-	int counters[SYS_NUM_OF_MEMORIES];
+	int counters[system_struct_t::NUM_OF_MEMORIES];
 
 	// Initial print
 	printf("\t");
-	for(int i=0;i<SYS_NUM_OF_MEMORIES;i++)
+	for(int i=0;i<system_struct_t::NUM_OF_MEMORIES;i++)
 		printf("\tN%d", i);
 	printf("\n");
 
@@ -324,15 +324,15 @@ void page_table_t::print_table2(){
 			table_cell_t* cell = get_cell(page_addr, t_it.first);
 			if(cell != NULL){
 				// For getting the memory cell, we need the core first
-				int core = get_tid_core(t_it.first);
-				int cpu_node = get_cpu_memory_cell(core);
+				int core = system_struct_t::get_tid_core(t_it.first);
+				int cpu_node = system_struct_t::get_cpu_memory_cell(core);
 				counters[cpu_node] += cell->latencies.size();
 			}
 		}
 
 		// Prints results
 		printf("P%lx:", page_addr);
-		for(int j=0;j<SYS_NUM_OF_MEMORIES;j++)
+		for(int j=0;j<system_struct_t::NUM_OF_MEMORIES;j++)
 			printf("\t%d", counters[j]);
 		printf("\n");
 	}
@@ -426,7 +426,7 @@ void page_table_t::calculate_performance_tid(int threshold){
 
 		// After all the internal iterations ends, updates data in TID map
 		perf_data_t *cell = &tid_node_map[tid];
-		cell->current_place = get_tid_core(tid);
+		cell->current_place = system_struct_t::get_tid_core(tid);
 		cell->num_uniq_accesses = pages_accessed;
 		cell->num_acs_thres = num_acs_thres;
 
@@ -494,7 +494,7 @@ double page_table_t::get_mean_lat_to_pages(){
 void perf_data_t::print() const {
 	printf("MEM_NODE/CORE: %d, ACS_PER_NODE: {", current_place);
 
-	for(size_t i=0;i<SYS_NUM_OF_MEMORIES;i++)
+	for(size_t i=0;i<system_struct_t::NUM_OF_MEMORIES;i++)
 		printf(" %d", acs_per_node[i]);
 	printf(" }");
 

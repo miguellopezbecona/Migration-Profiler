@@ -14,23 +14,26 @@ using namespace std;
 
 #define MAX_PACKAGES 8
 
-extern int SYS_NUM_OF_CORES;
-extern int SYS_NUM_OF_MEMORIES;
-extern int SYS_CORES_PER_MEMORY;
+typedef struct system_struct {
+	static int NUM_OF_CORES;
+	static int NUM_OF_MEMORIES;
+	static int CORES_PER_MEMORY;
 
-// To know where each CPU is
-extern int* cpu_node_map;
-extern vector<int> node_cpu_map[MAX_PACKAGES];
+	// To know where each CPU is (in terms of memory node)
+	static int* cpu_node_map; // cpu_node_map[cpu] = node
+	static vector<int> node_cpu_map[MAX_PACKAGES]; // cpu_node_map[node] = list(cpus)
 
-// To know where each TID is
-extern map<pid_t, int> tid_core_map;
-extern int* core_tid_map;
+	// To know where each TID is (in terms or cores)
+	static map<pid_t, int> tid_core_map;
+	static int* core_tid_map;
 
-int detect_system();
+	static int detect_system();
 
-int get_cpu_memory_cell(int cpu);
-bool is_in_same_memory_cell(int cpu1, int cpu2);
-int get_random_core_in_cell(int cell);
-int get_tid_core(pid_t tid);
-void set_tid_core(pid_t tid, int core);
-void remove_tid(pid_t tid);
+	static int get_cpu_memory_cell(int cpu);
+	static bool is_in_same_memory_cell(int cpu1, int cpu2);
+	static int get_random_core_in_cell(int cell);
+	static int get_tid_core(pid_t tid);
+	static void set_tid_core(pid_t tid, int core);
+	static void remove_tid(pid_t tid);
+} system_struct_t;
+
