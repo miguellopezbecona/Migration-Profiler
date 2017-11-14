@@ -25,7 +25,7 @@ typedef struct table_cell {
 	void update(int latency, bool is_cache_miss, int cpu);
 } table_cell_t;
 
-// For threads and memory pages
+// For threads and memory pages. [Not actually used (except for page locations). Coded for a specific test. It may be discarded]
 typedef struct perf_data {
 	// Reuse migration_cell??
 	unsigned char current_place; // Mem node for pages or core for TIDs
@@ -48,6 +48,35 @@ typedef struct perf_data {
 	void print() const;
 } perf_data_t;
 
+// Based on Óscar's work in this PhD. This would be associated to each thread for the PID
+typedef struct perform_data {
+	const int CACHE_LINE_SIZE = 64;
+
+	// Sum of fields per core
+	vector<long int> insts;
+	vector<long int> reqs;
+	vector<long int> times;
+
+	vector<double> v_perfs; // 3DyRM performance per memory node
+	int index_last_node_calc; // last_3DyRM_perf in Óscar's code
+
+	perform_data(){
+		vector<long int> v_i(system_struct_t::NUM_OF_CORES, 0);
+		vector<long int> v_r(system_struct_t::NUM_OF_CORES, 0);
+		vector<long int> v_t(system_struct_t::NUM_OF_CORES, 0);
+		insts = v_i;
+		reqs = v_r;
+		times = v_t;
+
+		v_perfs.resize(system_struct_t::NUM_OF_MEMORIES);
+	}
+
+	void add_data(int cpu, long int insts, long int reqs, long int time);
+	void calc_perf(double mean_latency);
+
+	void print() const;
+} perform_data_t;
+
 typedef map<long int, table_cell_t> column; // Each column of the table, defined with typedef for readibility
 
 typedef struct page_table {
@@ -59,6 +88,8 @@ typedef struct page_table {
 
 	// Using long int as key to use along the previous one as function parameter
 	map<long int, perf_data_t> tid_node_map; // Maps TID to memory node and other data
+
+	map<pid_t, perform_data_t> perf_per_tid; // Maps TID to Óscar's performance data
 
 	pid_t pid;
 
@@ -78,6 +109,9 @@ typedef struct page_table {
 	void calculate_performance_tid(int threshold);
 	void calculate_performance(int threshold); // Intended to unify the two above
 	void print_performance();
+
+	void add_inst_data_for_tid(pid_t tid, int core, long int insts, long int req_dr, long int time);
+	void calc_perf(); // Óscar's perf
 
 	double get_mean_acs_to_pages();
 	double get_mean_lat_to_pages();

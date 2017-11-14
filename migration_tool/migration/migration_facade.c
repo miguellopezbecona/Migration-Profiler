@@ -98,7 +98,7 @@ void work_with_fake_data(){
 	page_tables[500] = t1;
 	page_tables[1000] = t2;
 */
-	pages(step, pids, memory_list, &page_tables);
+	pages(step, pids, memory_list, inst_list, &page_tables);
 
 	for(auto & it : page_tables){
 		page_table_t t = it.second;
@@ -120,12 +120,12 @@ int begin_migration_process(int do_thread_migration, int do_page_migration){
 	//printf("\nPrinting instructions list...\n");
 	//inst_list.print();
 
-	//inst_data_list.create_increments(); // Not necessary right now
+	inst_list.create_increments(); // Not necessary right now
 	//printf("Printing inst list after creating increments...\n");
 	//inst_list.print();
 
 	// Builds pages tables for each PID
-	pages(step, pids, memory_list, &page_tables);
+	pages(step, pids, memory_list, inst_list, &page_tables);
 
 	// For each active PID, cleans "dead" TIDs from its table and it can perform a single-process migration strategy
 	for (pid_t pid : pids){

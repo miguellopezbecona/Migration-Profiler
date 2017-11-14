@@ -446,8 +446,18 @@ void page_table_t::print_performance(){
 	
 	printf("\n");
 
+/* Not calculated at the moment
 	for (auto const & it : tid_node_map){
 		printf("T-%d: ", (int) it.first);
+		it.second.print();
+	}
+
+	printf("\n");
+*/
+
+	// Óscar's
+	for (auto const & it : perf_per_tid){
+		printf("Per-core performance for thread %d:\n", (int) it.first);
 		it.second.print();
 	}
 }
@@ -490,6 +500,34 @@ double page_table_t::get_mean_lat_to_pages(){
 	return accumulate(v.begin(), v.end(), 0.0) / v.size();
 }
 
+void page_table_t::add_inst_data_for_tid(pid_t tid, int core, long int insts, long int req_dr, long int time) {
+	perf_per_tid[tid].add_data(core, insts, req_dr, time);
+}
+
+// Needs getting the mean latency for each TID. get_mean_lat_to_pages() could reuse this, but for now this is uglyly almost copied
+void page_table_t::calc_perf() {
+	// We loop over TIDs
+	for(auto const & t_it : tid_index) {
+		vector<double> v;
+		pid_t tid = t_it.first;
+		int pos = t_it.second;
+		
+		// We get latencies for each cell for that TID
+		for(auto const & it : table[pos]) {
+			table_cell_t cell = it.second;
+			vector<int> ls = cell.latencies;
+			double mean_ls = accumulate(ls.begin(), ls.end(), 0.0) / ls.size();
+			v.push_back(mean_ls);
+		}
+
+		// ... and then we calculate the total mean for all the TID
+		double mean_lat = accumulate(v.begin(), v.end(), 0.0) / v.size();
+
+		// And we calculate perf
+		perf_per_tid[tid].calc_perf(mean_lat);
+	}
+}
+
 /*** perf_data_t functions ***/
 void perf_data_t::print() const {
 	printf("MEM_NODE/CORE: %d, ACS_PER_NODE: {", current_place);
@@ -502,3 +540,44 @@ void perf_data_t::print() const {
 		printf(", UNIQ_ACS: %d, ACS_THRES: %d, MIN_LAT: %d, MEDIAN_LAT: %d, MAX_LAT: %d", num_uniq_accesses, num_acs_thres, min_latency, median_latency, max_latency);
 	printf("\n");
 }
+
+
+/*** perform_data_t functions ***/
+void perform_data_t::add_data(int cpu, long int inst, long int req, long int time){
+	insts[cpu] += inst;
+	reqs[cpu] += req;
+	times[cpu] += time;
+}
+
+// Like Óscar did: after the sums for each CPU, the main formula is applied for each one and then stored in its mem node
+// [TODO]: so, the last core always stores its value overwriting the previous ones? Must compare better with Óscar's code
+void perform_data_t::calc_perf(double mean_lat){
+	double inv_mean_lat = 1 / mean_lat;
+
+	for(int cpu = 0; cpu < system_struct_t::NUM_OF_CORES; cpu++) {
+		double inst_per_s = 0.0;
+		if(times[cpu] != 0)
+			inst_per_s = insts[cpu] / times[cpu];
+
+		double inst_per_b = 0.0;
+		if(reqs[cpu] != 0)
+			inst_per_b = insts[cpu] / (reqs[cpu] * CACHE_LINE_SIZE);
+
+		int cpu_node = system_struct_t::get_cpu_memory_cell(cpu);
+		v_perfs[cpu_node] = inv_mean_lat * inst_per_s * inst_per_b;
+
+		//if(cpu == 0) // Debug
+			//printf("PERF: %.2f, MEAN_LAT = %.2f, INST_S = %.2f, INST_B = %.2f\n", v_perfs[cpu_node], mean_lat, inst_per_s, inst_per_b);
+
+		index_last_node_calc = cpu_node;
+	}
+}
+
+void perform_data_t::print() const {
+	for(int cpu = 0; cpu < system_struct_t::NUM_OF_CORES; cpu++)
+		printf("\tCPU: %d, INSTS = %lu, REQS = %lu, TIMES = %lu\n", cpu, insts[cpu], reqs[cpu], times[cpu]);
+
+	for(int node = 0; node < system_struct_t::NUM_OF_MEMORIES; node++)
+		printf("\tNODE: %d, PERF = %.2f\n", node, v_perfs[node]);
+}
+
