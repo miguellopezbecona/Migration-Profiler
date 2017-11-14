@@ -73,6 +73,7 @@ typedef struct perform_data {
 
 	void add_data(int cpu, long int insts, long int reqs, long int time);
 	void calc_perf(double mean_latency);
+	void reset();
 
 	void print() const;
 } perform_data_t;
@@ -110,8 +111,13 @@ typedef struct page_table {
 	void calculate_performance(int threshold); // Intended to unify the two above
 	void print_performance();
 
+	// Code made for replicate Óscar's work
 	void add_inst_data_for_tid(pid_t tid, int core, long int insts, long int req_dr, long int time);
-	void calc_perf(); // Óscar's perf
+	void calc_perf(); // Óscar's definition of performance
+	pid_t get_worst_thread();
+	void reset_performance();
+	double get_total_performance();
+	vector<double> get_perf_data(pid_t tid);
 
 	double get_mean_acs_to_pages();
 	double get_mean_lat_to_pages();

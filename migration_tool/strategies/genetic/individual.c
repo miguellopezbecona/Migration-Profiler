@@ -20,7 +20,7 @@ individual::individual(map<pid_t, page_table_t> ts){
 		// Creates gens based on its TID maps
 		for(auto const & it2 : t.tid_index){
 			pid_t tid = it2.first;
-			migration_cell_t mc(tid, system_struct_t::get_tid_core(tid), pid, true);
+			migration_cell_t mc(tid, system_struct_t::get_cpu_from_tid(tid), pid, true);
 			v.push_back(mc);
 		}
 	}

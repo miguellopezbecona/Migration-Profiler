@@ -324,7 +324,7 @@ void page_table_t::print_table2(){
 			table_cell_t* cell = get_cell(page_addr, t_it.first);
 			if(cell != NULL){
 				// For getting the memory cell, we need the core first
-				int core = system_struct_t::get_tid_core(t_it.first);
+				int core = system_struct_t::get_cpu_from_tid(t_it.first);
 				int cpu_node = system_struct_t::get_cpu_memory_cell(core);
 				counters[cpu_node] += cell->latencies.size();
 			}
@@ -426,7 +426,7 @@ void page_table_t::calculate_performance_tid(int threshold){
 
 		// After all the internal iterations ends, updates data in TID map
 		perf_data_t *cell = &tid_node_map[tid];
-		cell->current_place = system_struct_t::get_tid_core(tid);
+		cell->current_place = system_struct_t::get_cpu_from_tid(tid);
 		cell->num_uniq_accesses = pages_accessed;
 		cell->num_acs_thres = num_acs_thres;
 
@@ -528,6 +528,58 @@ void page_table_t::calc_perf() {
 	}
 }
 
+// The one with the lowest last_performance
+pid_t page_table_t::get_worst_thread(){
+	double min_p = 10000.0;
+	pid_t min_t = -1;
+
+	// We loop over TIDs
+	for(auto const & t_it : tid_index) {
+		pid_t tid = t_it.first;
+		perform_data_t pd = perf_per_tid[tid];
+		double pd_lp = pd.v_perfs[pd.index_last_node_calc];
+
+		// And we get the minimum
+		if(pd_lp < min_p){
+			min_t = tid;
+			min_p = pd_lp;
+		}
+	}
+
+	return min_t;
+}
+
+void page_table_t::reset_performance(){
+	// We loop over TIDs
+	for(auto const & t_it : tid_index) {
+		pid_t tid = t_it.first;
+
+		// And we call reset for them
+		perf_per_tid[tid].reset();
+	}
+}
+
+// Sum of last_performance for all active threads
+double page_table_t::get_total_performance(){
+	double val = 0.0;
+
+	// We loop over TIDs
+	for(auto const & t_it : tid_index) {
+		pid_t tid = t_it.first;
+
+		// And we sum them all
+		perform_data_t pd = perf_per_tid[tid];
+		double pd_lp = pd.v_perfs[pd.index_last_node_calc];
+		val += pd_lp;
+	}
+
+	return val;
+}
+
+vector<double> page_table_t::get_perf_data(pid_t tid){
+	return perf_per_tid[tid].v_perfs;
+}
+
 /*** perf_data_t functions ***/
 void perf_data_t::print() const {
 	printf("MEM_NODE/CORE: %d, ACS_PER_NODE: {", current_place);
@@ -571,6 +623,15 @@ void perform_data_t::calc_perf(double mean_lat){
 
 		index_last_node_calc = cpu_node;
 	}
+}
+
+void perform_data_t::reset() {
+	vector<long int> v_i(system_struct_t::NUM_OF_CORES, 0);
+	vector<long int> v_r(system_struct_t::NUM_OF_CORES, 0);
+	vector<long int> v_t(system_struct_t::NUM_OF_CORES, 0);
+	insts = v_i;
+	reqs = v_r;
+	times = v_t;
 }
 
 void perform_data_t::print() const {

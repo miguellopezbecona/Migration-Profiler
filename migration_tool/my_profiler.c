@@ -38,7 +38,7 @@
 #define NUM_GROUPS 2
 
 // Uncomment the following for testing functionalities without using the hardware counters
-#define FAKE_DATA
+//#define FAKE_DATA
 
 //#define EVENT_OUTPUT
 
@@ -338,12 +338,12 @@ static void clean_end(int n) {
 	//printf("%d,%d,%lu\n", options.periods[0], options.minimum_latency,processed_samples_group[0]);
 	clean_migration_structures();
 
-	#ifdef EVENT_OUTPUT
+	//#ifdef EVENT_OUTPUT
 	const char* types[2] = {"memory", "instruction"};
 	for(int i=0;i<NUM_GROUPS;i++)
 		printf("%lu (%lu) %s samples collected (processed) in total %lu poll events and %lu lost samples\n", collected_samples_group[i],processed_samples_group[i], types[i], buffer_reads[i], lost_samples_group[i]);
 	printf("%lu unknown samples.\n", unknown_samples);
-	#endif
+	//#endif
 
 	#if ! defined(JUST_PROFILE) //&& defined(EVENT_OUTPUT)
 	printf("%d thread migrations made.\n", total_thread_migrations);
