@@ -71,10 +71,10 @@ static options_t options;
 static size_t sz, pgsz;
 static size_t map_size;
 
-time_t last_migration;
+time_t last_migr_time;
 
 static const char *events[2] = {
-	//"RAPL_ENERGY_CORES:period=1000",
+	//"RAPL_ENERGY_CPUS:period=1000",
 	"MEM_TRANS_RETIRED:LATENCY_ABOVE_THRESHOLD:period=1000"
 	,"INST_RETIRED:period=1000000,OFFCORE_REQUESTS:ALL_DATA_RD"
 };
@@ -86,9 +86,9 @@ void perform_migration(){
 	time_t current_time = time(NULL);
 
 	// We profile every 1, 2 or 4 seconds depending on current_time_value
-	if((difftime(current_time,last_migration)) > (get_time_value() * inv_1000)){
-		last_migration = current_time;
-		//printf("\n***********\nAt %s\n",ctime(&last_migration));
+	if((difftime(current_time,last_migr_time)) > (get_time_value() * inv_1000)){
+		last_migr_time = current_time;
+		//printf("\n***********\nAt %s\n",ctime(&last_migr_time));
 
 		begin_migration_process(options.th_mig,options.pag_mig);
 	}
@@ -320,7 +320,7 @@ static void clean_end(int n) {
 
 	// Closes and frees resources	
 	for(int i=0;i<NUM_GROUPS;i++){
-		for(int j=0;j<system_struct_t::NUM_OF_CORES;j++){
+		for(int j=0;j<system_struct_t::NUM_OF_CPUS;j++){
 			fds = all_fds[i][j];
 			for(int k=0; k < num_fds[i]; k++)
 				close(fds[k].fd);
@@ -365,10 +365,10 @@ int mainloop(char **arg) {
 	return 0;
 	#endif
 
-	const unsigned short TOTAL_BUFFS = system_struct_t::NUM_OF_CORES*NUM_GROUPS;
-	last_migration = time(NULL);
+	const unsigned short TOTAL_BUFFS = system_struct_t::NUM_OF_CPUS*NUM_GROUPS;
+	last_migr_time = time(NULL);
 
-	// This is the struct for polling the buffers of system_struct_t::NUM_OF_CORES for different groups of events
+	// This is the struct for polling the buffers of system_struct_t::NUM_OF_CPUS for different groups of events
 	struct pollfd pollfds[TOTAL_BUFFS];
 	int fd = -1;
 	perf_event_desc_t *fds = NULL;
@@ -381,7 +381,7 @@ int mainloop(char **arg) {
 
 	// Allocates memory for all_fds
 	for(int i=0;i<NUM_GROUPS;i++){
-		all_fds[i] = (perf_event_desc_t**)malloc(system_struct_t::NUM_OF_CORES * sizeof(perf_event_desc_t *));
+		all_fds[i] = (perf_event_desc_t**)malloc(system_struct_t::NUM_OF_CPUS * sizeof(perf_event_desc_t *));
 		if (!all_fds[i])
 			err(1, "cannot allocate memory for all_fds[%d]",i);
 	}
@@ -399,7 +399,7 @@ int mainloop(char **arg) {
 
 	// Sets up counter configuration
 	for(int i=0;i<NUM_GROUPS;i++){
-		for(int j=0;j<system_struct_t::NUM_OF_CORES;j++)
+		for(int j=0;j<system_struct_t::NUM_OF_CPUS;j++)
 			setup_cpu(j, fd, i);
 	}
 
@@ -407,17 +407,17 @@ int mainloop(char **arg) {
 	signal(SIGALRM, clean_end);
 	signal(SIGINT, clean_end);
 
-	// This is for polling the buffers of system_struct_t::NUM_OF_CORES cpus for the available groups
+	// This is for polling the buffers of system_struct_t::NUM_OF_CPUS cpus for the available groups
 	for(int i=0;i<TOTAL_BUFFS;i++){
-		int gr = i / system_struct_t::NUM_OF_CORES;
-		int cpu = i % system_struct_t::NUM_OF_CORES;
+		int gr = i / system_struct_t::NUM_OF_CPUS;
+		int cpu = i % system_struct_t::NUM_OF_CPUS;
 		fds = all_fds[gr][cpu];
 		pollfds[i].fd = fds[0].fd;
 		pollfds[i].events = POLLIN;
 	}
 
 	// Starts counters
-	for(int i=0;i<system_struct_t::NUM_OF_CORES;i++){
+	for(int i=0;i<system_struct_t::NUM_OF_CPUS;i++){
 		for(int j=0;j<NUM_GROUPS;j++){
 			fds = all_fds[j][i];
 
@@ -438,7 +438,7 @@ int mainloop(char **arg) {
 
 		// Reads buffers
 		for(int i=0;i<NUM_GROUPS;i++){
-			for(int j=0;j<system_struct_t::NUM_OF_CORES;j++){
+			for(int j=0;j<system_struct_t::NUM_OF_CPUS;j++){
 				process_smpl_buf(all_fds[i][j], j, all_fds[i], num_fds[i], i);
 				buffer_reads[i]++;
 			}

@@ -61,9 +61,9 @@ typedef struct perform_data {
 	int index_last_node_calc; // last_3DyRM_perf in Óscar's code
 
 	perform_data(){
-		vector<long int> v_i(system_struct_t::NUM_OF_CORES, 0);
-		vector<long int> v_r(system_struct_t::NUM_OF_CORES, 0);
-		vector<long int> v_t(system_struct_t::NUM_OF_CORES, 0);
+		vector<long int> v_i(system_struct_t::NUM_OF_CPUS, 0);
+		vector<long int> v_r(system_struct_t::NUM_OF_CPUS, 0);
+		vector<long int> v_t(system_struct_t::NUM_OF_CPUS, 0);
 		insts = v_i;
 		reqs = v_r;
 		times = v_t;
@@ -109,7 +109,7 @@ typedef struct page_table {
 	void calculate_performance_page(int threshold);
 	void calculate_performance_tid(int threshold);
 	void calculate_performance(int threshold); // Intended to unify the two above
-	void print_performance();
+	void print_performance() const;
 
 	// Code made for replicate Óscar's work
 	void add_inst_data_for_tid(pid_t tid, int core, long int insts, long int req_dr, long int time);
@@ -122,7 +122,7 @@ typedef struct page_table {
 	double get_mean_acs_to_pages();
 	double get_mean_lat_to_pages();
 
-	// More info on the definitions in .c file
+	// More info about the definitions in .c file
 	void print_heatmaps(FILE **fps, int num_fps);
 	void print_alt_graph(FILE *fp);
 	void print_table1();

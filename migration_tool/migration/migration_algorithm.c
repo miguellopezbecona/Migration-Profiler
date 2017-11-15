@@ -25,17 +25,18 @@ int perform_migration_strategy(page_table_t *page_t){
 */
 
 	// First touch policy for pages
+
 	first_touch_t ft_st;
 	vector<migration_cell_t> pages_migr = ft_st.get_pages_to_migrate(page_t);
 	for(migration_cell_t const & pgm : pages_migr)
 		pgm.perform_page_migration();
+
 
 	// Annealing strategy for threads
 	annealing_t a_st;
 	vector<migration_cell_t> ths_migr = a_st.get_threads_to_migrate(page_t);
 	for(migration_cell_t const & thm : ths_migr)
 		thm.perform_thread_migration();
-
 
 	return 0;
 }

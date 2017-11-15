@@ -31,7 +31,7 @@ vector<migration_cell_t> random_t::get_threads_to_migrate(page_table_t *page_t){
 
 	// Creates migration cell with data
 	long int tid = it->first;
-	unsigned char core = rand() % system_struct_t::NUM_OF_CORES;
+	unsigned char core = rand() % system_struct_t::NUM_OF_CPUS;
 	migration_cell_t mc(tid, core, page_t->pid, true);
 
 	ret.push_back(mc);

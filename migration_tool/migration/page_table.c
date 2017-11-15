@@ -20,7 +20,7 @@ void table_cell_t::print(){
 /*** page_table_t ***/
 page_table_t::page_table(pid_t p){
 	pid = p;
-	table.resize(system_struct_t::NUM_OF_CORES);
+	table.resize(system_struct_t::NUM_OF_CPUS);
 }
 
 // Destructor. We clear everything
@@ -116,7 +116,7 @@ void page_table_t::remove_tid(pid_t tid){
 			++it;
 			table.erase(table.begin() + pos - erased);
 			erased = true;
-			remove_tid(tid); // From system struct
+			system_struct_t::remove_tid(tid);
 		}
 		else
 			tid_index[it_tid] = pos - erased;
@@ -144,7 +144,7 @@ void page_table_t::remove_inactive_tids(){
 	}
 }
 
-void page_table_t::print(){
+void page_table_t::print() {
 	printf("Page table for PID: %d\n", pid);
 
 	// Prints each row (TID)
@@ -170,7 +170,7 @@ void page_table_t::print(){
 
 void page_table_t::print_heatmaps(FILE **fps, int num_fps){
 	// This is for writing number of accesses by each thread in the last row
-	int accesses[system_struct_t::NUM_OF_CORES];
+	int accesses[system_struct_t::NUM_OF_CPUS];
 	memset(accesses, 0, sizeof(accesses));
 
 	// First line of each CSV file: column header
@@ -224,7 +224,7 @@ void page_table_t::print_heatmaps(FILE **fps, int num_fps){
 	// After all addresses (rows) are processed, we print number of accesses by each thread in the last row
 	for(int i=0;i<num_fps;i++){
 		fprintf(fps[i], "num_accesses,"); // Rowname
-		for(int j=0;j<system_struct_t::NUM_OF_CORES;j++)
+		for(int j=0;j<system_struct_t::NUM_OF_CPUS;j++)
 			fprintf(fps[i], "%d,", accesses[j]);
 	}
 
@@ -269,12 +269,12 @@ void page_table_t::print_table1(){
 	printf("\n");
 
 	// For each thread (row)...
-	for(auto t_it : tid_index) {
+	for(auto const & t_it : tid_index) {
 		memset(counters, 0, sizeof(counters)); // Zero reset
 		
 		// For each map entry, gets address and sums accesses to counters[page_node]
 		int pos = t_it.second;
-		for(auto it : table[pos]) {
+		for(auto const & it : table[pos]) {
 			page_addr = it.first;
 			cell = it.second;
 			page_node = page_node_map[page_addr].current_place;
@@ -313,9 +313,9 @@ void page_table_t::print_table2(){
 	const int LIMIT = 50;
 	int i = 0;
 
-	for (set<long int>::iterator it = uniq_addrs.begin(); it != uniq_addrs.end(); ++it){
+	for (long int const & page_addr : uniq_addrs){
 	//for (set<long int>::iterator it = uniq_addrs.end(); it != uniq_addrs.begin() && i<LIMIT; --it, i++){
-		long int page_addr = *it;
+		//long int page_addr = *it;
 
 		memset(counters, 0, sizeof(counters)); // Zero reset
 		
@@ -438,15 +438,17 @@ void page_table_t::calculate_performance_tid(int threshold){
 	}
 }
 
-void page_table_t::print_performance(){
+void page_table_t::print_performance() const {
+/*	// Not interesting right now
 	for (auto const & it : page_node_map){
 		printf("%lx: ", it.first);
 		it.second.print();
 	}
 	
 	printf("\n");
+*/
 
-/* Not calculated at the moment
+/*	// This is not calculated at the moment, and will be probably discarded
 	for (auto const & it : tid_node_map){
 		printf("T-%d: ", (int) it.first);
 		it.second.print();
@@ -602,40 +604,48 @@ void perform_data_t::add_data(int cpu, long int inst, long int req, long int tim
 }
 
 // Like Óscar did: after the sums for each CPU, the main formula is applied for each one and then stored in its mem node
-// [TODO]: so, the last core always stores its value overwriting the previous ones? Must compare better with Óscar's code
+// [TOTHINK]: so, the last core always stores its value overwriting the previous ones? Must compare better with Óscar's code
 void perform_data_t::calc_perf(double mean_lat){
-	double inv_mean_lat = 1 / mean_lat;
+	double inv_mean_lat = 1.0 / mean_lat;
 
-	for(int cpu = 0; cpu < system_struct_t::NUM_OF_CORES; cpu++) {
+	for(int cpu = 0; cpu < system_struct_t::NUM_OF_CPUS; cpu++) {
 		double inst_per_s = 0.0;
 		if(times[cpu] != 0)
-			inst_per_s = insts[cpu] / times[cpu];
+			inst_per_s = (double) insts[cpu] / times[cpu];
 
 		double inst_per_b = 0.0;
 		if(reqs[cpu] != 0)
-			inst_per_b = insts[cpu] / (reqs[cpu] * CACHE_LINE_SIZE);
+			inst_per_b = (double) insts[cpu] / (reqs[cpu] * CACHE_LINE_SIZE);
 
 		int cpu_node = system_struct_t::get_cpu_memory_cell(cpu);
-		v_perfs[cpu_node] = inv_mean_lat * inst_per_s * inst_per_b;
+		v_perfs[cpu_node] += inv_mean_lat * inst_per_s * inst_per_b; // A sum right now. If not, all perfs are zeros
 
-		//if(cpu == 0) // Debug
-			//printf("PERF: %.2f, MEAN_LAT = %.2f, INST_S = %.2f, INST_B = %.2f\n", v_perfs[cpu_node], mean_lat, inst_per_s, inst_per_b);
+		// Debug
+		//if(cpu == 0)
+		printf("PERF: %.2f, MEAN_LAT = %.2f, INST_S = %.2f, INST_B = %.2f\n", v_perfs[cpu_node], mean_lat, inst_per_s, inst_per_b);
 
 		index_last_node_calc = cpu_node;
 	}
 }
 
 void perform_data_t::reset() {
-	vector<long int> v_i(system_struct_t::NUM_OF_CORES, 0);
-	vector<long int> v_r(system_struct_t::NUM_OF_CORES, 0);
-	vector<long int> v_t(system_struct_t::NUM_OF_CORES, 0);
+	insts.clear();
+	reqs.clear();
+	times.clear();
+	v_perfs.clear();
+
+	vector<long int> v_i(system_struct_t::NUM_OF_CPUS, 0);
+	vector<long int> v_r(system_struct_t::NUM_OF_CPUS, 0);
+	vector<long int> v_t(system_struct_t::NUM_OF_CPUS, 0);
+	vector<double> v_p(system_struct_t::NUM_OF_MEMORIES, 0.0);
 	insts = v_i;
 	reqs = v_r;
 	times = v_t;
+	v_perfs = v_p;
 }
 
 void perform_data_t::print() const {
-	for(int cpu = 0; cpu < system_struct_t::NUM_OF_CORES; cpu++)
+	for(int cpu = 0; cpu < system_struct_t::NUM_OF_CPUS; cpu++)
 		printf("\tCPU: %d, INSTS = %lu, REQS = %lu, TIMES = %lu\n", cpu, insts[cpu], reqs[cpu], times[cpu]);
 
 	for(int node = 0; node < system_struct_t::NUM_OF_MEMORIES; node++)

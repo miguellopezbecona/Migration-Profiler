@@ -4,54 +4,62 @@
 
 double current_performance;
 double last_performance = -1;
-vector<migration_cell_t> last_migrations; // Always with 1 or 2 elements
-int last_migration_core;
+labeled_migr_t last_migration; // Always with 1 or 2 elements
 
-vector<migration_cell_t> undo_last_migration(){
-	size_t sz = last_migrations.size();
-	vector<migration_cell_t> ret;
-
-	switch(sz){
-		case 0: // No last migration
-			printf("Error undoing migration\n");
-			break;
-		case 1:
-			printf("Undoing last migration.\n");
-			last_migrations[0].dest = last_migration_core;
-			ret.push_back( last_migrations[0] );
-			break;
-		case 2:
-			printf("Undoing last interchange.\n");
-			ret.push_back( last_migrations[0] );
-			ret.push_back( last_migrations[1] );
-			break;
-	}
-
-	return ret;
+/*** labeled_migr_t functions ***/
+labeled_migr_t::labeled_migr(migration_cell_t mc, int t){
+	potential_migr.push_back(mc);
+	tickets = t;
 }
 
-//current_mem_cell is wanted to avoid having to recalculate
-int get_lottery_weight_for_mem_cell(int mem_cell, int current_cell, vector<double> perfs){
+labeled_migr_t::labeled_migr(migration_cell_t mc1, migration_cell_t mc2, int t){
+	potential_migr.push_back(mc1);
+	potential_migr.push_back(mc2);
+	tickets = t;
+}
+
+bool labeled_migr_t::is_interchange() const {
+	return potential_migr.size() == 2;
+}
+
+void labeled_migr_t::prepare_for_undo() {
+	if(!is_interchange())
+		potential_migr[0].interchange_dest();
+	else {
+		potential_migr[0].prev_dest = potential_migr[0].dest;
+		potential_migr[1].prev_dest = potential_migr[1].dest;
+
+		potential_migr[0].dest = potential_migr[1].prev_dest;
+		potential_migr[1].dest = potential_migr[0].prev_dest;
+	}
+}
+
+void labeled_migr_t::print() const {
+	const char* const choices[] = {"interchange", "simple migration"};
+	printf("It is a %s.\n", choices[is_interchange()]);
+	for(migration_cell const & mc : potential_migr)
+		mc.print();
+}
+
+/*** Rest of functions ***/
+vector<migration_cell_t> undo_last_migration(){
+	last_migration.prepare_for_undo();
+
+	return last_migration.potential_migr;
+}
+
+// Gets a different number of tickets depending on perf values and if we are comparing a external thread for interchange or not (mod)
+int get_tickets_from_perfs(int mem_cell, int current_cell, vector<double> perfs, bool mod){
 	if(perfs[mem_cell] == PERFORMANCE_INVALID_VALUE)
-		return TICKETS_MEM_CELL_NO_DATA;
+		return TICKETS_MEM_CELL_NO_DATA[mod];
 	else if(perfs[current_cell] > perfs[mem_cell])
-		return TICKETS_MEM_CELL_WORSE;
+		return TICKETS_MEM_CELL_WORSE[mod];
 	else
-		return TICKETS_MEM_CELL_BETTER;
+		return TICKETS_MEM_CELL_BETTER[mod];
 } 
 
-//This uses the second values, it is the same as before, only used if different values for the two threads are wanted
-int get_lottery_weight_for_mem_cell_2(int mem_cell, int current_cell, vector<double> perfs){
-	if(perfs[mem_cell] == PERFORMANCE_INVALID_VALUE)
-		return TICKETS_MEM_CELL_NO_DATA_2;
-	else if(perfs[current_cell] > perfs[mem_cell])
-		return TICKETS_MEM_CELL_WORSE_2;
-	else
-		return TICKETS_MEM_CELL_BETTER_2;
-} 
-
-vector<migration_cell_t> migration_destinations_wweight(pid_t worst_tid, page_table_t *page_t){
-	vector<migration_cell_t> migration_list;
+vector<labeled_migr_t> get_candidate_list(pid_t worst_tid, page_table_t *page_t){
+	vector<labeled_migr_t> migration_list;
 
 	int current_cpu = system_struct_t::get_cpu_from_tid(worst_tid);
 	int current_cell = system_struct_t::get_cpu_memory_cell(current_cpu);
@@ -62,113 +70,126 @@ vector<migration_cell_t> migration_destinations_wweight(pid_t worst_tid, page_ta
 		if(n == current_cell)
 			continue;
 
-		for(int c=0; c<system_struct_t::CORES_PER_MEMORY; c++){
-			int actual_core = system_struct_t::get_ordered_cpu_from_node(n, c);
-			int tickets = get_lottery_weight_for_mem_cell(n, current_cell, current_perfs);
+		for(int c=0; c<system_struct_t::CPUS_PER_MEMORY; c++){
+			int actual_cpu = system_struct_t::get_ordered_cpu_from_node(n, c);
+			int tickets = get_tickets_from_perfs(n, current_cell, current_perfs, false);
+
+			migration_cell mc(worst_tid, actual_cpu, current_cpu, page_t->pid, true); // Migration associated to this iteration (CPU)
 
 			// Free core: posible simple migration with a determined score
 			if(system_struct_t::is_cpu_free(current_cpu)){
 				tickets += TICKETS_FREE_CORE;
 
-				migration_cell mc(worst_tid, n, page_t->pid, true);
- 				migration_list.push_back(mc); // How to take "tickets" into account?
+				labeled_migr_t lm(mc, tickets);
+ 				migration_list.push_back(lm);
 				continue;
 			}
 
 			// Not a free core: get its TID info so a possible interchange can be planned
-			pid_t other_tid = system_struct_t::get_tid_from_cpu(current_cpu);
+			pid_t other_tid = system_struct_t::get_tid_from_cpu(actual_cpu);
 			vector<double> other_perfs = page_t->get_perf_data(other_tid);
 
-			tickets += get_lottery_weight_for_mem_cell_2(current_cell, n, other_perfs);
+			tickets += get_tickets_from_perfs(current_cell, n, other_perfs, true);
 			
-			// How to take "tickets" and interchange into account?
-			migration_cell mc1(worst_tid, n, page_t->pid, true);
-			migration_cell mc2(other_tid, current_cell, page_t->pid, true);
-			migration_list.push_back(mc1);
-			migration_list.push_back(mc2);
+			migration_cell mc2(other_tid, current_cpu, actual_cpu, page_t->pid, true);
+			labeled_migr_t lm(mc, mc2, tickets);
+			migration_list.push_back(lm);
 		}
 	}
 
 	return migration_list;
 }
 
+// Picks migration or interchange from candidate list
+labeled_migr_t get_random_labeled_cell(vector<labeled_migr_t> lm_list){
+	int total_tickets = 0;
+	for(labeled_migr_t const & lm : lm_list)
+		total_tickets += lm.tickets;
+	int result = rand() % total_tickets; // Gets random number up to total tickets
 
-vector<migration_cell_t> migrate_worst_thread(page_table_t *page_t){
-	vector<migration_cell_t> ret;
+	for(labeled_migr_t const & lm : lm_list) {
+		result -= lm.tickets; // Subtracts until lower than zero
+		if(result < 0)
+			return lm;
+	}
+}
 
+
+vector<migration_cell_t> get_iteration_migration(page_table_t *page_t){
 	// [TODO]: normalize everything to worst performance
 
 	pid_t worst_tid = page_t->get_worst_thread();
 
-	//printf("\n*\nWORST THREAD IS: %d\n", worst_tid);
+	#ifdef ANNEALING_PRINT
+	printf("\n*\nWORST THREAD IS: %d\n", worst_tid);
+	#endif
 	
-	// SELECT MIGRATION TARGETS FOR LOTTERY (This is where the algoritm really is)
-	vector<migration_cell> migration_list = migration_destinations_wweight(worst_tid, page_t);
+	// Selects migration targets for lottery (this is where the algoritm really is)
+	vector<labeled_migr_t> migration_list = get_candidate_list(worst_tid, page_t);
 
-	//printf("\n*\n");
-	//migration_list.print();
+	#ifdef ANNEALING_PRINT
+	printf("\n*\n");
+	for(labeled_migr_t const & lm : migration_list)
+		lm.print();
+	#endif
 
-	// GET MIGRATION TARGET FROM LOTTERY
-/*
-	migration_cell_t* target_migration_cell = NULL;
-	if(migration_list.is_empty()){
+	// I think this will only happen in no-NUMA systems, for testing
+	if(migration_list.empty()){
+		#ifdef ANNEALING_PRINT
 		printf("TARGET LIST IS EMPTY, NO MIGRATIONS\n");
-		return 0;
-	}else{
-		target_migration_cell = migration_list.get_random_weighted_migration_cell();
-		//printf("\n*\nTARGET MIGRATION IS\n");
-		//target_migration_cell.print();
-		// PERFORM MIGRATION
-		//printf("\n*\nMIGRATING\n");
-		migrate(worst_thread_cell, target_migration_cell);
+		#endif
+		vector<migration_cell_t> emp;
+		return emp;
 	}
 
-	// SAVE FOR UNDO
-	last_migration_thread_cell_1=worst_thread_cell;
-	if(target_migration_cell != NULL){
-		last_migration_thread_cell_2=target_migration_cell->tid_cell;
-		last_migration_core=target_migration_cell->free_core;
-	}
-*/
+	labeled_migr_t target_cell = get_random_labeled_cell(migration_list);
 
-	// CLEAN UP AND GET READY FOR NEXT
+	#ifdef ANNEALING_PRINT
+	printf("\n*\nTARGET MIGRATION IS\n");
+	target_cell.print();
+	#endif
+
+	// Saving for possible undo, prepared latter
+	last_migration = target_cell;
+
 	migration_list.clear();
 
-	return ret;
+	return target_cell.potential_migr;
 }
 
 vector<migration_cell_t> annealing_t::get_threads_to_migrate(page_table_t *page_t){
 	vector<migration_cell_t> ret;
 
-	//pin_all_threads_with_pid_greater_than_to_free_cores_and_move_and_free_cores_if_inactive(pid_l, pid);
+	// [TODO] Probably useful. Currently, we pin new sampled threads
+	//pin_all_threads_to_free_cores_and_move_and_free_cores_if_inactive(pid_l, pid);
 
 	current_performance = page_t->get_total_performance();
 	double diff = current_performance / last_performance;
 	printf("\nCurrent Perf %g, Last Perf %g, diff %g, SBM %d\n",current_performance,last_performance,diff,get_time_value());
 
-	if(diff < 0) // nothing, first time
-		last_performance = current_performance;
-	else if(diff < 0.9) { //we are doing MUCH worse, go back
-		time_go_up();
-		ret = undo_last_migration();
-		last_performance = current_performance;
-		
-		//go to Clean up
-		page_t->reset_performance();
-		return ret;
-	} else if(diff < 1.0) // we are doing better or equal
-		time_go_up();
-	else // we are doing better or equal
-		time_go_down();
-
 	last_performance = current_performance;
 
-	/// PERFORM MIGRATION
-	//printf("\n*\nPERFORMING MIGRATION ALGORITYHM\n");
-	ret = migrate_worst_thread(page_t);
+	if(diff < 1e-6){ // First time or no data, so we do nothing
+		last_performance = current_performance; // Redundant, but we need an useless sentence
+	} else if(diff < 0.9) { // We are doing MUCH worse, go back
+		time_go_up();
+		page_t->reset_performance();
+		
+		return undo_last_migration();
+	} else if(diff < 1.0) // We are doing better or equal
+		time_go_up();
+	else // We are doing better or equal
+		time_go_down();
 
-	// CLEAN UP AND GET READY FOR NEXT
+	#ifdef ANNEALING_PRINT
+	printf("\n*\nPERFORMING MIGRATION ALGORITHM\n");
+	#endif
+
+	ret = get_iteration_migration(page_t);
+
+	// Cleans performance data and finishes iteration
 	page_t->reset_performance();
+
 
 	return ret;
 }

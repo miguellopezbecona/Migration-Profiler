@@ -35,13 +35,13 @@ else
 fi
 
 # Set to what you want to profile. A bit deprecated since now the profiler analyzes everything
-#toprofile=" ./ABC -m0 -r5000 -s5000000 -t8 -c1110"
-#toprofile=~/NPB3.3.1/NPB3.3-OMP/bin/lu.C.x
-toprofile=~/NPB3.3.1/NPB3.3-OMP/bin/bt.C.x
+#toprofile="numactl --physcpubind 1,2,3 ./ABC -m0 -r5000 -s5000000 -t8"
+toprofile=~/NPB3.3.1/NPB3.3-OMP/bin/lu.B.x
+#toprofile=~/NPB3.3.1/NPB3.3-OMP/bin/bt.C.x
 
 # Executes app to profile in background along with the profiler
 nohup $toprofile &>/dev/null &
-$numacommand ./$execname -M $profparams
+$numacommand ./$execname $profparams
 
 # Does not continue if there was an error
 if [ $? -ne 0 ]; then

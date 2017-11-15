@@ -1,5 +1,5 @@
 /*
- * Defines the system structure: how many cores are, where is each cpu/thread...
+ * Defines the system structure: how many CPUS are, where is each cpu/thread...
  */
 #pragma once
 
@@ -8,6 +8,9 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <errno.h>
+#include <sched.h>
+
 #include <map>
 #include <vector>
 using namespace std;
@@ -15,18 +18,18 @@ using namespace std;
 #define MAX_PACKAGES 8
 
 typedef struct system_struct {
-	static int NUM_OF_CORES;
+	static int NUM_OF_CPUS;
 	static int NUM_OF_MEMORIES;
-	static int CORES_PER_MEMORY;
+	static int CPUS_PER_MEMORY;
 	static const int FREE_CORE = -1;
 
 	// To know where each CPU is (in terms of memory node)
 	static int* cpu_node_map; // cpu_node_map[cpu] = node
 	static vector<int> node_cpu_map[MAX_PACKAGES]; // cpu_node_map[node] = list(cpus)
 
-	// To know where each TID is (in terms of cores)
-	static map<pid_t, int> tid_cpu_map; // input: tid, output: core
-	static int* cpu_tid_map; // input: core, output, tid
+	// To know where each TID is (in terms of CPUs)
+	static map<pid_t, int> tid_cpu_map; // input: tid, output: cpu
+	static int* cpu_tid_map; // input: cpu, output, tid
 
 	static int detect_system();
 
@@ -39,8 +42,11 @@ typedef struct system_struct {
 	// CPU-thread methods
 	static int get_cpu_from_tid(pid_t tid);
 	static int get_tid_from_cpu(int cpu);
-	static void set_tid_core(pid_t tid, int core);
+	static int set_tid_cpu(pid_t tid, int cpu);
 	static void remove_tid(pid_t tid);
 	static bool is_cpu_free(int core);
+
+	// CPU-pin/free methods
+	static int pin_thread_to_cpu(pid_t tid, int cpu);
 } system_struct_t;
 

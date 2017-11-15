@@ -24,7 +24,9 @@ void build_page_tables(memory_data_list_t m_list, inst_data_list_t i_list, map<p
 		if(page_node < 0)
 			page_node = 0;
 
-		system_struct_t::set_tid_core(m_cell.tid, m_cell.cpu); // Sets TID location (core)
+		// If TID does not exist in system's map, we store its CPU and pin it
+		if(system_struct_t::tid_cpu_map.count(m_cell.tid) == 0)
+			system_struct_t::set_tid_cpu(m_cell.tid, m_cell.cpu);
 
 		if(page_ts->count(m_cell.pid) == 0){ // = !contains(pid). We init the entry if it doesn't exist
 			page_table_t t(m_cell.pid);
@@ -46,13 +48,14 @@ void build_page_tables(memory_data_list_t m_list, inst_data_list_t i_list, map<p
 	}
 
 	// After all the sums from insts are done, the perf is calculated
-/*
-	for(auto & it : *page_ts){
-		
+	for(auto const & it : *page_ts)
 		page_ts->operator[](it.first).calc_perf();
-	}
-*/
-page_ts->operator[](500).calc_perf();
+
+	// Debugging
+	#ifdef PERFORMANCE_OUTPUT
+	for(auto const & it : *page_ts)
+		page_ts->operator[](it.first).print_performance();
+	#endif
 }
 
 inline int get_page_current_node(pid_t pid, long int pageAddr){
@@ -78,7 +81,7 @@ int pages(unsigned int step, set<pid_t> pids, memory_data_list_t m_list, inst_da
 
 	// Some things are done every ITERATIONS_PER_PRINT iterations
 	if(current_step % ITERATIONS_PER_PRINT == 0){
-		for (pid_t pid : pids){
+		for (pid_t const & pid : pids){
 			page_table_t t = page_ts->operator[](pid);
 
 			#ifdef PRINT_CSVS

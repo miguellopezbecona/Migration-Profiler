@@ -75,6 +75,7 @@ void clean_migration_structures(){
 
 // For testing purposes, specially on a non-native Linux system
 void work_with_fake_data(){
+	// Fake data from samples to be inserted into tables and etc
 	memory_list.add_cell(0,500,500,0x12345000,10,0,0);
 	memory_list.add_cell(0,500,500,0x12345000,100,0,1000);
 	memory_list.add_cell(0,500,501,0x12345000,500,0,2000);
@@ -83,7 +84,7 @@ void work_with_fake_data(){
 	inst_list.add_cell(0,500,501,50000000L,1500,1000);
 	inst_list.add_cell(0,500,501,50000000L,100,2000);
 
-/*
+/*  // Fake data into table directly
 	page_table_t t1(500);
 	t1.add_cell(0x12345000, 0, 500, 10, 0, 0, false);
 	t1.add_cell(0x12345000, 0, 500, 30, 0, 0, false);
@@ -120,7 +121,7 @@ int begin_migration_process(int do_thread_migration, int do_page_migration){
 	//printf("\nPrinting instructions list...\n");
 	//inst_list.print();
 
-	inst_list.create_increments(); // Not necessary right now
+	inst_list.create_increments();
 	//printf("Printing inst list after creating increments...\n");
 	//inst_list.print();
 
@@ -128,7 +129,7 @@ int begin_migration_process(int do_thread_migration, int do_page_migration){
 	pages(step, pids, memory_list, inst_list, &page_tables);
 
 	// For each active PID, cleans "dead" TIDs from its table and it can perform a single-process migration strategy
-	for (pid_t pid : pids){
+	for (pid_t const & pid : pids){
 		//printf("Working over table associated to PID: %d\n", pid);
 
 		// Sanity checking. It can seem redundant but it is necessary!

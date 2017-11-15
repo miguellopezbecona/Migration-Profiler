@@ -55,7 +55,7 @@ migration_cell_t individual::mutate(int index){
 
 	// Different value range depending on type of cell (thread or page address). Avoids repeating current location
 	if(mc->is_thread_cell())
-		new_dest = gen_utils::get_rand_int(system_struct_t::NUM_OF_CORES, mc->dest);
+		new_dest = gen_utils::get_rand_int(system_struct_t::NUM_OF_CPUS, mc->dest);
 	else {
 		if(system_struct_t::NUM_OF_MEMORIES == 1) // No possible memory node change. For testing in local only
 			return *mc;

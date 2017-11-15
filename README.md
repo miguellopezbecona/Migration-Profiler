@@ -3,7 +3,7 @@ This application is a profiler which potentially will use thread and page migrat
 
 The repository includes a test application to be profiled called `ABC`. It performs a simple element by element vector product which can be very customizable with options such as array size, CPUs to be used, number of repetitions, intensity of each iteration, etc.
 
-The app includes a simple mode where it just dumps the hardware counter data to CSV files, and the process hierarchy into JSON files. To activate it, you have to uncomment the `JUST_PROFILE` macro defined in `migration/migration_facade.h`. Each pair of files will be generated each `ELEMS_PER_PRINT` (defined in the same header) general samples (mixing instructions and memory ones). Other macros can be commented/uncommented to increase/decrease the amount of printing, such as `EVENT_OUTPUT` in `my_profiler.c`, `GENETIC_OUTPUT` in `strategies/genetic.h` or `MIGRATION_OUTPUT` in `migration/migration_algorithm.h`.
+The app includes a simple mode where it just dumps the hardware counter data to CSV files, and the process hierarchy into JSON files. To activate it, you have to uncomment the `JUST_PROFILE` macro defined in `migration/migration_facade.h`. Each pair of files will be generated each `ELEMS_PER_PRINT` (defined in the same header) general samples (mixing instructions and memory ones). Other macros can be commented/uncommented to increase/decrease the amount of printing, such as `EVENT_OUTPUT` in `my_profiler.c`, `GENETIC_OUTPUT` in `strategies/genetic.h`, `PERFORMANCE_OUTPUT` in `strategies/page_ops.h` or `MIGRATION_OUTPUT` in `migration/migration_algorithm.h`.
 
 Aside from that mode, the app can also print, each `ITERATIONS_PER_PRINT` (defined in `migration/page_ops.h`) iterations, some additional CSV files that can be plotted a posteriori using *heatmaps.R* file to analyze the system's "state". It depends if the `PRINT_CSVS` macro is defined, currently commented in the previously mentioned header file. Currently, 5 different CSV are generated each time:
 
@@ -62,6 +62,7 @@ The following list explains briefly the components regarding the main execution 
 * `migration/migration_cell.*`: defines a migration, which needs an element to migrate (TID or memory page) and a destination (core or memory node) and functions to perform them. A PID field was also added to ease some operations, and a boolean that indicates that it is a thread or a memory cell.
 * `strategies/strategy.h`: defines which operations should define a scratch strategy.
 * `strategies/random.*`: there is a simple strategy implemented which is a simple random approach.
+* `strategies/annealing.*`: this strategy is based on what Óscar did in his PhD work.
 * `strategies/genetic.*` and `strategies/genetic/*`: I am working in a strategy based on a genetic algorithm, but in a simplified way.
 * `strategies/first_touch.*`: simple strategy for memory pages which migrates the ones accessed by CPUs from different nodes.
 
@@ -69,7 +70,7 @@ The following is the brief explanation of some of the other files:
 * `perfmon/*`: most of its content comes from `libpfm` library, so in general it should not be modified. `perf_util.c` may be interesting because it defines how to get the counter data into the structure defined in `sample_data`.
 * `sample_data.*`: defines a simple structure that holds the data obtained by the counters. It can be printed into a CSV file.
 * `utils.*`: self descriptive. Implements functions regarding the collection of information from the Linux system, timing and some printing.
-* `migration/system_struct.*`: defines system's structure (number of cores, number of memory nodes, distribution of CPUs/threads on memory nodes...) and functions to get this data. It is intended to detect all these parameters in a dynamic way.
+* `migration/system_struct.*`: defines system's structure (number of CPUs, number of memory nodes, distribution of CPUs/threads on memory nodes...) and functions to get and set this data. The first mentioned static values are detected automatically, with no input needed.
 
 ## Design [TODO]
 A UML diagram will be generated to make clearer the connection between the components.

@@ -1,8 +1,17 @@
 #include "migration_cell.h"
 
-migration_cell_t::migration_cell(long int elem, unsigned char dest, pid_t pid, bool thread_cell) {
+migration_cell_t::migration_cell(long int elem, short dest, pid_t pid, bool thread_cell) {
 	this->elem = elem;
 	this->dest = dest;
+	this->prev_dest = -1;
+	this->pid = pid;
+	this->thread_cell = thread_cell;
+}
+
+migration_cell_t::migration_cell(long int elem, short dest, short prev_dest, pid_t pid, bool thread_cell) {
+	this->elem = elem;
+	this->dest = dest;
+	this->prev_dest = prev_dest;
 	this->pid = pid;
 	this->thread_cell = thread_cell;
 }
@@ -36,39 +45,11 @@ int migration_cell_t::perform_page_migration() const {
 	return ret;
 }
 
-// Auxiliar function
-void set_affinity_error(pid_t tid){
-	switch(errno){
-		case EFAULT:
-			printf("Error setting affinity: A supplied memory address was invalid\n");
-			break;
-		case EINVAL:
-			printf("Error setting affinity: The affinity bitmask mask contains no processors that are physically on the system, or cpusetsize is smaller than the size of the affinity mask used by the kernel\n");
-			break;
-		case EPERM:
-			printf("Error setting affinity: The calling process does not have appropriate privileges\n");
-			break;
-		case ESRCH:
-			printf("Error setting affinity: The process whose ID is %d could not be found\n", tid);
-			break;
-	}
-}
-
 int migration_cell_t::perform_thread_migration() const {
-	cpu_set_t affinity;
-	sched_getaffinity(elem, sizeof(cpu_set_t), &affinity);
-	int ret = 0;
-
-	CPU_ZERO(&affinity);
-	CPU_SET(dest, &affinity);
-
-	if((ret = sched_setaffinity(elem, sizeof(cpu_set_t), &affinity))){
-		set_affinity_error(elem);
-		return errno;
-	}
+	int ret = system_struct_t::set_tid_cpu((pid_t) elem, dest);
 
 	#ifdef MIGRATION_OUTPUT
-		printf("Migrated thread %d to core %d\n", (int) elem, dest);
+	printf("Migrated thread %d to core %d\n", (pid_t) elem, dest);
 	#endif
 
 	total_thread_migrations++;
@@ -83,9 +64,22 @@ int migration_cell_t::perform_migration() const {
 		return perform_page_migration();
 }
 
+void migration_cell_t::interchange_dest() {
+	short aux = dest;
+	dest = prev_dest;
+	prev_dest = aux;
+}
+
 void migration_cell_t::print() const {
-	if(is_thread_cell())
-		printf("Thread migration cell. %lu TID, %d core to migrate, %d PID.\n", elem, dest, pid);
-	else
-		printf("Page migration cell. %lu memory page, %d memory node to migrate, %d PID.\n", elem, dest, pid);
+	const char* const types[] = {"Page migration", "Thread migration"};
+	const char* const elems[] = {"memory page", "TID"};
+	const char* const to_migrates[] = {"memory node", "CPU"};
+
+	bool is_thread = is_thread_cell();
+
+	printf("%s cell. %lu %s, %d %s to migrate. PID: %d.\n", types[is_thread], elem, elems[is_thread], dest, to_migrates[is_thread], pid);
+	
+	if(prev_dest > 0)
+		printf("It was in %d %s", prev_dest, elems[is_thread]);
+	printf("\n");
 }
