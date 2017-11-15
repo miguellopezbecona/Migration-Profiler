@@ -35,8 +35,8 @@ void labeled_migr_t::prepare_for_undo() {
 }
 
 void labeled_migr_t::print() const {
-	const char* const choices[] = {"interchange", "simple migration"};
-	printf("It is a %s.\n", choices[is_interchange()]);
+	const char* const choices[] = {" simple migration", "n interchange"};
+	printf("It is a%s. %d tickets.\n", choices[is_interchange()], tickets);
 	for(migration_cell const & mc : potential_migr)
 		mc.print();
 }
@@ -70,14 +70,13 @@ vector<labeled_migr_t> get_candidate_list(pid_t worst_tid, page_table_t *page_t)
 		if(n == current_cell)
 			continue;
 
-		for(int c=0; c<system_struct_t::CPUS_PER_MEMORY; c++){
-			int actual_cpu = system_struct_t::get_ordered_cpu_from_node(n, c);
+		for(int const & actual_cpu : system_struct_t::node_cpu_map[n]){
 			int tickets = get_tickets_from_perfs(n, current_cell, current_perfs, false);
 
 			migration_cell mc(worst_tid, actual_cpu, current_cpu, page_t->pid, true); // Migration associated to this iteration (CPU)
 
 			// Free core: posible simple migration with a determined score
-			if(system_struct_t::is_cpu_free(current_cpu)){
+			if(system_struct_t::is_cpu_free(actual_cpu)){
 				tickets += TICKETS_FREE_CORE;
 
 				labeled_migr_t lm(mc, tickets);
@@ -116,8 +115,7 @@ labeled_migr_t get_random_labeled_cell(vector<labeled_migr_t> lm_list){
 
 
 vector<migration_cell_t> get_iteration_migration(page_table_t *page_t){
-	// [TODO]: normalize everything to worst performance
-
+	// [TODO]: normalize everything to worst performance, though not necessary
 	pid_t worst_tid = page_t->get_worst_thread();
 
 	#ifdef ANNEALING_PRINT
@@ -160,16 +158,16 @@ vector<migration_cell_t> get_iteration_migration(page_table_t *page_t){
 vector<migration_cell_t> annealing_t::get_threads_to_migrate(page_table_t *page_t){
 	vector<migration_cell_t> ret;
 
-	// [TODO] Probably useful. Currently, we pin new sampled threads
+	// [TODO?] Probably useful. Currently, we pin new sampled threads. It may be enough
 	//pin_all_threads_to_free_cores_and_move_and_free_cores_if_inactive(pid_l, pid);
 
 	current_performance = page_t->get_total_performance();
 	double diff = current_performance / last_performance;
-	printf("\nCurrent Perf %g, Last Perf %g, diff %g, SBM %d\n",current_performance,last_performance,diff,get_time_value());
+	printf("\nCurrent Perf: %g. Last Perf: %g. Ratio: %g. SBM: %d\n",current_performance,last_performance,diff,get_time_value());
 
 	last_performance = current_performance;
 
-	if(diff < 1e-6){ // First time or no data, so we do nothing
+	if(diff < 0){ // First time or no data, so we do nothing
 		last_performance = current_performance; // Redundant, but we need an useless sentence
 	} else if(diff < 0.9) { // We are doing MUCH worse, go back
 		time_go_up();
@@ -189,7 +187,6 @@ vector<migration_cell_t> annealing_t::get_threads_to_migrate(page_table_t *page_
 
 	// Cleans performance data and finishes iteration
 	page_t->reset_performance();
-
 
 	return ret;
 }

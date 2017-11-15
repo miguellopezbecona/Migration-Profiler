@@ -100,13 +100,21 @@ void work_with_fake_data(){
 	page_tables[1000] = t2;
 */
 	pages(step, pids, memory_list, inst_list, &page_tables);
+	pids.insert(500);
 
+	for (pid_t const & pid : pids){		
+		page_table* table = &page_tables[500];
+		perform_migration_strategy(table);
+	}
+
+/*
 	for(auto & it : page_tables){
 		page_table_t t = it.second;
 		t.print();
 		t.print_performance();
 		printf("Mean of the number of page accesses for that PID: %.2f\n\n", t.get_mean_acs_to_pages());
 	}
+*/
 }
 
 int begin_migration_process(int do_thread_migration, int do_page_migration){

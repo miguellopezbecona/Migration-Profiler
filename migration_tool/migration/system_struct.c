@@ -24,6 +24,8 @@ int system_struct_t::detect_system() {
 	cpu_node_map = (int*)malloc(NUM_OF_CPUS*sizeof(int));
 	cpu_tid_map = (int*)malloc(NUM_OF_CPUS*sizeof(int));
 
+	memset(cpu_tid_map, FREE_CORE, NUM_OF_CPUS*sizeof(int)); // All CPUs are free at the beginning
+
 	// For each CPU, reads topology file to get package (node) id
 	for(int i=0;i<NUM_OF_CPUS;i++) {
 		sprintf(filename,"/sys/devices/system/cpu/cpu%d/topology/physical_package_id",i);

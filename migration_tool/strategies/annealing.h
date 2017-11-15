@@ -7,15 +7,7 @@ const int TICKETS_MEM_CELL_NO_DATA[] = {2, 2};
 const int TICKETS_MEM_CELL_BETTER[] = {4, 4};
 const int TICKETS_FREE_CORE = 3;
 
-// Might be used to ponderate performance calculation. Not used right now
-const int DYRM_ALPHA = 1;
-const int DYRM_BETA = 1;
-const int DYRM_GAMMA = 1;
-
-const int PERFORMANCE_INVALID_VALUE = -1;
-const int DEFAULT_LATENCY_FOR_CONSISTENCY = 1000; // This might be used when we do not have a measured latency
-
-#define ANNEALING_PRINT
+//#define ANNEALING_PRINT
 
 // Special structure which takes into account that each possible choice is a simple migration or an interchange, and has tickets associated to it
 typedef struct labeled_migr {

@@ -11,7 +11,7 @@
 #include "inst_list.h"
 #include "page_table.h"
 
-#define PERFORMANCE_OUTPUT
+//#define PERFORMANCE_OUTPUT
 
 //#define PRINT_CSVS
 #define ITERATIONS_PER_PRINT 5

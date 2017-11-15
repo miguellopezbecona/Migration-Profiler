@@ -51,7 +51,6 @@ void build_page_tables(memory_data_list_t m_list, inst_data_list_t i_list, map<p
 	for(auto const & it : *page_ts)
 		page_ts->operator[](it.first).calc_perf();
 
-	// Debugging
 	#ifdef PERFORMANCE_OUTPUT
 	for(auto const & it : *page_ts)
 		page_ts->operator[](it.first).print_performance();

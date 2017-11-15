@@ -71,15 +71,15 @@ void migration_cell_t::interchange_dest() {
 }
 
 void migration_cell_t::print() const {
-	const char* const types[] = {"Page migration", "Thread migration"};
+	const char* const types[] = {"Page", "Thread"};
 	const char* const elems[] = {"memory page", "TID"};
 	const char* const to_migrates[] = {"memory node", "CPU"};
 
 	bool is_thread = is_thread_cell();
 
-	printf("%s cell. %lu %s, %d %s to migrate. PID: %d.\n", types[is_thread], elem, elems[is_thread], dest, to_migrates[is_thread], pid);
+	printf("%s migration cell. %s %lu to be migrated to %s %d. PID: %d.", types[is_thread], elems[is_thread], elem, to_migrates[is_thread], dest, pid);
 	
-	if(prev_dest > 0)
-		printf("It was in %d %s", prev_dest, elems[is_thread]);
+	if(prev_dest > -1)
+		printf(" It was in %s %d.", to_migrates[is_thread], prev_dest);
 	printf("\n");
 }

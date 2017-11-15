@@ -14,6 +14,15 @@ using namespace std;
 #include "system_struct.h" // Needs to know the system
 #include "../utils.h"
 
+// Might be used in the future to ponderate performance calculation. Not used right now
+const int DYRM_ALPHA = 1;
+const int DYRM_BETA = 1;
+const int DYRM_GAMMA = 1;
+
+const int PERFORMANCE_INVALID_VALUE = -1;
+const int DEFAULT_LATENCY_FOR_CONSISTENCY = 1000; // This might be used when we do not have a measured latency
+
+
 typedef struct table_cell {
 	vector<int> latencies;
 	unsigned cache_misses;
@@ -52,23 +61,23 @@ typedef struct perf_data {
 typedef struct perform_data {
 	const int CACHE_LINE_SIZE = 64;
 
+	bool active; // A TID is considered active if we received samples from it in the current iteration
+
 	// Sum of fields per core
 	vector<long int> insts;
 	vector<long int> reqs;
 	vector<long int> times;
 
 	vector<double> v_perfs; // 3DyRM performance per memory node
-	int index_last_node_calc; // last_3DyRM_perf in Óscar's code
+	int index_last_node_calc; // Used to get last_3DyRM_perf from Óscar's code
 
 	perform_data(){
-		vector<long int> v_i(system_struct_t::NUM_OF_CPUS, 0);
-		vector<long int> v_r(system_struct_t::NUM_OF_CPUS, 0);
-		vector<long int> v_t(system_struct_t::NUM_OF_CPUS, 0);
-		insts = v_i;
-		reqs = v_r;
-		times = v_t;
-
+		insts.resize(system_struct_t::NUM_OF_CPUS);
+		reqs.resize(system_struct_t::NUM_OF_CPUS);
+		times.resize(system_struct_t::NUM_OF_CPUS);
 		v_perfs.resize(system_struct_t::NUM_OF_MEMORIES);
+
+		reset();
 	}
 
 	void add_data(int cpu, long int insts, long int reqs, long int time);

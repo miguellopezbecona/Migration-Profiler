@@ -530,19 +530,19 @@ void page_table_t::calc_perf() {
 	}
 }
 
-// The one with the lowest last_performance
+// The one active with the lowest last_performance
 pid_t page_table_t::get_worst_thread(){
-	double min_p = 10000.0;
+	double min_p = 1e10;
 	pid_t min_t = -1;
 
 	// We loop over TIDs
 	for(auto const & t_it : tid_index) {
 		pid_t tid = t_it.first;
 		perform_data_t pd = perf_per_tid[tid];
-		double pd_lp = pd.v_perfs[pd.index_last_node_calc];
 
-		// And we get the minimum
-		if(pd_lp < min_p){
+		// And we get the minimum if active
+		double pd_lp = pd.v_perfs[pd.index_last_node_calc];
+		if(pd.active && pd_lp < min_p){
 			min_t = tid;
 			min_p = pd_lp;
 		}
@@ -569,10 +569,12 @@ double page_table_t::get_total_performance(){
 	for(auto const & t_it : tid_index) {
 		pid_t tid = t_it.first;
 
-		// And we sum them all
+		// And we sum them all if active
 		perform_data_t pd = perf_per_tid[tid];
-		double pd_lp = pd.v_perfs[pd.index_last_node_calc];
-		val += pd_lp;
+		if(!pd.active)
+			continue;
+
+		val += pd.v_perfs[pd.index_last_node_calc];
 	}
 
 	return val;
@@ -598,50 +600,43 @@ void perf_data_t::print() const {
 
 /*** perform_data_t functions ***/
 void perform_data_t::add_data(int cpu, long int inst, long int req, long int time){
+	active = true;
+
 	insts[cpu] += inst;
 	reqs[cpu] += req;
 	times[cpu] += time;
 }
 
-// Like Óscar did: after the sums for each CPU, the main formula is applied for each one and then stored in its mem node
+// Like Óscar did, after the sums for each CPU, the main formula is applied for each one and then stored in its mem node
 // [TOTHINK]: so, the last core always stores its value overwriting the previous ones? Must compare better with Óscar's code
 void perform_data_t::calc_perf(double mean_lat){
-	double inv_mean_lat = 1.0 / mean_lat;
+	double inv_mean_lat = 1 / mean_lat;
 
 	for(int cpu = 0; cpu < system_struct_t::NUM_OF_CPUS; cpu++) {
-		double inst_per_s = 0.0;
-		if(times[cpu] != 0)
-			inst_per_s = (double) insts[cpu] / times[cpu];
+		if(reqs[cpu] == 0) // No data, bye
+			continue;
 
-		double inst_per_b = 0.0;
-		if(reqs[cpu] != 0)
-			inst_per_b = (double) insts[cpu] / (reqs[cpu] * CACHE_LINE_SIZE);
+		// Divide by zeros check should be made. It's assumed it won't happen in the thread is inactive
+		double inst_per_s = (double) insts[cpu] * 1000 / times[cpu]; // Óscar used inst/ms, so * 10^3
+		double inst_per_b = (double) insts[cpu] / (reqs[cpu] * CACHE_LINE_SIZE);
 
 		int cpu_node = system_struct_t::get_cpu_memory_cell(cpu);
-		v_perfs[cpu_node] += inv_mean_lat * inst_per_s * inst_per_b; // A sum right now. If not, all perfs are zeros
+		v_perfs[cpu_node] = inv_mean_lat * inst_per_s * inst_per_b;
 
 		// Debug
-		//if(cpu == 0)
-		printf("PERF: %.2f, MEAN_LAT = %.2f, INST_S = %.2f, INST_B = %.2f\n", v_perfs[cpu_node], mean_lat, inst_per_s, inst_per_b);
+		//printf("PERF: %.2f, MEAN_LAT = %.2f, INST_S = %.2f, INST_B = %.2f\n", v_perfs[cpu_node], mean_lat, inst_per_s, inst_per_b);
 
 		index_last_node_calc = cpu_node;
 	}
 }
 
 void perform_data_t::reset() {
-	insts.clear();
-	reqs.clear();
-	times.clear();
-	v_perfs.clear();
+	active = false;
 
-	vector<long int> v_i(system_struct_t::NUM_OF_CPUS, 0);
-	vector<long int> v_r(system_struct_t::NUM_OF_CPUS, 0);
-	vector<long int> v_t(system_struct_t::NUM_OF_CPUS, 0);
-	vector<double> v_p(system_struct_t::NUM_OF_MEMORIES, 0.0);
-	insts = v_i;
-	reqs = v_r;
-	times = v_t;
-	v_perfs = v_p;
+	fill(insts.begin(), insts.end(), 0);
+	fill(reqs.begin(), reqs.end(), 0);
+	fill(times.begin(), times.end(), 0);
+	fill(v_perfs.begin(), v_perfs.end(), PERFORMANCE_INVALID_VALUE);
 }
 
 void perform_data_t::print() const {
