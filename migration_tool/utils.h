@@ -5,6 +5,7 @@
 #include <time.h>
 #include <unistd.h> // access, F_OK
 #include <dirent.h> // Getting task folders from each process
+#include <sys/stat.h> // stat
 
 #include <map>
 #include <vector>

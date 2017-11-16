@@ -15,7 +15,7 @@ void set_affinity_error(pid_t tid);
 // Each line will result in a row in the distance matrix
 void read_line_from_file(int node, int* array){
 	pid_t cpid;
-	char filename[32] = "\0";
+	char filename[64] = "\0";
 	FILE *file = NULL;
 
 	sprintf(filename, "/sys/devices/system/node/node%d/distance", node);
