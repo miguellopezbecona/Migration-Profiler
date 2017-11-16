@@ -31,7 +31,7 @@ int system_struct_t::detect_system() {
 		sprintf(filename,"/sys/devices/system/cpu/cpu%d/topology/physical_package_id",i);
 		fff=fopen(filename,"r");
 		if (fff==NULL) break;
-		fscanf(fff,"%d",&package);
+		int dummy = fscanf(fff,"%d",&package);
 		fclose(fff);
 
 		// Saves data to structures
@@ -86,14 +86,17 @@ int system_struct_t::get_tid_from_cpu(int cpu){
 	return cpu_tid_map[cpu];
 }
 
-int system_struct_t::set_tid_cpu(pid_t tid, int cpu){
+int system_struct_t::set_tid_cpu(pid_t tid, int cpu, bool do_pin){
 	tid_cpu_map[tid] = cpu;
-	cpu_tid_map[cpu] = tid;
 
-	pin_thread_to_cpu(tid, cpu);
+	if(!do_pin)
+		return 0;
+	
+	cpu_tid_map[cpu] = tid;
+	return pin_thread_to_cpu(tid, cpu);
 }
 
-void system_struct_t::remove_tid(pid_t tid){
+void system_struct_t::remove_tid(pid_t tid, bool do_unpin){
 	tid_cpu_map.erase(tid);
 
 	for(int i=0; i<NUM_OF_CPUS; i++){
@@ -102,6 +105,10 @@ void system_struct_t::remove_tid(pid_t tid){
 			break;
 		}
 	}
+
+	// Already finished threads don't need unpin
+	if(do_unpin)
+		unpin_thread(tid);
 }
 
 bool system_struct_t::is_cpu_free(int cpu){
@@ -126,7 +133,19 @@ int system_struct_t::pin_thread_to_cpu(pid_t tid, int cpu) {
 	return ret;
 }
 
-// Probably will need some from freeing TIDs or CPUs
+int system_struct_t::unpin_thread(pid_t tid) {
+	cpu_set_t affinity;
+	sched_getaffinity(0, sizeof(cpu_set_t), &affinity); // Gets profiler's affinity (all CPUs)
+	int ret = 0;
+
+	// Gives profiler's affinity to freed thread
+	if((ret = sched_setaffinity(tid, sizeof(cpu_set_t), &affinity))){
+		set_affinity_error(tid);
+		return errno;
+	}
+
+	return ret;
+}
 
 // Auxiliar function
 void set_affinity_error(pid_t tid){

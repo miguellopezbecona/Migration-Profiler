@@ -42,11 +42,12 @@ typedef struct system_struct {
 	// CPU-thread methods
 	static int get_cpu_from_tid(pid_t tid);
 	static int get_tid_from_cpu(int cpu);
-	static int set_tid_cpu(pid_t tid, int cpu);
-	static void remove_tid(pid_t tid);
+	static int set_tid_cpu(pid_t tid, int cpu, bool do_pin);
+	static void remove_tid(pid_t tid, bool do_unpin);
 	static bool is_cpu_free(int core);
 
 	// CPU-pin/free methods
 	static int pin_thread_to_cpu(pid_t tid, int cpu);
+	static int unpin_thread(pid_t tid);
 } system_struct_t;
 

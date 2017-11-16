@@ -13,11 +13,11 @@ memory_data_cell_t::memory_data_cell(uint32_t cpu, int pid, int tid, uint64_t ad
 	this->time=time;
 }
 
-void memory_data_cell_t::print(){
+void memory_data_cell_t::print() const {
 	printf("CPU: %u, PID: %d, TID: %d ADDR: %#016lx, LATENCY: %lu, DSRC: %#016lx, TIME: %lu\n", cpu, pid, tid, addr, latency, dsrc, time);
 }
 
-bool memory_data_cell_t::is_cache_miss(){
+bool memory_data_cell_t::is_cache_miss() const {
 	union perf_mem_data_src *mdsrc = (perf_mem_data_src*) &dsrc;
 
 	// PERF_MEM_LVL_MISS or PERF_MEM_LVL_UNC?
@@ -25,7 +25,7 @@ bool memory_data_cell_t::is_cache_miss(){
 	return mdsrc->mem_lvl & PERF_MEM_LVL_MISS;
 }
 
-void memory_data_cell_t::print_dsrc() {
+void memory_data_cell_t::print_dsrc() const {
 	union perf_mem_data_src *mdsrc = (perf_mem_data_src*) &dsrc;
 
 	printf("mem_op: %lu ->\n", mdsrc->mem_op);
@@ -78,7 +78,7 @@ void memory_data_list_t::add_cell(uint32_t cpu, int pid, int tid, uint64_t addr,
 	list.push_back(cell);
 }
 
-bool memory_data_list_t::is_empty(){
+bool memory_data_list_t::is_empty() {
 	return list.empty();
 }
 
@@ -86,7 +86,7 @@ void memory_data_list_t::clear(){
 	list.clear();
 }
 
-void memory_data_list_t::print(){
+void memory_data_list_t::print() {
 	for(size_t i=0;i<list.size();i++)
 		list[i].print();
 }

@@ -8,8 +8,7 @@ const int expn = log2(pagesize);
 
 void build_page_tables(memory_data_list_t m_list, inst_data_list_t i_list, map<pid_t, page_table_t> *page_ts){
 	// Builds data from m_list, but first we calculate page address, page node, and then it is added to the table cell
-	for(size_t i=0;i<m_list.list.size();i++){
-		memory_data_cell_t m_cell = m_list.list[i];
+	for(memory_data_cell_t const & m_cell : m_list.list){
 
 		// This gets page address with offset 0
 		long int page_addr = m_cell.addr & ~((long int)(pagesize -1));
@@ -24,9 +23,10 @@ void build_page_tables(memory_data_list_t m_list, inst_data_list_t i_list, map<p
 		if(page_node < 0)
 			page_node = 0;
 
-		// If TID does not exist in system's map, we store its CPU and pin it
+		// If TID does not exist in system's map, we store its CPU and pin the thread to it if the CPU is free
 		if(system_struct_t::tid_cpu_map.count(m_cell.tid) == 0)
-			system_struct_t::set_tid_cpu(m_cell.tid, m_cell.cpu);
+			system_struct_t::set_tid_cpu(m_cell.tid, m_cell.cpu, system_struct_t::is_cpu_free(m_cell.cpu));
+		// [TOTHINK] Maybe should it be migrated to a free core within the same memory node if the initial isn't free?
 
 		if(page_ts->count(m_cell.pid) == 0){ // = !contains(pid). We init the entry if it doesn't exist
 			page_table_t t(m_cell.pid);
@@ -37,8 +37,7 @@ void build_page_tables(memory_data_list_t m_list, inst_data_list_t i_list, map<p
 	}
 
 	// Adds inst data from i_list for better performance calculation
-	for(size_t i=0;i<i_list.list.size();i++){
-		inst_data_cell_t i_cell = i_list.list[i];
+	for(inst_data_cell_t const & i_cell : i_list.list){
 
 		// If there is no table associated (no mem sample) to the pid, the data will be discarded
 		if(page_ts->count(i_cell.pid) == 0) // = !contains(pid)

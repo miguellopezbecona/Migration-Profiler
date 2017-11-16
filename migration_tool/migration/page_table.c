@@ -25,23 +25,32 @@ page_table_t::page_table(pid_t p){
 
 // Destructor. We clear everything
 page_table_t::~page_table(){
-		// Table itself
-		for(column& c : table)
-			c.clear();
-		table.clear();
+	// Table itself
+	for(column& c : table)
+		c.clear();
+	table.clear();
 
-		// Vectors from maps, and maps itself
-		for(auto& it : page_node_map)
-			it.second.acs_per_node.clear();
-		page_node_map.clear();
+	// Vectors from maps, and maps itself
+	for(auto& it : page_node_map)
+		it.second.acs_per_node.clear();
+	page_node_map.clear();
 
-		for(auto& it : tid_node_map)
-			it.second.acs_per_node.clear();
-		tid_node_map.clear();
+	for(auto& it : tid_node_map)
+		it.second.acs_per_node.clear();
+	tid_node_map.clear();
 
-		table.clear();
-		uniq_addrs.clear();
-		tid_index.clear();
+	for(auto& it : perf_per_tid){
+		perform_data_t* pd = &it.second;
+		pd->insts.clear();
+		pd->reqs.clear();
+		pd->times.clear();
+		pd->v_perfs.clear(); 
+	}
+	perf_per_tid.clear();
+
+	table.clear();
+	uniq_addrs.clear();
+	tid_index.clear();
 }
 
 int page_table_t::add_cell(long int page_addr, int current_node, pid_t tid, int latency, int cpu, int cpu_node, bool is_cache_miss){
@@ -91,7 +100,6 @@ vector<int> page_table_t::get_latencies_from_cell(long int page_addr, int tid){
 	}
 }
 
-
 // Returns NULL if no association
 table_cell_t* page_table_t::get_cell(long int page_addr, int tid){
 	if(contains_addr(page_addr,tid)){
@@ -116,14 +124,15 @@ void page_table_t::remove_tid(pid_t tid){
 			++it;
 			table.erase(table.begin() + pos - erased);
 			erased = true;
-			system_struct_t::remove_tid(tid);
+			system_struct_t::remove_tid(tid, false);
 		}
 		else
 			tid_index[it_tid] = pos - erased;
 	}
 }
 
-void page_table_t::remove_inactive_tids(){
+// Also unpins inactive threads
+void page_table_t::remove_finished_tids(){
 	unsigned int erased = 0;
 
 	for(map<int, short>::iterator it = tid_index.begin(); it != tid_index.end(); ++it) {
@@ -137,10 +146,14 @@ void page_table_t::remove_inactive_tids(){
 			++it;
 			table.erase(table.begin() + pos - erased);
 			erased++;
-			remove_tid(tid); // From system struct
+			system_struct_t::remove_tid(tid, false);
 		}
-		else
+		else {
+			if(!perf_per_tid[tid].active)
+				system_struct_t::remove_tid(tid, true);
+			
 			tid_index[tid] = pos - erased;
+		}
 	}
 }
 

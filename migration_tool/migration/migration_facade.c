@@ -148,7 +148,7 @@ int begin_migration_process(int do_thread_migration, int do_page_migration){
 		}
 		
 		page_table* table = &page_tables[pid];
-		table->remove_inactive_tids();
+		table->remove_finished_tids();
 		//table->print();
 
 		perform_migration_strategy(table);

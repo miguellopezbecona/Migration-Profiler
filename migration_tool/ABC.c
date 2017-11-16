@@ -26,14 +26,14 @@ int max_cpus; // Detected by the system
 float *A, *B, *C;
 
 // Options
-int blocks_per_thread;
-long int array_basic_size; // array_total_size / num_th
-long int array_total_size;
-int mem_node;
-int rep;
-int ops;
-int stride;
-int num_th;
+unsigned int blocks_per_thread;
+unsigned long array_basic_size; // array_total_size / num_th
+unsigned long array_total_size;
+unsigned char mem_node;
+unsigned int rep;
+unsigned int ops;
+unsigned int stride;
+unsigned int num_th;
 unsigned char *selected_cpus;
 
 // Predeclarations
@@ -95,11 +95,13 @@ void data_initialization(){
 	for(th=0;th<num_th;th++){
 		offset = th*array_basic_size;
 
+/*		// Can consume a lot of time and it's not necessary
 		for(i=0;i<array_basic_size;i++){
 			A[offset+i] = (rand()%10)*1.0;
 			B[offset+i] = (rand()%10)*1.0;
 			C[offset+i] = 0.0;
 		}
+*/
 
 		#ifdef OUTPUT
 		// Gets the memory range where each thread will work in

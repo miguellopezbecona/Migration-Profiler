@@ -46,7 +46,7 @@ int migration_cell_t::perform_page_migration() const {
 }
 
 int migration_cell_t::perform_thread_migration() const {
-	int ret = system_struct_t::set_tid_cpu((pid_t) elem, dest);
+	int ret = system_struct_t::set_tid_cpu((pid_t) elem, dest, true);
 
 	#ifdef MIGRATION_OUTPUT
 	printf("Migrated thread %d to core %d\n", (pid_t) elem, dest);

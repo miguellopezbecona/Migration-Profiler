@@ -21,7 +21,7 @@ bool is_migratable(pid_t my_uid, pid_t pid){
 	if(my_uid == 0) // Root can do anything
 		return true;
 
-	// Command-dependent. Maybe it would be better to read /proc/pid/status file
+	// [TODO] Command-dependent. Maybe it would be better to read /proc/pid/status file
 	sprintf(command, "/bin/ps --no-headers -o uid -p %d", pid);
 	fp = popen(command, "r");
 	if (fp == NULL)
