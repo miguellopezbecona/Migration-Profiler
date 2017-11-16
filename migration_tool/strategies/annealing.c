@@ -115,18 +115,19 @@ labeled_migr_t get_random_labeled_cell(vector<labeled_migr_t> lm_list){
 
 
 vector<migration_cell_t> get_iteration_migration(page_table_t *page_t){
-	// [TODO]: normalize everything to worst performance, though not necessary
-	pid_t worst_tid = page_t->get_worst_thread();
+	pid_t worst_tid = page_t->normalize_perf_and_get_worst_thread();
 
 	#ifdef ANNEALING_PRINT
 	printf("\n*\nWORST THREAD IS: %d\n", worst_tid);
 	#endif
+
+	//page_t->print_performance(); // Perfs after normalization
 	
 	// Selects migration targets for lottery (this is where the algoritm really is)
 	vector<labeled_migr_t> migration_list = get_candidate_list(worst_tid, page_t);
 
 	#ifdef ANNEALING_PRINT
-	printf("\n*\n");
+	printf("\n*\nMIGRATION LIST CONTENT:");
 	for(labeled_migr_t const & lm : migration_list)
 		lm.print();
 	#endif
@@ -143,7 +144,7 @@ vector<migration_cell_t> get_iteration_migration(page_table_t *page_t){
 	labeled_migr_t target_cell = get_random_labeled_cell(migration_list);
 
 	#ifdef ANNEALING_PRINT
-	printf("\n*\nTARGET MIGRATION IS\n");
+	printf("\n*\nTARGET MIGRATION: ");
 	target_cell.print();
 	#endif
 
@@ -157,9 +158,6 @@ vector<migration_cell_t> get_iteration_migration(page_table_t *page_t){
 
 vector<migration_cell_t> annealing_t::get_threads_to_migrate(page_table_t *page_t){
 	vector<migration_cell_t> ret;
-
-	// [TODO?] Probably useful. Currently, we pin new sampled threads. It may be enough
-	//pin_all_threads_to_free_cores_and_move_and_free_cores_if_inactive(pid_l, pid);
 
 	current_performance = page_t->get_total_performance();
 	double diff = current_performance / last_performance;

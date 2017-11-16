@@ -510,10 +510,14 @@ void page_table_t::add_inst_data_for_tid(pid_t tid, int core, long int insts, lo
 void page_table_t::calc_perf() {
 	// We loop over TIDs
 	for(auto const & t_it : tid_index) {
-		vector<double> v;
 		pid_t tid = t_it.first;
+
+		if(!perf_per_tid[tid].active) // Only for active
+			continue;
+
+		vector<double> v;
 		int pos = t_it.second;
-		
+
 		// We get latencies for each cell for that TID
 		for(auto const & it : table[pos]) {
 			table_cell_t cell = it.second;
@@ -530,22 +534,46 @@ void page_table_t::calc_perf() {
 	}
 }
 
-// The one active with the lowest last_performance
-pid_t page_table_t::get_worst_thread(){
-	double min_p = 1e10;
+pid_t page_table_t::normalize_perf_and_get_worst_thread(){
+	double min_p = 1e15;
 	pid_t min_t = -1;
+
+	int active_threads = 0;
+	double mean_perf = 0.0;
 
 	// We loop over TIDs
 	for(auto const & t_it : tid_index) {
 		pid_t tid = t_it.first;
 		perform_data_t pd = perf_per_tid[tid];
 
-		// And we get the minimum if active
+		if(!pd.active)
+			continue;
+
+		active_threads++;
+
+		// We sum the last_perf if active
 		double pd_lp = pd.v_perfs[pd.index_last_node_calc];
-		if(pd.active && pd_lp < min_p){
+		mean_perf += pd_lp;
+		if(pd_lp < min_p){ // And we calculate the minimum
 			min_t = tid;
 			min_p = pd_lp;
 		}
+	}
+
+	if(active_threads == 0) // Should never happen
+		return -1;
+
+	mean_perf /= active_threads;
+
+	// We loop over TIDs
+	for(auto const & t_it : tid_index) {
+		pid_t tid = t_it.first;
+		perform_data_t* pd = &perf_per_tid[tid];
+
+		if(!pd->active)
+			continue;
+
+		pd->v_perfs[pd->index_last_node_calc] /= mean_perf;
 	}
 
 	return min_t;
@@ -616,7 +644,7 @@ void perform_data_t::calc_perf(double mean_lat){
 		if(reqs[cpu] == 0) // No data, bye
 			continue;
 
-		// Divide by zeros check should be made. It's assumed it won't happen in the thread is inactive
+		// Divide by zeros check should be made. It's assumed it won't happen if the thread is inactive
 		double inst_per_s = (double) insts[cpu] * 1000 / times[cpu]; // Óscar used inst/ms, so * 10^3
 		double inst_per_b = (double) insts[cpu] / (reqs[cpu] * CACHE_LINE_SIZE);
 
