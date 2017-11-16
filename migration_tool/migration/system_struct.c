@@ -1,18 +1,33 @@
 #include "system_struct.h"
 
+// Declaraion of static variables
 int system_struct_t::NUM_OF_CPUS;
 int system_struct_t::NUM_OF_MEMORIES;
 int system_struct_t::CPUS_PER_MEMORY;
-
-// To know where each CPU is (in terms of memory node)
-int* system_struct_t::cpu_node_map; // cpu_node_map[cpu] = node
-vector<int> system_struct_t::node_cpu_map[MAX_PACKAGES]; // cpu_node_map[node] = list(cpus)
-
-// To know where each TID is (in terms of CPUS)
-map<pid_t, int> system_struct_t::tid_cpu_map; // input: tid, output: core
-int* system_struct_t::cpu_tid_map; // input: core, output, tid
+int* system_struct_t::cpu_node_map;
+vector<int> system_struct_t::node_cpu_map[MAX_PACKAGES];
+map<pid_t, int> system_struct_t::tid_cpu_map;
+int* system_struct_t::cpu_tid_map;
+int** system_struct_t::node_distances;
 
 void set_affinity_error(pid_t tid);
+
+// Each line will result in a row in the distance matrix
+void read_line_from_file(int node, int* array){
+	pid_t cpid;
+	char filename[32] = "\0";
+	FILE *file = NULL;
+
+	sprintf(filename, "/sys/devices/system/node/node%d/distance", node);
+	file = fopen(filename, "r");
+
+	if(file == NULL)
+		return;
+
+	for(int i=0;fscanf(file, "%d", &array[i]) == 1; i++);
+
+	fclose(file);
+}
 
 // Gets info about number of CPUs, memory nodes and creates two maps (cpu to node and node to cpu)
 int system_struct_t::detect_system() {
@@ -50,7 +65,16 @@ int system_struct_t::detect_system() {
 		}
 	}
 
+	// Initializes and builds node distance matrix
+	node_distances = (int**)malloc(NUM_OF_MEMORIES*sizeof(int*));
+	for(int i=0;i<NUM_OF_MEMORIES;i++){
+		node_distances[i] = (int*)malloc(NUM_OF_MEMORIES*sizeof(int));
+		read_line_from_file(i, node_distances[i]);
+	}
+
+
 	printf("Detected system: %d total CPUs, %d memory nodes, %d CPUs per node.\n", NUM_OF_CPUS, NUM_OF_MEMORIES, CPUS_PER_MEMORY);
+	print_node_distance_matrix();
 
 	return 0;
 }
@@ -146,6 +170,20 @@ int system_struct_t::unpin_thread(pid_t tid) {
 
 	return ret;
 }
+
+/*** Node distances methods ***/
+int system_struct_t::get_node_distance(int node1, int node2){
+	return node_distances[node1][node2];
+}
+
+void system_struct_t::print_node_distance_matrix(){
+	for(int i=0;i<NUM_OF_MEMORIES;i++){
+		for(int j=0;j<NUM_OF_MEMORIES;j++)
+			printf("%d ", node_distances[i][j]);
+		printf("\n");
+	}	
+}
+
 
 // Auxiliar function
 void set_affinity_error(pid_t tid){

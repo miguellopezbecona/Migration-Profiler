@@ -1,5 +1,5 @@
 /*
- * Defines the system structure: how many CPUS are, where is each cpu/thread...
+ * Defines the system structure: how many CPUs are, where is each cpu/thread...
  */
 #pragma once
 
@@ -31,6 +31,9 @@ typedef struct system_struct {
 	static map<pid_t, int> tid_cpu_map; // input: tid, output: cpu
 	static int* cpu_tid_map; // input: cpu, output, tid
 
+	static int** node_distances;
+
+
 	static int detect_system();
 
 	// Node-CPU methods
@@ -49,5 +52,9 @@ typedef struct system_struct {
 	// CPU-pin/free methods
 	static int pin_thread_to_cpu(pid_t tid, int cpu);
 	static int unpin_thread(pid_t tid);
+
+	// Node distance methods
+	static int get_node_distance(int node1, int node2);
+	static void print_node_distance_matrix();
 } system_struct_t;
 
