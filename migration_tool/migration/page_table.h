@@ -12,16 +12,8 @@
 using namespace std;
 
 #include "system_struct.h" // Needs to know the system
+#include "performance.h"
 #include "../utils.h"
-
-// Might be used in the future to ponderate performance calculation. Not used right now
-const int DYRM_ALPHA = 1;
-const int DYRM_BETA = 1;
-const int DYRM_GAMMA = 1;
-
-const int PERFORMANCE_INVALID_VALUE = -1;
-const int DEFAULT_LATENCY_FOR_CONSISTENCY = 1000; // This might be used when we do not have a measured latency
-
 
 typedef struct table_cell {
 	vector<int> latencies;
@@ -33,59 +25,6 @@ typedef struct table_cell {
 	void print();
 	void update(int latency, bool is_cache_miss, int cpu);
 } table_cell_t;
-
-// For threads and memory pages. [Not actually used (except for page locations). Coded for a specific test. It may be discarded]
-typedef struct perf_data {
-	// Reuse migration_cell??
-	unsigned char current_place; // Mem node for pages or core for TIDs
-
-	vector<unsigned short> acs_per_node; // Number of accesses from threads per memory node
-
-	unsigned short num_uniq_accesses;
-	unsigned short num_acs_thres; // Always equal or lower than num_uniq_accesses
-	int min_latency;
-	int median_latency;
-	int max_latency;
-
-	perf_data(){
-		num_acs_thres = 0;
-
-		vector<unsigned short> v(system_struct_t::NUM_OF_MEMORIES, 0);
-		acs_per_node = v;
-	}
-
-	void print() const;
-} perf_data_t;
-
-// Based on Óscar's work in this PhD. This would be associated to each thread for the PID
-typedef struct perform_data {
-	const int CACHE_LINE_SIZE = 64;
-
-	bool active; // A TID is considered active if we received samples from it in the current iteration
-
-	// Sum of fields per core
-	vector<long int> insts;
-	vector<long int> reqs;
-	vector<long int> times;
-
-	vector<double> v_perfs; // 3DyRM performance per memory node
-	int index_last_node_calc; // Used to get last_3DyRM_perf from Óscar's code
-
-	perform_data(){
-		insts.resize(system_struct_t::NUM_OF_CPUS);
-		reqs.resize(system_struct_t::NUM_OF_CPUS);
-		times.resize(system_struct_t::NUM_OF_CPUS);
-		v_perfs.resize(system_struct_t::NUM_OF_MEMORIES);
-
-		reset();
-	}
-
-	void add_data(int cpu, long int insts, long int reqs, long int time);
-	void calc_perf(double mean_latency);
-	void reset();
-
-	void print() const;
-} perform_data_t;
 
 typedef map<long int, table_cell_t> column; // Each column of the table, defined with typedef for readibility
 
@@ -99,7 +38,7 @@ typedef struct page_table {
 	// Using long int as key to use along the previous one as function parameter
 	map<long int, perf_data_t> tid_node_map; // Maps TID to memory node and other data
 
-	map<pid_t, perform_data_t> perf_per_tid; // Maps TID to Óscar's performance data
+	map<pid_t, rm3d_data_t> perf_per_tid; // Maps TID to Óscar's performance data
 
 	pid_t pid;
 

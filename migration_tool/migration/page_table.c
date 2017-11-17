@@ -40,7 +40,7 @@ page_table_t::~page_table(){
 	tid_node_map.clear();
 
 	for(auto& it : perf_per_tid){
-		perform_data_t* pd = &it.second;
+		rm3d_data_t* pd = &it.second;
 		pd->insts.clear();
 		pd->reqs.clear();
 		pd->times.clear();
@@ -368,9 +368,8 @@ void page_table_t::print_table2(){
 // Fills only page_node_map
 void page_table_t::calculate_performance_page(int threshold){
 	// Loops over memory pages
-	for (set<long int>::iterator it = uniq_addrs.begin(); it != uniq_addrs.end(); ++it){
+	for(long int const & addr : uniq_addrs){
 		vector<int> l_thres;
-		long int addr = *it;
 		int threads_accessed = 0;
 		int num_acs_thres = 0;
 
@@ -412,14 +411,14 @@ void page_table_t::calculate_performance_page(int threshold){
 // Fills only tid_node_map
 void page_table_t::calculate_performance_tid(int threshold){
 	// Loops over TIDs
-	for(map<int, short>::iterator t_it = tid_index.begin(); t_it != tid_index.end(); ++t_it) {
+	for(auto const & t_it : tid_index) {
 		vector<int> l_thres;
 		int pages_accessed = 0;
 		int num_acs_thres = 0;
 
 		// Loops over page entries for that TID
-		pid_t tid = t_it->first;
-		int pos = t_it->second;
+		pid_t tid = t_it.first;
+		int pos = t_it.second;
 		for (auto const & it : table[pos]){
 			vector<int> l = it.second.latencies;
 
@@ -494,7 +493,8 @@ double page_table_t::get_mean_acs_to_pages(){
 
 // Gets the mean of the latencies of all pages for the whole table
 double page_table_t::get_mean_lat_to_pages(){
-	vector<double> v;
+	vector<int> v;
+	v.reserve(2*uniq_addrs.size());
 
 	/// We collect the means of the latencies for each page
 
@@ -506,8 +506,7 @@ double page_table_t::get_mean_lat_to_pages(){
 		for(auto const & it : table[pos]) {
 			table_cell_t cell = it.second;
 			vector<int> ls = cell.latencies;
-			double mean_ls = accumulate(ls.begin(), ls.end(), 0.0) / ls.size();
-			v.push_back(mean_ls);
+			v.insert(v.end(), ls.begin(), ls.end()); // Appends latencies to main list
 		}
 	}
 
@@ -519,7 +518,7 @@ void page_table_t::add_inst_data_for_tid(pid_t tid, int core, long int insts, lo
 	perf_per_tid[tid].add_data(core, insts, req_dr, time);
 }
 
-// Needs getting the mean latency for each TID. get_mean_lat_to_pages() could reuse this, but for now this is uglyly almost copied
+// Needs getting the mean latency for each TID. Maybe we could write a function to get all the latencies for a given TID so get_mean_lat_to_pages() could reuse that
 void page_table_t::calc_perf() {
 	// We loop over TIDs
 	for(auto const & t_it : tid_index) {
@@ -528,15 +527,14 @@ void page_table_t::calc_perf() {
 		if(!perf_per_tid[tid].active) // Only for active
 			continue;
 
-		vector<double> v;
+		vector<int> v;
 		int pos = t_it.second;
 
 		// We get latencies for each cell for that TID
 		for(auto const & it : table[pos]) {
 			table_cell_t cell = it.second;
 			vector<int> ls = cell.latencies;
-			double mean_ls = accumulate(ls.begin(), ls.end(), 0.0) / ls.size();
-			v.push_back(mean_ls);
+			v.insert(v.end(), ls.begin(), ls.end()); // Appends latencies to main list
 		}
 
 		// ... and then we calculate the total mean for all the TID
@@ -557,7 +555,7 @@ pid_t page_table_t::normalize_perf_and_get_worst_thread(){
 	// We loop over TIDs
 	for(auto const & t_it : tid_index) {
 		pid_t tid = t_it.first;
-		perform_data_t pd = perf_per_tid[tid];
+		rm3d_data_t pd = perf_per_tid[tid];
 
 		if(!pd.active)
 			continue;
@@ -581,7 +579,7 @@ pid_t page_table_t::normalize_perf_and_get_worst_thread(){
 	// We loop over TIDs
 	for(auto const & t_it : tid_index) {
 		pid_t tid = t_it.first;
-		perform_data_t* pd = &perf_per_tid[tid];
+		rm3d_data_t* pd = &perf_per_tid[tid];
 
 		if(!pd->active)
 			continue;
@@ -611,7 +609,7 @@ double page_table_t::get_total_performance(){
 		pid_t tid = t_it.first;
 
 		// And we sum them all if active
-		perform_data_t pd = perf_per_tid[tid];
+		rm3d_data_t pd = perf_per_tid[tid];
 		if(!pd.active)
 			continue;
 
@@ -623,68 +621,5 @@ double page_table_t::get_total_performance(){
 
 vector<double> page_table_t::get_perf_data(pid_t tid){
 	return perf_per_tid[tid].v_perfs;
-}
-
-/*** perf_data_t functions ***/
-void perf_data_t::print() const {
-	printf("MEM_NODE/CORE: %d, ACS_PER_NODE: {", current_place);
-
-	for(size_t i=0;i<system_struct_t::NUM_OF_MEMORIES;i++)
-		printf(" %d", acs_per_node[i]);
-	printf(" }");
-
-	if(num_acs_thres > 0)
-		printf(", UNIQ_ACS: %d, ACS_THRES: %d, MIN_LAT: %d, MEDIAN_LAT: %d, MAX_LAT: %d", num_uniq_accesses, num_acs_thres, min_latency, median_latency, max_latency);
-	printf("\n");
-}
-
-
-/*** perform_data_t functions ***/
-void perform_data_t::add_data(int cpu, long int inst, long int req, long int time){
-	active = true;
-
-	insts[cpu] += inst;
-	reqs[cpu] += req;
-	times[cpu] += time;
-}
-
-// Like Óscar did, after the sums for each CPU, the main formula is applied for each one and then stored in its mem node
-// [TOTHINK]: so, the last core always stores its value overwriting the previous ones? Must compare better with Óscar's code
-void perform_data_t::calc_perf(double mean_lat){
-	double inv_mean_lat = 1 / mean_lat;
-
-	for(int cpu = 0; cpu < system_struct_t::NUM_OF_CPUS; cpu++) {
-		if(reqs[cpu] == 0) // No data, bye
-			continue;
-
-		// Divide by zeros check should be made. It's assumed it won't happen if the thread is inactive
-		double inst_per_s = (double) insts[cpu] * 1000 / times[cpu]; // Óscar used inst/ms, so * 10^3
-		double inst_per_b = (double) insts[cpu] / (reqs[cpu] * CACHE_LINE_SIZE);
-
-		int cpu_node = system_struct_t::get_cpu_memory_cell(cpu);
-		v_perfs[cpu_node] = inv_mean_lat * inst_per_s * inst_per_b;
-
-		// Debug
-		//printf("PERF: %.2f, MEAN_LAT = %.2f, INST_S = %.2f, INST_B = %.2f\n", v_perfs[cpu_node], mean_lat, inst_per_s, inst_per_b);
-
-		index_last_node_calc = cpu_node;
-	}
-}
-
-void perform_data_t::reset() {
-	active = false;
-
-	fill(insts.begin(), insts.end(), 0);
-	fill(reqs.begin(), reqs.end(), 0);
-	fill(times.begin(), times.end(), 0);
-	fill(v_perfs.begin(), v_perfs.end(), PERFORMANCE_INVALID_VALUE);
-}
-
-void perform_data_t::print() const {
-	for(int cpu = 0; cpu < system_struct_t::NUM_OF_CPUS; cpu++)
-		printf("\tCPU: %d, INSTS = %lu, REQS = %lu, TIMES = %lu\n", cpu, insts[cpu], reqs[cpu], times[cpu]);
-
-	for(int node = 0; node < system_struct_t::NUM_OF_MEMORIES; node++)
-		printf("\tNODE: %d, PERF = %.2f\n", node, v_perfs[node]);
 }
 

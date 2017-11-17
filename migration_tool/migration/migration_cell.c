@@ -35,7 +35,7 @@ int migration_cell_t::perform_page_migration() const {
 
 	total_page_migrations++;
 
-	#ifdef MIGRATION_OUTPUT
+	#ifdef PG_MIGR_OUTPUT
 		printf("Migrated page number %016lx to node %d, status=%d", (long unsigned int) elem, dest, status);
 		if(status < 0)
 			printf(", err: %s", strerror(-status));
@@ -48,7 +48,7 @@ int migration_cell_t::perform_page_migration() const {
 int migration_cell_t::perform_thread_migration() const {
 	int ret = system_struct_t::set_tid_cpu((pid_t) elem, dest, true);
 
-	#ifdef MIGRATION_OUTPUT
+	#ifdef TH_MIGR_OUTPUT
 	printf("Migrated thread %d to core %d\n", (pid_t) elem, dest);
 	#endif
 

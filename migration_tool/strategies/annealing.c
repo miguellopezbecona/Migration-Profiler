@@ -161,13 +161,16 @@ vector<migration_cell_t> annealing_t::get_threads_to_migrate(page_table_t *page_
 
 	current_performance = page_t->get_total_performance();
 	double diff = current_performance / last_performance;
+
+	#ifdef TH_MIGR_OUTPUT
 	printf("\nCurrent Perf: %g. Last Perf: %g. Ratio: %g. SBM: %d\n",current_performance,last_performance,diff,get_time_value());
+	#endif
 
 	last_performance = current_performance;
 
-	if(diff < 0){ // First time or no data, so we do nothing
+	if(diff < 0) // First time or no data, so we do nothing
 		last_performance = current_performance; // Redundant, but we need an useless sentence
-	} else if(diff < 0.9) { // We are doing MUCH worse, go back
+	else if(diff < 0.9) { // We are doing MUCH worse, let's undo
 		time_go_up();
 		page_t->reset_performance();
 		

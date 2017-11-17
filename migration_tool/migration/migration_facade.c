@@ -45,7 +45,7 @@ void clean_migration_structures(){
 
 	// Final print for a specific analysis: PID, mean accesses and amount of pages
 /*
-	for(auto & it : page_tables){
+	for(auto const & it : page_tables){
 		page_table_t t = it.second;
 		size_t sz = t.uniq_addrs.size();
 		double mean = t.get_mean_acs_to_pages();
@@ -56,12 +56,13 @@ void clean_migration_structures(){
 
 	// Final print for a specific analysis: PID, mean latency
 /*
-	for(auto & it : page_tables){
+	for(auto const & it : page_tables){
 		page_table_t t = it.second;
-		double mean = t.get_mean_lat_to_pages();
-		printf("%d,%.2f\n", it.first, mean);
+		//t.print();
+		printf("PID: %d, total mean latency: %.2f\n", it.first, t.get_mean_lat_to_pages(););
 	}
 */
+
 	page_tables.clear();
 
 	#ifdef JUST_PROFILE
@@ -107,14 +108,7 @@ void work_with_fake_data(){
 		perform_migration_strategy(table);
 	}
 
-/*
-	for(auto & it : page_tables){
-		page_table_t t = it.second;
-		t.print();
-		t.print_performance();
-		printf("Mean of the number of page accesses for that PID: %.2f\n\n", t.get_mean_acs_to_pages());
-	}
-*/
+	clean_migration_structures();
 }
 
 int begin_migration_process(int do_thread_migration, int do_page_migration){
@@ -151,7 +145,7 @@ int begin_migration_process(int do_thread_migration, int do_page_migration){
 		table->remove_finished_tids();
 		//table->print();
 
-		perform_migration_strategy(table);
+		//perform_migration_strategy(table);
 	}
 	//printf("Going to perform the global strategy.\n");
 	//perform_migration_strategy(&page_tables);

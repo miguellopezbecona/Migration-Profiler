@@ -10,7 +10,8 @@
 // Needs to know the system
 #include "system_struct.h"
 
-#define MIGRATION_OUTPUT
+//#define PG_MIGR_OUTPUT
+#define TH_MIGR_OUTPUT
 
 extern int total_thread_migrations;
 extern int total_page_migrations;

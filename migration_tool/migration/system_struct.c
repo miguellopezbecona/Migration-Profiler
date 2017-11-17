@@ -74,7 +74,7 @@ int system_struct_t::detect_system() {
 
 
 	printf("Detected system: %d total CPUs, %d memory nodes, %d CPUs per node.\n", NUM_OF_CPUS, NUM_OF_MEMORIES, CPUS_PER_MEMORY);
-	print_node_distance_matrix();
+	//print_node_distance_matrix();
 
 	return 0;
 }
