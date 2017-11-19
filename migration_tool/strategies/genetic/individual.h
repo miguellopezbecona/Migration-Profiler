@@ -9,6 +9,7 @@ using namespace std;
 
 #include "gen_utils.h" // perf_data
 #include "../../migration/migration_cell.h"
+#include "../../migration/page_table.h"
 
 class individual {
 	private:

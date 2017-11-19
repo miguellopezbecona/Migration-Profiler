@@ -121,18 +121,14 @@ int system_struct_t::set_tid_cpu(pid_t tid, int cpu, bool do_pin){
 }
 
 void system_struct_t::remove_tid(pid_t tid, bool do_unpin){
+	int cpu = tid_cpu_map[tid];
 	tid_cpu_map.erase(tid);
 
-	for(int i=0; i<NUM_OF_CPUS; i++){
-		if(cpu_tid_map[i] == tid) {
-			cpu_tid_map[i] = FREE_CORE;
-			break;
-		}
-	}
-
 	// Already finished threads don't need unpin
-	if(do_unpin)
+	if(do_unpin){
+		cpu_tid_map[cpu] = FREE_CORE;
 		unpin_thread(tid);
+	}
 }
 
 bool system_struct_t::is_cpu_free(int cpu){
@@ -189,13 +185,13 @@ void system_struct_t::print_node_distance_matrix(){
 void set_affinity_error(pid_t tid){
 	switch(errno){
 		case EFAULT:
-			printf("Error setting affinity: A supplied memory address was invalid\n");
+			printf("Error setting affinity: A supplied memory address was invalid.\n");
 			break;
 		case EINVAL:
-			printf("Error setting affinity: The affinity bitmask mask contains no processors that are physically on the system, or cpusetsize is smaller than the size of the affinity mask used by the kernel\n");
+			printf("Error setting affinity: The affinity bitmask mask contains no processors that are physically on the system, or cpusetsize is smaller than the size of the affinity mask used by the kernel.\n");
 			break;
 		case EPERM:
-			printf("Error setting affinity: The calling process does not have appropriate privileges\n");
+			printf("Error setting affinity: The calling process does not have appropriate privileges for TID %d,\n", tid);
 			break;
 		case ESRCH: // When this happens, it's practically unavoidable
 			//printf("Error setting affinity: The process whose ID is %d could not be found\n", tid);

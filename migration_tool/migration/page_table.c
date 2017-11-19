@@ -1,20 +1,18 @@
 #include "page_table.h"
 
 /*** table_cell_t ***/
-table_cell_t::table_cell(int latency, bool is_cache_miss, int cpu){
+table_cell_t::table_cell(int latency, bool is_cache_miss){
 	latencies.push_back(latency);
 	cache_misses = (unsigned) is_cache_miss;
-	last_cpu_access = cpu;
 }
 
-void table_cell_t::update(int latency, bool is_cache_miss, int cpu){
+void table_cell_t::update(int latency, bool is_cache_miss){
 	latencies.push_back(latency);
 	cache_misses += (unsigned) is_cache_miss;
-	last_cpu_access = cpu;
 }
 
 void table_cell_t::print(){
-	printf("NUM_ACC %lu, MEAN_LAT %.2f, CACH_MIS: %u, LAST_CPU = %d\n", latencies.size(), accumulate(latencies.begin(), latencies.end(), 0.0) / latencies.size(), cache_misses, last_cpu_access);
+	printf("NUM_ACC %lu, MEAN_LAT %.2f, CACH_MIS: %u\n", latencies.size(), accumulate(latencies.begin(), latencies.end(), 0.0) / latencies.size(), cache_misses);
 }
 
 /*** page_table_t ***/
@@ -35,8 +33,6 @@ page_table_t::~page_table(){
 		it.second.acs_per_node.clear();
 	page_node_map.clear();
 
-	for(auto& it : tid_node_map)
-		it.second.acs_per_node.clear();
 	tid_node_map.clear();
 
 	for(auto& it : perf_per_tid){
@@ -57,7 +53,7 @@ int page_table_t::add_cell(long int page_addr, int current_node, pid_t tid, int 
 	table_cell_t *cell = get_cell(page_addr, tid);
 
 	if(cell == NULL) {
-		table_cell_t aux(latency, is_cache_miss, cpu);
+		table_cell_t aux(latency, is_cache_miss);
 		uniq_addrs.insert(page_addr); // Adds address to the set, won't be inserted if already added by other threads
 
 		// If TID does not exist in map, we associate a index to it
@@ -72,11 +68,12 @@ int page_table_t::add_cell(long int page_addr, int current_node, pid_t tid, int 
 		int pos = tid_index[tid];
 		table[pos][page_addr] = aux;
 	} else
-		cell->update(latency, is_cache_miss, cpu);
+		cell->update(latency, is_cache_miss);
 	
 	// Creates/updates association in page node map
-	perf_data_t *pd = &page_node_map[page_addr];
-	pd->current_place = current_node;
+	pg_perf_data_t *pd = &page_node_map[page_addr];
+	pd->last_cpu_access = cpu;
+	pd->current_node = current_node;
 	pd->acs_per_node[cpu_node]++;
 
 	return 0;
@@ -174,7 +171,7 @@ void page_table_t::print() {
 			long int page_addr = it.first;
 			table_cell_t cell = it.second;
 			
-			printf("\tPAGE_ADDR: %lx, CURRENT_NODE: %d, ", page_addr, page_node_map[page_addr].current_place);
+			printf("\tPAGE_ADDR: %lx, CURRENT_NODE: %d, ", page_addr, page_node_map[page_addr].current_node);
 			cell.print();
 		}
 		printf("\n");
@@ -290,7 +287,7 @@ void page_table_t::print_table1(){
 		for(auto const & it : table[pos]) {
 			page_addr = it.first;
 			cell = it.second;
-			page_node = page_node_map[page_addr].current_place;
+			page_node = page_node_map[page_addr].current_node;
 			counters[page_node] += cell.latencies.size(); // What if those accesses were done when page was in another node?...
 		}
 
@@ -396,7 +393,7 @@ void page_table_t::calculate_performance_page(int threshold){
 		}
 
 		// Updates data in map
-		perf_data_t *cell = &page_node_map[addr];
+		pg_perf_data_t *cell = &page_node_map[addr];
 		cell->num_uniq_accesses = threads_accessed;
 		cell->num_acs_thres = num_acs_thres;
 
@@ -437,8 +434,7 @@ void page_table_t::calculate_performance_tid(int threshold){
 		}
 
 		// After all the internal iterations ends, updates data in TID map
-		perf_data_t *cell = &tid_node_map[tid];
-		cell->current_place = system_struct_t::get_cpu_from_tid(tid);
+		th_perf_data_t *cell = &tid_node_map[tid];
 		cell->num_uniq_accesses = pages_accessed;
 		cell->num_acs_thres = num_acs_thres;
 
@@ -476,6 +472,28 @@ void page_table_t::print_performance() const {
 	}
 }
 
+// Since pages are associated to processes rather to global system, this step is necessary to have consistent locations
+void page_table_t::update_page_locations(vector<migration_cell_t> pg_migr){
+	for(migration_cell_t const & pgm : pg_migr){
+		long int addr = pgm.elem;
+		short new_dest = pgm.dest;
+		page_node_map[addr].current_node = new_dest;
+	}
+}
+
+/*** Functions made for replicating Óscar's work ***/
+vector<int> page_table_t::get_lats_for_tid(pid_t tid){
+	vector<int> v;
+
+	int pos = tid_index[tid];
+	for (auto const & it : table[pos]){
+		vector<int> ls = it.second.latencies;
+		v.insert(v.end(), ls.begin(), ls.end()); // Appends latencies to main list
+	}
+
+	return v;
+}
+
 // Gets the mean of the number of accesses of all pages for the whole table
 double page_table_t::get_mean_acs_to_pages(){
 	vector<short> v;
@@ -500,14 +518,8 @@ double page_table_t::get_mean_lat_to_pages(){
 
 	// We loop over TIDs
 	for(auto const & t_it : tid_index) {
-		int pos = t_it.second;
-		
-		// We get latencies for each cell for that TID
-		for(auto const & it : table[pos]) {
-			table_cell_t cell = it.second;
-			vector<int> ls = cell.latencies;
-			v.insert(v.end(), ls.begin(), ls.end()); // Appends latencies to main list
-		}
+		vector<int> ls = get_lats_for_tid(t_it.first);
+		v.insert(v.end(), ls.begin(), ls.end()); // Appends latencies to main list
 	}
 
 	// ... and then we calculate the total mean for all the table
@@ -576,7 +588,7 @@ pid_t page_table_t::normalize_perf_and_get_worst_thread(){
 
 	mean_perf /= active_threads;
 
-	// We loop over TIDs
+	// We loop over TIDs again for normalising
 	for(auto const & t_it : tid_index) {
 		pid_t tid = t_it.first;
 		rm3d_data_t* pd = &perf_per_tid[tid];
@@ -601,7 +613,7 @@ void page_table_t::reset_performance(){
 }
 
 // Sum of last_performance for all active threads
-double page_table_t::get_total_performance(){
+double page_table_t::get_total_performance() {
 	double val = 0.0;
 
 	// We loop over TIDs

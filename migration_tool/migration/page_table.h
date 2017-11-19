@@ -12,18 +12,18 @@
 using namespace std;
 
 #include "system_struct.h" // Needs to know the system
+#include "migration_cell.h"
 #include "performance.h"
 #include "../utils.h"
 
 typedef struct table_cell {
 	vector<int> latencies;
 	unsigned cache_misses;
-	unsigned last_cpu_access;
 
 	table_cell(){}
-	table_cell(int latency, bool is_cache_miss, int cpu);
+	table_cell(int latency, bool is_cache_miss);
 	void print();
-	void update(int latency, bool is_cache_miss, int cpu);
+	void update(int latency, bool is_cache_miss);
 } table_cell_t;
 
 typedef map<long int, table_cell_t> column; // Each column of the table, defined with typedef for readibility
@@ -33,10 +33,10 @@ typedef struct page_table {
 	set<long int> uniq_addrs; // All different addresses used in this table, useful for heatmap printing
 	map<int, short> tid_index; // Translates TID to row index
 
-	map<long int, perf_data_t> page_node_map; // Maps page address to memory node and other data
+	map<long int, pg_perf_data_t> page_node_map; // Maps page address to memory node and other data
 
 	// Using long int as key to use along the previous one as function parameter
-	map<long int, perf_data_t> tid_node_map; // Maps TID to memory node and other data
+	map<long int, th_perf_data_t> tid_node_map; // Maps TID to memory node and other data
 
 	map<pid_t, rm3d_data_t> perf_per_tid; // Maps TID to Óscar's performance data
 
@@ -56,10 +56,10 @@ typedef struct page_table {
 
 	void calculate_performance_page(int threshold);
 	void calculate_performance_tid(int threshold);
-	void calculate_performance(int threshold); // Intended to unify the two above
 	void print_performance() const;
+	void update_page_locations(vector<migration_cell_t> pg_migr);
 
-	// Code made for replicate Óscar's work
+	// Code made for replicating Óscar's work
 	void add_inst_data_for_tid(pid_t tid, int core, long int insts, long int req_dr, long int time);
 	void calc_perf(); // Óscar's definition of performance
 	pid_t normalize_perf_and_get_worst_thread();
@@ -67,6 +67,7 @@ typedef struct page_table {
 	double get_total_performance();
 	vector<double> get_perf_data(pid_t tid);
 
+	vector<int> get_lats_for_tid(pid_t tid);
 	double get_mean_acs_to_pages();
 	double get_mean_lat_to_pages();
 

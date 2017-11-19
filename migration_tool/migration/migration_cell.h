@@ -4,15 +4,20 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-// For numa_move_pages, link with -lnuma
+// For numa_move_pages
 #include <numa.h>
 #include <numaif.h>
 
 #include "system_struct.h"
-#include "migration_algorithm.h"
+
+//#define PG_MIGR_OUTPUT
+#define TH_MIGR_OUTPUT
 
 // We need to know what to migrate and where
 typedef struct migration_cell {
+	static int total_thread_migrations;
+	static int total_page_migrations;
+
 	long int elem; // Core or page address
 	short dest; // Mem node for pages or core for TIDs
 	short prev_dest; // Useful for undoing migrations

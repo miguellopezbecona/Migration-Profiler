@@ -3,6 +3,7 @@
 #include <vector>
 using namespace std;
 
+#include "../migration/page_table.h"
 #include "../migration/migration_cell.h"
 
 typedef struct strategy {

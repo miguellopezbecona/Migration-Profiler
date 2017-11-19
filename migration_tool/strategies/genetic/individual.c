@@ -13,7 +13,7 @@ individual::individual(map<pid_t, page_table_t> ts){
 
 		// Creates gens based on its page maps
 		for(auto const & it2 : t.page_node_map){
-			migration_cell_t mc(it2.first, it2.second.current_place, pid, false);
+			migration_cell_t mc(it2.first, it2.second.current_node, pid, false);
 			v.push_back(mc);
 		}
 

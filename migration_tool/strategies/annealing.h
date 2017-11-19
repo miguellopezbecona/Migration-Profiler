@@ -25,5 +25,6 @@ typedef struct labeled_migr {
 typedef struct annealing : strategy {
 	// Only valid for threads
 	vector<migration_cell_t> get_threads_to_migrate(page_table_t *page_t);
+	vector<migration_cell_t> get_threads_to_migrate(map<pid_t, page_table_t> *page_ts);
 } annealing_t;
 

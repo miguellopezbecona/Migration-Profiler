@@ -346,8 +346,8 @@ static void clean_end(int n) {
 	//#endif
 
 	#if ! defined(JUST_PROFILE) //&& defined(EVENT_OUTPUT)
-	printf("%d thread migrations made.\n", total_thread_migrations);
-	printf("%d page migrations made.\n", total_page_migrations);
+	printf("%d thread migrations made.\n", migration_cell_t::total_thread_migrations);
+	printf("%d page migrations made.\n", migration_cell_t::total_page_migrations);
 	#endif
 
 	exit(0);

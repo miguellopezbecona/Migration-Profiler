@@ -101,12 +101,7 @@ void work_with_fake_data(){
 	page_tables[1000] = t2;
 */
 	pages(step, pids, memory_list, inst_list, &page_tables);
-	pids.insert(500);
-
-	for (pid_t const & pid : pids){		
-		page_table* table = &page_tables[500];
-		perform_migration_strategy(table);
-	}
+	perform_migration_strategy(&page_tables);
 
 	clean_migration_structures();
 }
@@ -145,10 +140,10 @@ int begin_migration_process(int do_thread_migration, int do_page_migration){
 		table->remove_finished_tids();
 		//table->print();
 
-		//perform_migration_strategy(table);
+		perform_migration_strategy(table);
 	}
 	//printf("Going to perform the global strategy.\n");
-	//perform_migration_strategy(&page_tables);
+	perform_migration_strategy(&page_tables);
 
 	step++;
 
