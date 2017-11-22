@@ -1,9 +1,9 @@
 ## Overview
 This application is a profiler which potentially will use thread and page migration in order to improve efficiency in multi-threaded applications, specially in NUMA systems. It uses PEBS sampling to obtain information from hardware counters so it can analyze system's performance and make choices to improve it. It is heavily based on the work done by Óscar García Lorenzo for his PhD.
 
-The repository includes a test application to be profiled called `ABC`. It performs a simple element by element vector product which can be very customizable with options such as array size, CPUs to be used, number of repetitions, intensity of each iteration, etc.
+The repository includes a test multithreaded application to be profiled called `ABC`. It performs a simple element by element vector product which can be very customizable with options such as array size, CPUs to be used, number of repetitions, intensity of each iteration, etc.
 
-The app includes a simple mode where it just dumps the hardware counter data to CSV files, and the process hierarchy into JSON files. To activate it, you have to uncomment the `JUST_PROFILE` macro defined in `migration/migration_facade.h`. Each pair of files will be generated each `ELEMS_PER_PRINT` (defined in the same header) general samples (mixing instructions and memory ones). Other macros can be commented/uncommented to increase/decrease the amount of printing, such as `EVENT_OUTPUT` in `my_profiler.c`, `GENETIC_OUTPUT` in `strategies/genetic.h`, `PERFORMANCE_OUTPUT` in `strategies/page_ops.h` or `TH_MIGR_OUTPUT` and `PG_MIGR_OUTPUT` in `migration/migration_algorithm.h`.
+The app includes a simple mode where it just dumps the hardware counter data to CSV files, and the process hierarchy into JSON files. To activate it, you have to uncomment the `JUST_PROFILE` macro defined in `migration/migration_facade.h`. Each pair of files will be generated each `ELEMS_PER_PRINT` (defined in the same header) general samples (mixing instructions and memory ones). Other macros can be commented/uncommented to increase/decrease the amount of printing, such as `EVENT_OUTPUT` in `my_profiler.c`, `ANNEALING_OUTPUT` in `strategies/annealing.h`, `GENETIC_OUTPUT` in `strategies/genetic.h`, `PERFORMANCE_OUTPUT` in `strategies/page_ops.h` or `TH_MIGR_OUTPUT` and `PG_MIGR_OUTPUT` in `migration/migration_algorithm.h`.
 
 Aside from that mode, the app can also print, each `ITERATIONS_PER_PRINT` (defined in `migration/page_ops.h`) iterations, some additional CSV files that can be plotted a posteriori using *heatmaps.R* file to analyze the system's "state". It depends if the `PRINT_CSVS` macro is defined, currently commented in the previously mentioned header file. Currently, 5 different CSV are generated each time:
 
@@ -21,12 +21,12 @@ Some Linux systems may also require having the enviroment variable `LD_LIBRARY_P
 export LD_LIBRARY_PATH=.
 ```
 
-If you just want to build the profiler, you can use the Makefile inside the source code folder. I have already facilitated a bash script to also execute it along with the ABC program. Just go to the source code folder and execute "test" script:
+If you just want to build the profiler, you can use the Makefile inside the source code folder. I have already facilitated two bash scripts, one to also execute it along with the ABC program and another one to execute the profiler until you kill it, because in normal conditions it never ends and needs a `SIGINT` (Ctrl+C) signal to end in a clean way. Just go to the source code folder and execute "test" or "test_forever" script:
 ```bash
 bash test.sh [NUMA option]
 ```
 
-Both the ABC and the profiler use some static parameters described below. You can obviously edit the script freely to change them. The profiler never ends and needs a `SIGINT` (Ctrl+C) signal to end in a clean way. Now the ABC and profiler parameters will be described:
+Both the ABC and the profiler use some static parameters described below. You can obviously edit the script freely to change them. Now the ABC and profiler parameters will be described:
 
 * `ABC`
   - `-b`: how many consecutive chunks will every thread work in (default: 1).

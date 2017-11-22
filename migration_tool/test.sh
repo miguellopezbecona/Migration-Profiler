@@ -1,6 +1,6 @@
 #!/bin/bash
 
-execname=my_profiler_tm
+profname=my_profiler_tm
 profparams="-s1000 -l250 -p650 -P100000000"
 #profparams="-s500 -l50 -p300 -P50000000"
 #profparams="-s3500 -l750 -p1000 -P7500000"
@@ -36,45 +36,52 @@ fi
 
 # Set to what you want to profile. A bit deprecated since now the profiler analyzes everything
 #toprofile="numactl --physcpubind 1,2,3 ./ABC -m0 -r5000 -s5000000 -t8"
-toprofile=~/NPB3.3.1/NPB3.3-OMP/bin/lu.B.x
+toprofile="./ABC -m0 -r5000 -s10000000 -t8"
+#toprofile=~/NPB3.3.1/NPB3.3-OMP/bin/lu.B.x
 #toprofile=~/NPB3.3.1/NPB3.3-OMP/bin/bt.C.x
 
 # Executes app to profile in background along with the profiler
-nohup $toprofile &>/dev/null &
-$numacommand ./$execname $profparams
+./$profname $profparams &
+$numacommand $toprofile &>/dev/null
+toprofpid=$(($!+1)) # Keeps app PID (probably)
+
+pkill -2 $profname # Ends profiler cleanly when the other app finishes
 
 # Does not continue if there was an error
 if [ $? -ne 0 ]; then
 	exit $?
 fi
 
-exit 1
+# Does file preprocessing if PRINT_CSVS was uncommented and CSV files exist
 
-# Does file preprocessing if any CSV file exists
-ls .csv &> /dev/null
+grep "\/\/#define PRINT_CSVS" migration/pages_ops.h
+if [ $? -eq 0 ]; then
+	exit 0
+fi
+
+ls acs_*.csv &> /dev/null
 if [ $? -ne 0 ]; then
 	exit 0
 fi
 
-
-### Preprocessing of generated files
+### Preprocessing of generated files (the ones with PRINT_CSVS macro, not JUST_PROFILE)
 
 # Removes last comma from each CSV
 sed -i 's/.$//' acs_*.csv max_*.csv min_*.csv avg_*.csv
 
 # Latest step index of generated files
-latest=$(ls -v acs_*.csv | tail -n 1 | sed -r "s/acs_([0-9]+).csv/\1/g")
+latest=$(ls -v acs_${toprofpid}_*.csv | tail -n 1 | sed -r "s/acs_${toprofpid}_([0-9]+).csv/\1/g")
 
 # Deletes non-final CSVs (it is not necessary)
-find . -maxdepth 1 ! -name "*_$latest.csv" | grep .csv | xargs rm
+find . -maxdepth 1 ! -name "*_${toprofpid}_$latest.csv" | grep .csv | xargs rm
 
 # Renames final CSVs
 nummemorynodes=$(numactl --hardware | head -n 1 | cut -d ' ' -f 2)
 
 if [ $nummemorynodes -eq 1 ]
 then
-	rename "s/_$latest//g" *.csv # This works in local
+	rename "s/_${toprofpid}_$latest//g" *.csv # This works in local
 else
-	rename "_$latest" "" *.csv # This works in server
+	rename "_${toprofpid}_$latest" "" *.csv # This works in server
 fi
 

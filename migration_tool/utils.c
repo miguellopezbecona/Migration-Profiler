@@ -101,7 +101,7 @@ vector<pid_t> get_children_processes(pid_t pid){
 	vector<pid_t> v;
 	vector<pid_t> tids = get_tids(pid); // To know which task folders to search
 
-	for(pid_t tid : tids){
+	for(pid_t const & tid : tids){
 		pid_t cpid;
 		char filename[32] = "\0";
 		FILE *file = NULL;
