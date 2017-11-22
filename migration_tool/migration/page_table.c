@@ -180,7 +180,7 @@ void page_table_t::print() {
 
 void page_table_t::print_heatmaps(FILE **fps, int num_fps){
 	// This is for writing number of accesses by each thread in the last row
-	int accesses[system_struct_t::NUM_OF_CPUS];
+	int accesses[tid_index.size()];
 	memset(accesses, 0, sizeof(accesses));
 
 	// First line of each CSV file: column header
@@ -234,7 +234,7 @@ void page_table_t::print_heatmaps(FILE **fps, int num_fps){
 	// After all addresses (rows) are processed, we print number of accesses by each thread in the last row
 	for(int i=0;i<num_fps;i++){
 		fprintf(fps[i], "num_accesses,"); // Rowname
-		for(int j=0;j<system_struct_t::NUM_OF_CPUS;j++)
+		for(int j=0;j<tid_index.size();j++)
 			fprintf(fps[i], "%d,", accesses[j]);
 	}
 
@@ -466,10 +466,12 @@ void page_table_t::print_performance() const {
 */
 
 	// Óscar's
+/*
 	for (auto const & it : perf_per_tid){
 		printf("Per-core performance for thread %d:\n", (int) it.first);
 		it.second.print();
 	}
+*/
 }
 
 // Since pages are associated to processes rather to global system, this step is necessary to have consistent locations

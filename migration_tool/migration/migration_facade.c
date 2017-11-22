@@ -140,10 +140,14 @@ int begin_migration_process(int do_thread_migration, int do_page_migration){
 		table->remove_finished_tids();
 		//table->print();
 
+		#ifdef DO_MIGRATIONS
 		perform_migration_strategy(table);
+		#endif
 	}
+	#ifdef DO_MIGRATIONS
 	//printf("Going to perform the global strategy.\n");
 	perform_migration_strategy(&page_tables);
+	#endif
 
 	step++;
 

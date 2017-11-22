@@ -106,9 +106,9 @@ int pages(unsigned int step, set<pid_t> pids, memory_data_list_t m_list, inst_da
 			//t.print_table1();
 			//t.print_table2();
 
-			//t.calculate_performance_tid(1000);
-			//t.calculate_performance_page(1000);
-			//t.print_performance();
+			t.calculate_performance_tid(1000);
+			t.calculate_performance_page(1000);
+			t.print_performance();
 		}
 
 	}
