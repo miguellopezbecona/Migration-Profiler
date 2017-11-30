@@ -65,3 +65,100 @@ void rm3d_data_t::print() const {
 		printf("\tNODE: %d, PERF = %.2f\n", node, v_perfs[node]);
 }
 
+
+/*** Experimental structures code ***/
+perf_table_t tid_cpu_table; // system_struct_t::NUM_OF_CPUS is not passed because it's not calculated in this point
+
+/** perf_cell **/
+perf_cell_t::perf_cell(){
+	num_acs = 0;
+	mean_lat = 0.0;
+}
+
+perf_cell_t::perf_cell(double lat){
+	num_acs = 1;
+	mean_lat = lat;
+}
+
+void perf_cell_t::update_mlat(double lat){
+	mean_lat = (mean_lat*num_acs + lat) / (num_acs + 1);
+	num_acs++;
+}
+
+bool perf_cell_t::is_filled() const {
+	return num_acs > 0;
+}
+
+void perf_cell_t::print() const {
+	if(!is_filled())
+		printf("Not filled.\n");
+	else
+		printf("NUM_ACS: %d, MEAN_LAT: %.2f\n", num_acs, mean_lat);
+}
+
+/** perf_table **/
+double perf_table_t::alfa = 1.0;
+
+perf_table_t::perf_table(){
+	coln = 1;
+}
+
+perf_table_t::perf_table(unsigned short n){
+	coln = n;
+}
+
+perf_table_t::~perf_table(){
+	// Frees pointer for each row
+	for(auto const & it : table)
+		free(it.second);
+
+	table.clear();
+}
+
+bool perf_table_t::has_key(long int key){
+	return table.count(key) > 0;
+}
+
+void perf_table_t::remove_key(long int key){
+	table.erase(key);
+}
+
+// When we define a sole performance metric, we should apply an aging technique
+void perf_table_t::add_data(long int key, int col_num, double lat){
+	if(has_key(key)) // Entry already exists, just updates mean latency
+		table[key][col_num].update_mlat(lat);
+	else { // No entry. We create it and we enter initial latency in the selected CPU
+		table[key] = (perf_cell_t*)malloc(coln*sizeof(perf_cell_t));
+		
+		for(int i=0;i<coln;i++){
+			perf_cell_t pc;
+			table[key][i] = pc;
+		}
+
+		table[key][col_num].update_mlat(lat);	
+	}
+}
+
+void perf_table_t::print() const {
+	const char* const keys[] = {"TID", "Page address"};
+	const char* const colns[] = {"CPU", "Node"};
+	bool is_page_table = (coln == system_struct_t::NUM_OF_MEMORIES);
+
+	printf("Printing perf table (%s/%s type)\n", keys[is_page_table], colns[is_page_table]);
+
+	// Prints each row
+	for(auto const & it : table) {
+		pid_t tid = it.first;
+		perf_cell_t *pc = it.second;
+
+		printf("%s: %d\n", keys[is_page_table], tid);
+		
+		// Prints each cell
+		for(int i=0;i<coln;i++){
+			printf("\t%s %d: ", colns[is_page_table], i);
+			pc[i].print();
+		}
+	}
+
+	printf("\n");
+}

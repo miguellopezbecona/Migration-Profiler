@@ -360,6 +360,8 @@ int mainloop(char **arg) {
 	pgsz = sysconf(_SC_PAGESIZE);
 	map_size = (options.mmap_pages+1)*pgsz;
 
+	tid_cpu_table.coln = system_struct_t::NUM_OF_CPUS; // Badly done because NUM_OF_CPUS is gotten in execution time
+
 	#ifdef FAKE_DATA
 	work_with_fake_data();
 	return 0;

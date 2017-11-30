@@ -16,7 +16,7 @@ void table_cell_t::print(){
 }
 
 /*** page_table_t ***/
-page_table_t::page_table(pid_t p){
+page_table_t::page_table(pid_t p) : page_node_table(system_struct_t::NUM_OF_MEMORIES) {
 	pid = p;
 	table.resize(system_struct_t::NUM_OF_CPUS);
 }
@@ -75,6 +75,10 @@ int page_table_t::add_cell(long int page_addr, int current_node, pid_t tid, int 
 	pd->last_cpu_access = cpu;
 	pd->current_node = current_node;
 	pd->acs_per_node[cpu_node]++;
+
+	// Creates/updates association in experimental table
+	// [TOTHINK]: right now, we are storing accesses and latencies using the node where the page is, maybe it should be done regarding the CPU source of the access?
+	page_node_table.add_data(page_addr, current_node, latency);
 
 	return 0;
 }
@@ -472,6 +476,10 @@ void page_table_t::print_performance() const {
 		it.second.print();
 	}
 */
+
+	// Experimental table
+	printf("Page table por PID: %d\n", pid);
+	page_node_table.print();
 }
 
 // Since pages are associated to processes rather to global system, this step is necessary to have consistent locations

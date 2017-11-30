@@ -33,12 +33,14 @@ typedef struct page_table {
 	set<long int> uniq_addrs; // All different addresses used in this table, useful for heatmap printing
 	map<int, short> tid_index; // Translates TID to row index
 
-	map<long int, pg_perf_data_t> page_node_map; // Maps page address to memory node and other data
+	map<long int, pg_perf_data_t> page_node_map; // Maps page address to memory node and other data (may be redundant with page_node_table)
 
 	// Using long int as key to use along the previous one as function parameter
-	map<long int, th_perf_data_t> tid_node_map; // Maps TID to memory node and other data
+	map<long int, th_perf_data_t> tid_node_map; // Maps TID to memory node and other data (a bit deprecated)
 
 	map<pid_t, rm3d_data_t> perf_per_tid; // Maps TID to Óscar's performance data
+
+	perf_table_t page_node_table; // Experimental table for memory pages
 
 	pid_t pid;
 
@@ -71,7 +73,7 @@ typedef struct page_table {
 	double get_mean_acs_to_pages();
 	double get_mean_lat_to_pages();
 
-	// More info about the definitions in .c file
+	// More info about the definitions in source file
 	void print_heatmaps(FILE **fps, int num_fps);
 	void print_alt_graph(FILE *fp);
 	void print_table1();

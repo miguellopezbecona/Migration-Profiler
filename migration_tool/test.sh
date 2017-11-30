@@ -78,10 +78,10 @@ find . -maxdepth 1 ! -name "*_${toprofpid}_$latest.csv" | grep .csv | xargs rm
 # Renames final CSVs
 nummemorynodes=$(numactl --hardware | head -n 1 | cut -d ' ' -f 2)
 
-if [ $nummemorynodes -eq 1 ]
+if [ $nummemorynodes -ne 2 ]
 then
-	rename "s/_${toprofpid}_$latest//g" *.csv # This works in local
+	rename "s/_${toprofpid}_$latest//g" *.csv # This works in local and in new NUMA server
 else
-	rename "_${toprofpid}_$latest" "" *.csv # This works in server
+	rename "_${toprofpid}_$latest" "" *.csv # This works in old Xeon server
 fi
 

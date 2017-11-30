@@ -12,11 +12,7 @@
 // How many samples do you want to log in the CSV files in JUST_PROFILE mode?
 #define ELEMS_PER_PRINT 1000000
 
-#define DO_MIGRATIONS
-
-// These will probably be discarded
-#define ACTIVATE_THREAD_MIGRATION 0
-#define ACTIVATE_PAGE_MIGRATION 1
+//#define DO_MIGRATIONS
 
 void add_data_to_list(my_pebs_sample_t sample);
 int begin_migration_process(int do_thread_migration, int do_page_migration);

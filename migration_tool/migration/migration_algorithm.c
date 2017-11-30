@@ -5,41 +5,41 @@
 #include "../strategies/genetic.h"
 #include "../strategies/random.h"
 
-int total_thread_migrations = 0;
-int total_page_migrations = 0;
-
 // Strategies PID-independent
 int perform_migration_strategy(page_table_t *page_t){
-	// Let's asume we do a thread and a page migration each iteration
+	// You can mix strategies at your wish
 
-	// Uncomment for random strategy
-/*
+	vector<migration_cell_t> ths_migr;
+	vector<migration_cell_t> pages_migr;
+
+	#ifdef USE_RAND_ST
 	random_t rand_st;
-	vector<migration_cell_t> ths_migr = rand_st.get_threads_to_migrate(page_t);
+	ths_migr = rand_st.get_threads_to_migrate(page_t);
 	for(migration_cell_t const & thm : ths_migr)
 		thm.perform_thread_migration();
 
-	vector<migration_cell_t> pages_migr = rand_st.get_pages_to_migrate(page_t);
+	pages_migr = rand_st.get_pages_to_migrate(page_t);
 	for(migration_cell_t const & pgm : pages_migr)
 		pgm.perform_page_migration();
 	page_t->update_page_locations(pages_migr);
-*/
+	#endif
 
 	// First touch policy for pages
+	#ifdef USE_FIRST_ST
 	first_touch_t ft_st;
-	vector<migration_cell_t> pages_migr = ft_st.get_pages_to_migrate(page_t);
+	pages_migr = ft_st.get_pages_to_migrate(page_t);
 	for(migration_cell_t const & pgm : pages_migr)
 		pgm.perform_page_migration();
 	page_t->update_page_locations(pages_migr);
+	#endif
 
-
-	// Annealing strategy for threads, better as a global strategy
-/*
+	// Annealing strategy for threads, should be better as global strategy, but it didn't seem so...
+	#ifdef USE_ANNEA_ST
 	annealing_t a_st;
-	vector<migration_cell_t> ths_migr = a_st.get_threads_to_migrate(page_t);
+	ths_migr = a_st.get_threads_to_migrate(page_t);
 	for(migration_cell_t const & thm : ths_migr)
 		thm.perform_thread_migration();
-*/
+	#endif
 
 	return 0;
 }
@@ -65,13 +65,16 @@ void handle_error(int errn, migration_cell_t mc, map<pid_t, page_table_t> *page_
 
 // All-system level strategies
 int perform_migration_strategy(map<pid_t, page_table_t> *page_ts){
-	// Uncomment for initial version of a genetic
-/*
+	vector<migration_cell_t> ths_migr;
+	vector<migration_cell_t> pgs_migr;
+
+	// Very initial version of a genetic approach
+	#ifdef USE_GEN_ST
 	genetic_t gen_st;
-	vector<migration_cell_t> pages_gen = gen_st.get_pages_to_migrate(page_ts);
+	pgs_migr = gen_st.get_pages_to_migrate(page_ts);
 
 	// Performs generated migrations. It must handle possible errors
-	for(migration_cell_t const & pgm : pages_gen){
+	for(migration_cell_t const & pgm : pgs_migr){
 		int ret = pgm.perform_migration();
 		
 		if(ret != 0){ // There was an error
@@ -81,13 +84,17 @@ int perform_migration_strategy(map<pid_t, page_table_t> *page_ts){
 			return ret;
 		}
 	}
-*/
+	#endif
 
-	// Annealing strategy for threads
+	// Annealing strategy for threads. Does not work very well in this global version
+/*
+	#ifdef USE_ANNEA_ST
 	annealing_t a_st;
 	vector<migration_cell_t> ths_migr = a_st.get_threads_to_migrate(page_ts);
 	for(migration_cell_t const & thm : ths_migr)
 		thm.perform_thread_migration();
+	#endif
+*/
 
 	return 0;
 }

@@ -11,6 +11,8 @@
 #include "inst_list.h"
 #include "page_table.h"
 
+#include "migration_algorithm.h" // For checking strategy macros
+
 //#define PERFORMANCE_OUTPUT
 
 //#define PRINT_CSVS

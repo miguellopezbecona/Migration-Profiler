@@ -101,7 +101,11 @@ void work_with_fake_data(){
 	page_tables[1000] = t2;
 */
 	pages(step, pids, memory_list, inst_list, &page_tables);
-	perform_migration_strategy(&page_tables);
+
+	tid_cpu_table.print(); // Debugging purposes
+
+	//perform_migration_strategy(&page_tables);
+	perform_migration_strategy(&page_tables[500]);
 
 	clean_migration_structures();
 }
@@ -118,11 +122,13 @@ int begin_migration_process(int do_thread_migration, int do_page_migration){
 	//printf("\nPrinting instructions list...\n");
 	//inst_list.print();
 
+	#ifdef USE_ANNEA_ST	// Useless if we don't use annealing strategy
 	inst_list.create_increments();
 	//printf("Printing inst list after creating increments...\n");
 	//inst_list.print();
+	#endif
 
-	// Builds pages tables for each PID
+	// Builds page tables for each PID
 	pages(step, pids, memory_list, inst_list, &page_tables);
 
 	// For each active PID, cleans "dead" TIDs from its table and it can perform a single-process migration strategy

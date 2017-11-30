@@ -1,9 +1,11 @@
 ## Overview
-This application is a profiler which potentially will use thread and page migration in order to improve efficiency in multi-threaded applications, specially in NUMA systems. It uses PEBS sampling to obtain information from hardware counters so it can analyze system's performance and make choices to improve it. It is heavily based on the work done by Óscar García Lorenzo for his PhD.
+This application is a profiler which potentially will use thread and page migration in order to improve efficiency in multi-threaded applications in manycore NUMA systems. It uses PEBS sampling to obtain information from hardware counters so it can analyze system's performance and make choices to improve it. It is heavily based on the work done by Óscar García Lorenzo for his PhD.
 
-The repository includes a test multithreaded application to be profiled called `ABC`. It performs a simple element by element vector product which can be very customizable with options such as array size, CPUs to be used, number of repetitions, intensity of each iteration, etc.
+Its source code is stored in `migration_tool` folder. The other folders are used for utils, mainly. The main source code includes a test OpenMP multithreaded application to be profiled called `ABC`. It performs a simple element by element vector product which can be very customizable with options such as array size, CPUs to be used, number of repetitions, intensity of each iteration, etc.
 
 The app includes a simple mode where it just dumps the hardware counter data to CSV files, and the process hierarchy into JSON files. To activate it, you have to uncomment the `JUST_PROFILE` macro defined in `migration/migration_facade.h`. Each pair of files will be generated each `ELEMS_PER_PRINT` (defined in the same header) general samples (mixing instructions and memory ones). Other macros can be commented/uncommented to increase/decrease the amount of printing, such as `EVENT_OUTPUT` in `my_profiler.c`, `ANNEALING_OUTPUT` in `strategies/annealing.h`, `GENETIC_OUTPUT` in `strategies/genetic.h`, `PERFORMANCE_OUTPUT` in `strategies/page_ops.h` or `TH_MIGR_OUTPUT` and `PG_MIGR_OUTPUT` in `migration/migration_algorithm.h`.
+
+Macros are used as well to control what migration strategies will be used. Those are in `migration/migration_algorithm.h` and you can comment or uncomment them to choose your own combination of strategies.
 
 Aside from that mode, the app can also print, each `ITERATIONS_PER_PRINT` (defined in `migration/page_ops.h`) iterations, some additional CSV files that can be plotted a posteriori using *heatmaps.R* file to analyze the system's "state". It depends if the `PRINT_CSVS` macro is defined, currently commented in the previously mentioned header file. Currently, 5 different CSV are generated each time:
 
@@ -21,7 +23,7 @@ Some Linux systems may also require having the enviroment variable `LD_LIBRARY_P
 export LD_LIBRARY_PATH=.
 ```
 
-If you just want to build the profiler, you can use the Makefile inside the source code folder. I have already facilitated two bash scripts, one to also execute it along with the ABC program and another one to execute the profiler until you kill it, because in normal conditions it never ends and needs a `SIGINT` (Ctrl+C) signal to end in a clean way. Just go to the source code folder and execute "test" or "test_forever" script:
+If you just want to build the profiler, you can use the Makefile inside the source code folder. I have already facilitated two bash scripts, one to also execute it along with the ABC program and another one to execute the profiler until you kill it, because in normal conditions it never ends and needs a `SIGINT` (Ctrl+C) signal to end in a clean way. Just go to the source code folder and execute "test" or "forever_test" script:
 ```bash
 bash test.sh [NUMA option]
 ```
@@ -60,9 +62,9 @@ The following list explains briefly the components regarding the main execution 
 * `migration/page_table`: it consists in a matrix defined as a vector of maps, where the rows (number of vectors) would be the number of TIDs, while the columns would be the memory pages' addresses. Each "profilable" process will be associated with one table. So, for each access a thread does to a memory page, this structure holds a cell with latencies, cache misses and another potential relevant information. Here is an example:
 ![Example page table](https://raw.githubusercontent.com/miguellopezbecona/Migration-Profiler/master/img/example_table.png)
 Another option was implementing it as a single map with a pair of two values as key, but that would make inefficient the looping over a specific row (TID) or a specific column (page address). TID indexing is done by a simple "bad hash" using a counter rather than the actual TID, so we don't need two level of maps. Each table also holds other useful information such as maps to know in which memory node each page address is located or performance data. This structure will be the main one to be used in future work to compute system's performance and migration decisions.
-* `migration/performance`: contains structures and functions for different performance values. Currently it has two, one defined in Óscar's work and the scratch of a new one.
+* `migration/performance`: contains structures and functions for different performance values. Currently it has three, one defined in Óscar's work and the remaining are experimental.
 * `migration/migration_algorithm`: it calls freely the strategies you want, defined in `strategies` folder, in order to do the following migrations.
-* `migration/migration_cell`: defines a migration, which needs an element to migrate (TID or memory page) and a destination (core or memory node) and functions to perform them. A PID field and previos locations were also added to ease some operations, and a boolean that indicates wheter it is a thread or a memory cell.
+* `migration/migration_cell`: defines a migration, which needs an element to migrate (TID or memory page) and a destination (core or memory node) and functions to perform them. A PID field and previous locations were also added to ease some operations, and a boolean that indicates wheter it is a thread or a memory cell.
 * `strategies/strategy.h`: defines which operations should define a scratch strategy.
 * `strategies/random`: there is a simple strategy implemented which is a simple random approach.
 * `strategies/annealing`: this strategy is based on what Óscar did in his PhD work.
