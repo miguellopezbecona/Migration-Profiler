@@ -111,6 +111,9 @@ labeled_migr_t get_random_labeled_cell(vector<labeled_migr_t> lm_list){
 		if(result < 0)
 			return lm;
 	}
+
+	// Should never reach here
+	return lm_list[0];
 }
 
 vector<migration_cell_t> get_iteration_migration(page_table_t *page_t){
@@ -200,7 +203,7 @@ vector<labeled_migr_t> get_candidate_list(pid_t worst_tid, map<pid_t, page_table
 	int current_cell = system_struct_t::get_cpu_memory_cell(current_cpu);
 
 	// [TODO]: build a system_struct_t general structure that maps TID -> PID to ease these kind of operations
-	pid_t current_pid;
+	pid_t current_pid = -1;
 	vector<double> current_perfs;
 	for(auto const & ta_it : *page_ts){
 		page_table_t ta = ta_it.second;
@@ -232,7 +235,7 @@ vector<labeled_migr_t> get_candidate_list(pid_t worst_tid, map<pid_t, page_table
 
 			// Not a free core: get its TID info so a possible interchange can be planned
 			pid_t other_tid = system_struct_t::get_tid_from_cpu(actual_cpu);
-			pid_t other_pid;
+			pid_t other_pid = -1;
 			vector<double> other_perfs;
 
 			for(auto const & ta_it : *page_ts){

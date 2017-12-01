@@ -33,8 +33,6 @@ page_table_t::~page_table(){
 		it.second.acs_per_node.clear();
 	page_node_map.clear();
 
-	tid_node_map.clear();
-
 	for(auto& it : perf_per_tid){
 		rm3d_data_t* pd = &it.second;
 		pd->insts.clear();
@@ -238,7 +236,7 @@ void page_table_t::print_heatmaps(FILE **fps, int num_fps){
 	// After all addresses (rows) are processed, we print number of accesses by each thread in the last row
 	for(int i=0;i<num_fps;i++){
 		fprintf(fps[i], "num_accesses,"); // Rowname
-		for(int j=0;j<tid_index.size();j++)
+		for(size_t j=0;j<tid_index.size();j++)
 			fprintf(fps[i], "%d,", accesses[j]);
 	}
 
@@ -260,98 +258,6 @@ void page_table_t::print_alt_graph(FILE *fp){
 		// Prints row (row name and data) to file
 		fprintf(fp, "%lx,%d\n", addr, threads_accessed);
 	}
-}
-
-/*
----T1---
-	node0		node1
-t0	acc_0_n0	acc_0_n1
-t1	acc_1_n0	acc_1_n1
-...
-
-acc_i_nj: thread_i accesses to pages in node_j
-*/
-void page_table_t::print_table1(){
-	long int page_addr;
-	table_cell_t cell;
-	int counters[system_struct_t::NUM_OF_MEMORIES];
-	int page_node;
-
-	// Initial print
-	for(int i=0;i<system_struct_t::NUM_OF_MEMORIES;i++)
-		printf("\tN%d", i);
-	printf("\n");
-
-	// For each thread (row)...
-	for(auto const & t_it : tid_index) {
-		memset(counters, 0, sizeof(counters)); // Zero reset
-		
-		// For each map entry, gets address and sums accesses to counters[page_node]
-		int pos = t_it.second;
-		for(auto const & it : table[pos]) {
-			page_addr = it.first;
-			cell = it.second;
-			page_node = page_node_map[page_addr].current_node;
-			counters[page_node] += cell.latencies.size(); // What if those accesses were done when page was in another node?...
-		}
-
-		// Prints results
-		printf("T-%d:", t_it.first);
-		for(int j=0;j<system_struct_t::NUM_OF_MEMORIES;j++)
-			printf("\t%d", counters[j]);
-		printf("\n");
-	}
-
-	printf("\n");
-}
-
-/*
----T2---
-	node0		node1
-p0	acc_0_n0	acc_0_n1
-p1	acc_1_n0	acc_1_n1
-...
-
-acc_i_nj: accesses to page_i from threads in node_j
-*/
-void page_table_t::print_table2(){
-	int counters[system_struct_t::NUM_OF_MEMORIES];
-
-	// Initial print
-	printf("\t");
-	for(int i=0;i<system_struct_t::NUM_OF_MEMORIES;i++)
-		printf("\tN%d", i);
-	printf("\n");
-
-	// For each page...
-	const int LIMIT = 50;
-	int i = 0;
-
-	for (long int const & page_addr : uniq_addrs){
-	//for (set<long int>::iterator it = uniq_addrs.end(); it != uniq_addrs.begin() && i<LIMIT; --it, i++){
-		//long int page_addr = *it;
-
-		memset(counters, 0, sizeof(counters)); // Zero reset
-		
-		// For each thread, gets page cell and sums accesses to counters[cpu_node]
-		for(auto const & t_it : tid_index) {
-			table_cell_t* cell = get_cell(page_addr, t_it.first);
-			if(cell != NULL){
-				// For getting the memory cell, we need the core first
-				int core = system_struct_t::get_cpu_from_tid(t_it.first);
-				int cpu_node = system_struct_t::get_cpu_memory_cell(core);
-				counters[cpu_node] += cell->latencies.size();
-			}
-		}
-
-		// Prints results
-		printf("P%lx:", page_addr);
-		for(int j=0;j<system_struct_t::NUM_OF_MEMORIES;j++)
-			printf("\t%d", counters[j]);
-		printf("\n");
-	}
-
-	printf("\n");
 }
 
 /** The goal of these functions is to update page_node_map and tid_node_map so:
@@ -409,47 +315,6 @@ void page_table_t::calculate_performance_page(int threshold){
 	}
 }
 
-// Fills only tid_node_map
-void page_table_t::calculate_performance_tid(int threshold){
-	// Loops over TIDs
-	for(auto const & t_it : tid_index) {
-		vector<int> l_thres;
-		int pages_accessed = 0;
-		int num_acs_thres = 0;
-
-		// Loops over page entries for that TID
-		pid_t tid = t_it.first;
-		int pos = t_it.second;
-		for (auto const & it : table[pos]){
-			vector<int> l = it.second.latencies;
-
-			pages_accessed++;
-
-			// Calculates if there is at least a latency bigger than the threshold and keeps them
-			bool upper_thres = 0;
-			for(size_t j=0;j<l.size();j++){
-				if(l[j] > threshold) {
-					l_thres.push_back(l[j]);
-					upper_thres = true;
-				}
-			}
-			num_acs_thres += upper_thres;
-			
-		}
-
-		// After all the internal iterations ends, updates data in TID map
-		th_perf_data_t *cell = &tid_node_map[tid];
-		cell->num_uniq_accesses = pages_accessed;
-		cell->num_acs_thres = num_acs_thres;
-
-		if(!l_thres.empty()){
-			cell->median_latency = get_median_from_list(l_thres);
-			cell->min_latency = *(min_element(l_thres.begin(), l_thres.end()));
-			cell->max_latency = *(max_element(l_thres.begin(), l_thres.end()));
-		}
-	}
-}
-
 void page_table_t::print_performance() const {
 /*	// Not interesting right now
 	for (auto const & it : page_node_map){
@@ -457,15 +322,6 @@ void page_table_t::print_performance() const {
 		it.second.print();
 	}
 	
-	printf("\n");
-*/
-
-/*	// This is not calculated at the moment, and will be probably discarded
-	for (auto const & it : tid_node_map){
-		printf("T-%d: ", (int) it.first);
-		it.second.print();
-	}
-
 	printf("\n");
 */
 

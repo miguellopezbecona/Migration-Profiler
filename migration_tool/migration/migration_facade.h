@@ -15,7 +15,7 @@
 //#define DO_MIGRATIONS
 
 void add_data_to_list(my_pebs_sample_t sample);
-int begin_migration_process(int do_thread_migration, int do_page_migration);
+int begin_migration_process();
 void clean_migration_structures();
 
 void work_with_fake_data();

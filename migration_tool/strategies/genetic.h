@@ -1,5 +1,3 @@
-#pragma
-
 #include <math.h>
 
 #include "strategy.h"

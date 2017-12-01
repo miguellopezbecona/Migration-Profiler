@@ -11,7 +11,7 @@ void pg_perf_data_t::print() const {
 		printf("UNIQ_ACS: %d, ACS_THRES: %d, MIN_LAT: %d, MEDIAN_LAT: %d, MAX_LAT: %d\n", num_uniq_accesses, num_acs_thres, min_latency, median_latency, max_latency);
 
 	printf("MEM_NODE: %d, ACS_PER_NODE: {", current_node);
-	for(size_t i=0;i<system_struct_t::NUM_OF_MEMORIES;i++)
+	for(int i=0;i<system_struct_t::NUM_OF_MEMORIES;i++)
 		printf(" %d", acs_per_node[i]);
 	printf(" }\n");
 }

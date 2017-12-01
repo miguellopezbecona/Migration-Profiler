@@ -76,6 +76,9 @@ void individual::mutate(int idx1, int idx2) {
     
 // Order crossover
 individual individual::cross(individual r, int idx1, int idx2){
+	return get_copy();
+
+/*  // [TODO]: this needs a big rewrite
 	int cut1, cut2, copy_idx, num;
 	
 	// Gets which is the first cut and which is the second
@@ -90,9 +93,9 @@ individual individual::cross(individual r, int idx1, int idx2){
 	// Creates a copy which will already have the center block copied
 	individual son = get_copy();
 	
-	/*** Changes what is not the central block ***/
-	// Gets central block. [TODO]: needs a rewrite
-/*
+	//// Changes what is not the central block ////
+	// Gets central block. 
+
 	vector<int> sublist(v.begin() + cut1, v.begin() + cut2+1);
 	
 	// Copies from second cut until the end
@@ -116,9 +119,9 @@ individual individual::cross(individual r, int idx1, int idx2){
 		sublist.push_back(num);
 		son.set(i, num);
 	}
-*/
 	
 	return son;
+*/
 }
 
 individual individual::get_copy() {

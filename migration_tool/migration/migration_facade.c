@@ -110,7 +110,7 @@ void work_with_fake_data(){
 	clean_migration_structures();
 }
 
-int begin_migration_process(int do_thread_migration, int do_page_migration){
+int begin_migration_process(){
 	if(memory_list.is_empty()){
 		//printf("Memory list is empty. Skipping iteration...\n");
 		return -1;

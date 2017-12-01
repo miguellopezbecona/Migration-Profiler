@@ -300,8 +300,7 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 	size_t sz;
 	uint64_t type, fmt;
 	uint64_t val64;
-	const char *str;
-	int ret, e;
+	int ret;
 
 	if (!fds || !ehdr  || num_fds < 0 || idx < 0 ||  idx >= num_fds)
 		return -1;
@@ -335,9 +334,9 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 
 		sample->iip = val64;
 		sz -= sizeof(val64);
-	}else{
+	} else
 		sample->iip = 0;			
-	}
+	
 
 	if (type & PERF_SAMPLE_TID) {
 		ret = perf_read_buffer(hw, &pid, sizeof(pid));
@@ -346,8 +345,6 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 			return -1;
 		}
 
-		//fprintf(fp, "PID:%d TID:%d ", pid.pid, pid.tid);
-		//fprintf(fp, "%d %d ", pid.pid, pid.tid);
 		sample->tid = pid.tid;
 		sample->pid = pid.pid;
 		sz -= sizeof(pid);
@@ -499,12 +496,6 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 					sz -= sizeof(grp.id);
 				}
 
-				e = perf_id2event(fds, num_fds, grp.id);
-				if (e == -1)
-					str = "unknown sample event";
-				else
-					str = fds[e].name;
-
 				values[0] = grp.value;
 				grp.value = perf_scale(values);
 			
@@ -602,7 +593,6 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 		sz -= sizeof(val64);
 	}
 
-	//Should be here
 	if (type & PERF_SAMPLE_DATA_SRC) {
 		ret = perf_read_buffer_64(hw, &val64);
 		if (ret) {
@@ -646,7 +636,7 @@ uint64_t display_lost(perf_event_desc_t *hw, perf_event_desc_t *fds, int num_fds
 	else
 		str = fds[e].name;
 
-	//fprintf(fp, "<<<LOST %lu SAMPLES FOR EVENT %s>>>\n", lost.lost,str);
+	fprintf(fp, "<<<LOST %lu SAMPLES FOR EVENT %s>>>\n", lost.lost, str);
 
 	return lost.lost;
 }

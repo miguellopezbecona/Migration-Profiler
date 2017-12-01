@@ -12,7 +12,6 @@ int get_median_from_list(vector<int> l){
 
 // Useful to filter unwanted PIDs because unless you are root, you can't migrate processes you don't own
 bool is_migratable(pid_t my_uid, pid_t pid){
-	FILE *fp;
 	char folder[16];
 	struct stat info;
 
@@ -23,7 +22,7 @@ bool is_migratable(pid_t my_uid, pid_t pid){
 
 	sprintf(folder, "/proc/%d", pid);
 	stat(folder, &info);
-	return info.st_uid == my_uid;
+	return info.st_uid == (unsigned) my_uid;
 }
 
 bool is_pid_alive(pid_t pid){

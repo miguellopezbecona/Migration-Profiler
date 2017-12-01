@@ -42,19 +42,9 @@
 
 //#define EVENT_OUTPUT
 
-// For the cgroups option, necessary?
-#define MAX_PATH	1024
-#ifndef STR
-# define _STR(x) #x
-# define STR(x) _STR(x)
-#endif
-
 typedef struct {
 	int mmap_pages;
 	int sbm;
-	int th_mig;
-	int pag_mig;
-	char *cgroup;
 	int periods[NUM_GROUPS];
 	int minimum_latency;
 } options_t;
@@ -90,7 +80,7 @@ void perform_migration(){
 		last_migr_time = current_time;
 		//printf("\n***********\nAt %s\n",ctime(&last_migr_time));
 
-		begin_migration_process(options.th_mig,options.pag_mig);
+		begin_migration_process();
 	}
 }
 #endif
@@ -144,7 +134,7 @@ static void process_smpl_buf(perf_event_desc_t *hw, int cpu, perf_event_desc_t *
 
 				unknown_samples++;
 
-				// Let's assume we don't get trapped in a infinite loop
+				// Let's assume we won't get trapped in a infinite loop
 				/*
 				if(unknown_samples > 50){
 					printf("Error while reading buffer, too many unknown samples, exiting...\n");
@@ -185,10 +175,7 @@ int setup_cpu(int cpu, int fd, int group) {
 	for(int i=0; i < num_fds[group]; i++) {
 		fds[i].hw.disabled = !i; // start immediately
 
-		if (options.cgroup)
-			flags = PERF_FLAG_PID_CGROUP;
-		else
-			flags = 0;
+		flags = 0;
 
 		if (fds[i].hw.sample_period) {
 			// set notification threshold to be halfway through the buffer
@@ -252,8 +239,6 @@ int setup_cpu(int cpu, int fd, int group) {
 	if (num_fds[group] > 1) {
 		sz = (3+2*num_fds[group])*sizeof(uint64_t);
 		uint64_t val[3+2*num_fds[group]];
-		if (!val)
-			err(1, "cannot allocated memory");
 
 		ret = read(fds[0].fd, val, sz);
 		if (ret == -1)
@@ -267,48 +252,6 @@ int setup_cpu(int cpu, int fd, int group) {
 		}
 	}
 	return 0;
-}
-
-static const char* cgroupfs_find_mountpoint(void) {
-	static char cgroup_mountpoint[MAX_PATH+1];
-	FILE *fp;
-	int found = 0;
-	char type[64];
-
-	fp = fopen("/proc/mounts", "r");
-	if (!fp)
-		return NULL;
-
-	while (fscanf(fp, "%*s %"
-				STR(MAX_PATH)
-				"s %99s %*s %*d %*d\n",
-				cgroup_mountpoint, type) == 2) {
-
-		found = !strcmp(type, "cgroup");
-		if (found)
-			break;
-	}
-	fclose(fp);
-
-	return found ? cgroup_mountpoint : NULL;
-}
-
-int open_cgroup(char *name) {
-	char path[MAX_PATH+1];
-	const char *mnt;
-	int cfd;
-
-	mnt = cgroupfs_find_mountpoint();
-	if (!mnt)
-		errx(1, "cannot find cgroup fs mount point");
-
-	snprintf(path, MAX_PATH, "%s/%s", mnt, name);
-
-	cfd = open(path, O_RDONLY);
-	if (cfd == -1)
-		warn("no access to cgroup %s\n", name);
-
-	return cfd;
 }
 
 static void clean_end(int n) {
@@ -392,13 +335,6 @@ int mainloop(char **arg) {
 	if (pfm_initialize() != PFM_SUCCESS)
 		errx(1, "libpfm initialization failed\n");
 
-	// Can use cgroups (useful in this case?)
-	if (options.cgroup) {
-		fd = open_cgroup(options.cgroup);
-		if (fd == -1)
-			err(1, "cannot open cgroup file %s\n", options.cgroup);
-	}
-
 	// Sets up counter configuration
 	for(int i=0;i<NUM_GROUPS;i++){
 		for(int j=0;j<system_struct_t::NUM_OF_CPUS;j++)
@@ -469,8 +405,6 @@ int main(int argc, char **argv){
 
 	options.minimum_latency = 250;
 	options.sbm = -1; // Infinite timeout by default
-	options.th_mig = 0;
-	options.pag_mig = 0;
 	options.mmap_pages = 16;
 
 	static struct option the_options[]= {
@@ -478,17 +412,9 @@ int main(int argc, char **argv){
 		{0,0,0,0}
 	};
 
-	while ((c=getopt_long(argc, argv,"+hmM:G:p:P:l:s:", the_options, 0)) != -1) {
+	while ((c=getopt_long(argc, argv,"+h:p:P:l:s:", the_options, 0)) != -1) {
 		switch(c) {
 			case 0: continue;
-			case 'm':				
-				options.th_mig = 1;
-				//printf("Migrating threads\n");
-				break;
-			case 'M':
-				options.pag_mig = 1;
-				//printf("Migrating Pages\n");
-				break;
 			case 'p':
 				// This needs to be redefined in the future, probably with something like "period_g0;period_g1;"...
 				options.periods[0] = atoi(optarg);
@@ -499,9 +425,6 @@ int main(int argc, char **argv){
 				break;
 			case 'l':
 				options.minimum_latency = atoi(optarg);
-				break;
-			case 'G':
-				options.cgroup = optarg;
 				break;
 			case 's':
 				options.sbm = atoi(optarg);

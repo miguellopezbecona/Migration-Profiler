@@ -35,9 +35,6 @@ typedef struct page_table {
 
 	map<long int, pg_perf_data_t> page_node_map; // Maps page address to memory node and other data (may be redundant with page_node_table)
 
-	// Using long int as key to use along the previous one as function parameter
-	map<long int, th_perf_data_t> tid_node_map; // Maps TID to memory node and other data (a bit deprecated)
-
 	map<pid_t, rm3d_data_t> perf_per_tid; // Maps TID to Óscar's performance data
 
 	perf_table_t page_node_table; // Experimental table for memory pages
@@ -57,7 +54,6 @@ typedef struct page_table {
 	void print();
 
 	void calculate_performance_page(int threshold);
-	void calculate_performance_tid(int threshold);
 	void print_performance() const;
 	void update_page_locations(vector<migration_cell_t> pg_migr);
 
@@ -76,7 +72,5 @@ typedef struct page_table {
 	// More info about the definitions in source file
 	void print_heatmaps(FILE **fps, int num_fps);
 	void print_alt_graph(FILE *fp);
-	void print_table1();
-	void print_table2();
 } page_table_t;
 

@@ -14,7 +14,6 @@ void set_affinity_error(pid_t tid);
 
 // Each line will result in a row in the distance matrix
 void read_line_from_file(int node, int* array){
-	pid_t cpid;
 	char filename[64] = "\0";
 	FILE *file = NULL;
 
@@ -48,6 +47,9 @@ int system_struct_t::detect_system() {
 		if (fff==NULL) break;
 		int dummy = fscanf(fff,"%d",&package);
 		fclose(fff);
+
+		if(dummy == 0)
+			return -1;
 
 		// Saves data to structures
 		cpu_node_map[i] = package;
