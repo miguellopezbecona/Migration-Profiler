@@ -51,6 +51,7 @@ typedef struct page_table {
 	vector<int> get_latencies_from_cell(long int page_addr, int cpu);
 	void remove_tid(pid_t tid);
 	void remove_finished_tids();
+	vector<pid_t> get_tids() const;
 	void print();
 
 	void calculate_performance_page(int threshold);

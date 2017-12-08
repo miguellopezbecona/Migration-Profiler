@@ -2,7 +2,10 @@
 
 #include <math.h> // log2
 
-static unsigned int current_step;
+#ifdef PRINT_HEATMAPS
+FILE *fps[NUM_FILES];
+#endif
+
 const long pagesize = sysconf(_SC_PAGESIZE);
 const int expn = log2(pagesize);
 
@@ -58,6 +61,7 @@ void build_page_tables(memory_data_list_t m_list, inst_data_list_t i_list, map<p
 	#ifdef PERFORMANCE_OUTPUT
 	for(auto const & it : *page_ts)
 		it.second.print_performance();
+	tid_cpu_table.print();
 	#endif
 }
 
@@ -73,25 +77,22 @@ inline int get_page_current_node(pid_t pid, long int pageAddr){
 	return status[0];
 }
 
-
-const char* names[] = {"acs", "min", "avg", "max", "alt"};
-FILE *fps[NUM_FILES];
-int pages(unsigned int step, set<pid_t> pids, memory_data_list_t m_list, inst_data_list i_list, map<pid_t, page_table_t> *page_ts){
-	current_step = step;
-
+int pages(set<pid_t> pids, memory_data_list_t m_list, inst_data_list i_list, map<pid_t, page_table_t> *page_ts){
 	// Builds tables
 	build_page_tables(m_list, i_list, page_ts);
 
-	// Some things are done every ITERATIONS_PER_PRINT iterations
-	if(current_step % ITERATIONS_PER_PRINT == 0){
+	// Some optional things are done every ITERATIONS_PER_HEATMAP_PRINT iterations
+	if(step % ITERATIONS_PER_HEATMAP_PRINT == 0){
 		for (pid_t const & pid : pids){
 			page_table_t t = page_ts->operator[](pid);
 
-			#ifdef PRINT_CSVS
-			// Creates files
+			#ifdef PRINT_HEATMAPS
+			const char* CSV_NAMES[] = {"acs", "min", "avg", "max", "alt"};
+
+			// Creates CSV files
 			for(int i=0;i<NUM_FILES;i++){
 				char filename[32] = "\0";
-				sprintf(filename, "%s_%d_%d.csv", names[i], pid, current_step);
+				sprintf(filename, "%s_%d_%d.csv", CSV_NAMES[i], pid, current_step);
 				fps[i] = fopen(filename, "w");
 
 				if(fps[i] == NULL){

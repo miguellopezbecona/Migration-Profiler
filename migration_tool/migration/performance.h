@@ -8,7 +8,6 @@ const int DYRM_BETA = 1;
 const int DYRM_GAMMA = 1;
 
 const int PERFORMANCE_INVALID_VALUE = -1;
-const int DEFAULT_LATENCY_FOR_CONSISTENCY = 1000; // This might be used when we do not have a measured latency
 
 // Base perf data for threads and memory pages. Now is mainly used for storing page locations. It may be more relevant in the future
 typedef struct base_perf_data {
@@ -91,17 +90,18 @@ typedef struct perf_cell {
 } perf_cell_t;
 
 // Experimental table to store historical performance for each thread/memory page in each CPU/node
+typedef vector<perf_cell_t> perf_col; // Readibility
 typedef struct perf_table {
 	static double alfa; // For future aging technique
 
 	unsigned short coln; // NUM_OF_MEMORIES or NUM_OF_CPUS
-	map<long int, perf_cell_t*> table; // Dimensions: TID/page addr and CPU/node
+	map<long int, perf_col> table; // Dimensions: TID/page addr and CPU/node
 
 	perf_table();
 	perf_table(unsigned short n);
 	~perf_table();
-	bool has_key(long int key);
-	void remove_key(long int key);
+	bool has_row(long int key);
+	void remove_row(long int key);
 	void add_data(long int key, int col_num, double lat);
 	void print() const;
 

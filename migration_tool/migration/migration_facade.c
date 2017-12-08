@@ -44,24 +44,26 @@ void clean_migration_structures(){
 	pids.clear();
 
 	// Final print for a specific analysis: PID, mean accesses and amount of pages
-/*
+	#ifdef MEAN_ACS_ANALY
+	printf("pid,mean_acs,page_count\n");
 	for(auto const & it : page_tables){
 		page_table_t t = it.second;
 		size_t sz = t.uniq_addrs.size();
 		double mean = t.get_mean_acs_to_pages();
 		//if(sz > 10 && mean > 1.25) // Trying to print only wanted PID
-			printf("\t%d,%.2f,%lu\n", it.first, mean, sz);
+			printf("%d,%.2f,%lu\n", it.first, mean, sz);
 	}
-*/
+	printf("\n");
+	#endif
 
 	// Final print for a specific analysis: PID, mean latency
-/*
+	#ifdef MEAN_LAT_ANALY
+	printf("pid,mean_lat\n");
 	for(auto const & it : page_tables){
 		page_table_t t = it.second;
-		//t.print();
-		printf("PID: %d, total mean latency: %.2f\n", it.first, t.get_mean_lat_to_pages(););
+		printf("%d,%.2f\n", it.first, t.get_mean_lat_to_pages());
 	}
-*/
+	#endif
 
 	page_tables.clear();
 
@@ -100,7 +102,7 @@ void work_with_fake_data(){
 	page_tables[500] = t1;
 	page_tables[1000] = t2;
 */
-	pages(step, pids, memory_list, inst_list, &page_tables);
+	pages(pids, memory_list, inst_list, &page_tables);
 
 	tid_cpu_table.print(); // Debugging purposes
 
@@ -129,15 +131,19 @@ int begin_migration_process(){
 	#endif
 
 	// Builds page tables for each PID
-	pages(step, pids, memory_list, inst_list, &page_tables);
+	pages(pids, memory_list, inst_list, &page_tables);
 
 	// For each active PID, cleans "dead" TIDs from its table and it can perform a single-process migration strategy
+	// [TOTHINK]: checking active PIDs is nice but, maybe it should check every historically-collected PID so it removes dead PIDs and frees useless data
 	for (pid_t const & pid : pids){
 		//printf("Working over table associated to PID: %d\n", pid);
 
 		// Sanity checking. It can seem redundant but it is necessary!
 		if(!is_pid_alive(pid)){
 			printf("\tProcess dead even after getting sample data. Removing it from map...\n");
+
+			// [TODO]: get TIDs from PID and remove those TID rows from tid_cpu_table
+
 			page_tables.erase(pid);
 			continue;
 		}

@@ -108,35 +108,38 @@ perf_table_t::perf_table(unsigned short n){
 }
 
 perf_table_t::~perf_table(){
-	// Frees pointer for each row
-	for(auto const & it : table)
-		free(it.second);
+	// Frees list for each row
+	for(auto & it : table)
+		it.second.clear();
 
 	table.clear();
 }
 
-bool perf_table_t::has_key(long int key){
+bool perf_table_t::has_row(long int key){
 	return table.count(key) > 0;
 }
 
-void perf_table_t::remove_key(long int key){
+void perf_table_t::remove_row(long int key){
+	if(!has_row(key))
+		return;
+
+	table[key].clear();
 	table.erase(key);
 }
 
 // When we define a sole performance metric, we should apply an aging technique
 void perf_table_t::add_data(long int key, int col_num, double lat){
-	if(has_key(key)) // Entry already exists, just updates mean latency
-		table[key][col_num].update_mlat(lat);
-	else { // No entry. We create it and we enter initial latency in the selected CPU
-		table[key] = (perf_cell_t*)malloc(coln*sizeof(perf_cell_t));
+	if(!has_row(key)){ // No entry, so we create it
+		vector<perf_cell_t> pv(coln);
+		table[key] = pv;
 		
 		for(int i=0;i<coln;i++){
 			perf_cell_t pc;
 			table[key][i] = pc;
 		}
-
-		table[key][col_num].update_mlat(lat);	
 	}
+
+	table[key][col_num].update_mlat(lat); // In any case, we update the mean
 }
 
 void perf_table_t::print() const {
@@ -148,15 +151,15 @@ void perf_table_t::print() const {
 
 	// Prints each row
 	for(auto const & it : table) {
-		pid_t tid = it.first;
-		perf_cell_t *pc = it.second;
+		long int row = it.first;
+		perf_col pv = it.second;
 
-		printf("%s: %d\n", keys[is_page_table], tid);
+		printf("%s: %lu\n", keys[is_page_table], row);
 		
 		// Prints each cell
 		for(int i=0;i<coln;i++){
 			printf("\t%s %d: ", colns[is_page_table], i);
-			pc[i].print();
+			pv[i].print();
 		}
 	}
 

@@ -7,7 +7,7 @@ The app includes a simple mode where it just dumps the hardware counter data to 
 
 Macros are used as well to control what migration strategies will be used. Those are in `migration/migration_algorithm.h` and you can comment or uncomment them to choose your own combination of strategies.
 
-Aside from that mode, the app can also print, each `ITERATIONS_PER_PRINT` (defined in `migration/page_ops.h`) iterations, some additional CSV files that can be plotted a posteriori using *heatmaps.R* file to analyze the system's "state". It depends if the `PRINT_CSVS` macro is defined, currently commented in the previously mentioned header file. Currently, 5 different CSV are generated each time:
+Aside from that mode, the app can also print, each `ITERATIONS_PER_HEATMAP_PRINT` (defined in `migration/page_ops.h`) iterations, some additional CSV files that can be plotted a posteriori using *heatmaps.R* file to analyze the system's "state". It depends if the `PRINT_HEATMAPS` macro is defined, currently commented in the previously mentioned header file. Currently, 5 different CSV are generated each time:
 
 * Four heatmaps where X axis is the number of memory page, Y axis is the number of thread, and the value itself is the mean/maximum/mininum/number of latency accesses depending of the file.
 * A line plot where X axis is the number of memory page and Y axis is the number of different threads that access to that memory page.
@@ -39,7 +39,6 @@ Both the ABC and the profiler use some static parameters described below. You ca
   - `-s`: array total size. Each thread will work in same-size chunks, so this value can be altered to distribute the work problem perfectly (default: 1000000).
   - `-t`: array stride while operating (default: 1).
 * `my_profiler`
-  - `-G`: whether uses cgroups or not (default: not). It will probably be discarded.
   - `-l`: minimum memory latency access to sample (default: 200).
   - `-p`: period for memory samples (default: 1000). It will probably be rewritten to include all event groups' periods.
   - `-P`: period for instruction samples (default: 10000000). It will probably be discarded.
