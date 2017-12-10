@@ -34,7 +34,7 @@ else
 	numacommand=
 fi
 
-# Set to what you want to profile. A bit deprecated since now the profiler analyzes everything
+# Set to what you want to profile
 #toprofile="numactl --physcpubind 1,2,3 ./ABC -m0 -r5000 -s5000000 -t8"
 toprofile="./ABC -m0 -r5000 -s10000000 -t8"
 #toprofile=~/NPB3.3.1/NPB3.3-OMP/bin/lu.B.x

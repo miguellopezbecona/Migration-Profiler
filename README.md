@@ -1,5 +1,5 @@
 ## Overview
-This application is a profiler which potentially will use thread and page migration in order to improve efficiency in multi-threaded applications in manycore NUMA systems. It uses PEBS sampling to obtain information from hardware counters so it can analyze system's performance and make choices to improve it. It is heavily based on the work done by Óscar García Lorenzo for his PhD.
+The main application of this repository is a profiler which uses thread and page migration in order to improve efficiency in multi-threaded applications in manycore NUMA systems. It uses PEBS sampling to obtain information from hardware counters so it can analyze system's performance and make choices to improve it. Its initial implementation was heavily based on the work done by Óscar García Lorenzo for his PhD.
 
 Its source code is stored in `migration_tool` folder. The other folders are used for utils, mainly. The main source code includes a test OpenMP multithreaded application to be profiled called `ABC`. It performs a simple element by element vector product which can be very customizable with options such as array size, CPUs to be used, number of repetitions, intensity of each iteration, etc.
 
