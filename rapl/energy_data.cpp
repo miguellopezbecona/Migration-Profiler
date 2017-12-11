@@ -7,8 +7,28 @@ bool comparison_func(const char *c1, const char *c2){
 	return strcmp(c1, c2) < 0;
 }
 
-// Detects domains
-energy_data_t::energy_data(){
+// Frees everything
+energy_data_t::~energy_data(){
+	for(int i=0; i<system_struct_t::NUM_OF_MEMORIES; i++){
+		free(prev_vals[i]);
+		free(curr_vals[i]);
+		free(fd[i]);
+	}
+
+	for(int i=0; i<NUM_RAPL_DOMAINS; i++){
+		free(units[i]);
+		free(rapl_domain_names[i]);
+	}
+	rapl_domain_names.clear();
+
+	free(prev_vals);
+	free(curr_vals);
+	free(units);
+	free(fd);
+	free(scale);
+}
+
+void energy_data_t::detect_domains(){
 	struct dirent *buffer = NULL;
 	DIR *dir = NULL;
 	const char* folder = "/sys/bus/event_source/devices/power/events";
@@ -34,10 +54,8 @@ energy_data_t::energy_data(){
 			}
 		}
 
-		if(is_domain_name){
+		if(is_domain_name)
 			rapl_domain_names.push_back(strdup(no_energy));
-			NUM_RAPL_DOMAINS++;
-		}
 	}
 
 	sort(rapl_domain_names.begin(), rapl_domain_names.end(), comparison_func); // Not necessary, but meh
@@ -50,27 +68,6 @@ energy_data_t::energy_data(){
 	#endif
 
 	closedir(dir);
-}
-
-// Frees everything
-energy_data_t::~energy_data(){
-	for(int i=0; i<system_struct_t::NUM_OF_MEMORIES; i++){
-		free(prev_vals[i]);
-		free(curr_vals[i]);
-		free(fd[i]);
-	}
-
-	for(int i=0; i<NUM_RAPL_DOMAINS; i++){
-		free(units[i]);
-		free(rapl_domain_names[i]);
-	}
-	rapl_domain_names.clear();
-
-	free(prev_vals);
-	free(curr_vals);
-	free(units);
-	free(fd);
-	free(scale);
 }
 
 void energy_data_t::allocate_data(){
@@ -91,10 +88,14 @@ void energy_data_t::allocate_data(){
 }
 
 int energy_data_t::prepare_energy_data(){
-	int config[NUM_RAPL_DOMAINS];
 	FILE *fff;
 	int type;
 	char filename[BUFSIZ];
+
+	// If domains were already passed within the -d parameter, the app doesn't have to get them
+	if(rapl_domain_names.empty())
+		detect_domains();
+	NUM_RAPL_DOMAINS = rapl_domain_names.size();
 
 	allocate_data();
 
@@ -107,6 +108,8 @@ int energy_data_t::prepare_energy_data(){
 	int dummy = fscanf(fff,"%d",&type);
 	fclose(fff);
 
+	int config[NUM_RAPL_DOMAINS];
+
 	// Gets data to open counters
 	for(int i=0;i<NUM_RAPL_DOMAINS;i++) {
 		sprintf(filename,"/sys/bus/event_source/devices/power/events/energy-%s", rapl_domain_names[i]);
@@ -115,8 +118,13 @@ int energy_data_t::prepare_energy_data(){
 		if (fff!=NULL) {
 			dummy = fscanf(fff,"event=%x",&config[i]);
 			fclose(fff);
-		} else
+		} else {
+			printf("Error while opening config file for domain %s.\nThis is probably due to passing within the -d parameter a non-existent domain. It will be removed from the list.\n", rapl_domain_names[i]);
+			free(rapl_domain_names[i]);
+			rapl_domain_names.erase(rapl_domain_names.begin() + i);
+			NUM_RAPL_DOMAINS--;
 			continue;
+		}
 
 		sprintf(filename,"/sys/bus/event_source/devices/power/events/energy-%s.scale", rapl_domain_names[i]);
 		fff=fopen(filename,"r");
@@ -151,8 +159,8 @@ int energy_data_t::prepare_energy_data(){
 			if (config[d]==0) continue;
 
 			fd[n][d] = perf_event_open(&attr,-1, system_struct_t::node_cpu_map[n][0],-1,0);
-			if (fd[n][d] < 0) {
-				printf("\terror opening core %d config %d: %d\n\n", system_struct_t::node_cpu_map[n][0], config[d], fd[n][d]);
+			if(fd[n][d] < 0) {
+				printf("\tError code while opening buffer for CPU %d, config %d: %d\n\n", system_struct_t::node_cpu_map[n][0], config[d], fd[n][d]);
 				return -1;
 			}
 		}
@@ -227,13 +235,33 @@ double** energy_data_t::get_curr_vals() {
 }
 
 void energy_data_t::print_curr_vals() {
-	for(int i=0;i<system_struct_t::NUM_OF_MEMORIES;i++) {
-		printf("Node %d:\n",i);
+	for(int n=0;n<system_struct_t::NUM_OF_MEMORIES;n++) {
+		printf("Node %d:\n", n);
 
-		for(int j=0;j<NUM_RAPL_DOMAINS;j++)
-			printf("\tEnergy consumed in %s: %lf %s\n", rapl_domain_names[j], curr_vals[i][j], units[j]);
+		for(int d=0;d<NUM_RAPL_DOMAINS;d++)
+			printf("\tEnergy consumed in %s: %lf %s\n", rapl_domain_names[d], curr_vals[n][d], units[d]);
 	}
 	printf("\n");
+}
+
+
+// Gets all final values (all nodes, all domains) and prints them, along with mean consumption per second (all for total consumption per node)
+void energy_data_t::print_curr_vals_with_time(double elapsed_time) {
+	double total_sys_cons = 0.0;
+
+	for(int n=0;n<system_struct_t::NUM_OF_MEMORIES;n++) {
+		double total_node_cons = 0.0;
+		printf("Node %d:\n",n);
+
+		for(int d=0;d<NUM_RAPL_DOMAINS;d++){
+			total_node_cons += curr_vals[n][d];
+			printf("\tEnergy consumed (%s): %.2f Joules. Mean consumption per second: %.2f J/s\n", rapl_domain_names[d], curr_vals[n][d], curr_vals[n][d] / elapsed_time);
+		}
+		total_sys_cons += total_node_cons;
+		printf("\tTotal node consumption: %.2f Joules. Mean consumption: %.2f J/s\n\n", total_node_cons, total_node_cons / elapsed_time);
+	}
+
+	printf("Total SYSTEM consumption: %.2f Joules. Mean consumption: %.2f J/s\n\n", total_sys_cons, total_sys_cons / elapsed_time);
 }
 
 void energy_data_t::close_buffers() {

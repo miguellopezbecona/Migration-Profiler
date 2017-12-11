@@ -5,3 +5,9 @@ migration_tool/ABC
 migration_tool/core
 migration_tool/my_profiler_tm
 migration_tool/prueba.sh
+rapl.
+rapl/my_test
+rapl/rapl
+rapl/*.csv
+rapl/.Rhistory
+

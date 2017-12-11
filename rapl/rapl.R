@@ -4,23 +4,59 @@ read_data <- function(filename){
 	return (df)
 }
 
-# Different lines per node
-plot_cons_per_node <- function(df){
-	nodes <- unique(df$node) # Gets nodes involved in data
+# Different lines per node. Needs to focus on a specific RAPL domain
+plot_cons_per_node <- function(df, domain = "pkg"){
+	df_d <- df[df$domain == domain, ] # Gets data from the specified domain
+	
+	nodes <- unique(df_d$node) # Gets nodes involved in data
 	cl <- rainbow(length(nodes))
 	legend_labels <- sapply(nodes, function(n) paste("Node ", n))
 
-	plot(0, 0, xlim=c(-0.1, max(df$it)+0.1), ylim=c(-0.1, max(df$val)+0.1), type="n", main="Energy consumption per node", xlab="Iteration", ylab="Joules")
+	plt_title <- paste("Energy consumption per node (domain ", domain, ")", sep="")
+	plot(0, 0, xlim=c(-0.1, max(df_d$it)+0.1), ylim=c(-0.1, max(df_d$val)+0.1), type="n", main=plt_title, xlab="Iteration", ylab="Joules")
 	for(i in 1:length(nodes)){ # One line per node
-		df_node <- df[df$node == nodes[i], ] # Gets data for node i
+		df_node <- df_d[df_d$node == nodes[i], ] # Gets data from node i
 		lines(df_node$it, df_node$val, col = cl[i])
 	}
 	legend("topleft", legend = legend_labels, col=cl, pch=1) # Adds legend
 }
 
-# TODO: different lines per domain. Only one node can be used, or maybe we can aggregate all nodes with a sum or a mean
+plot_all_cons_per_node <- function(df){
+	domains <- unique(df$domain) # Gets domains involved in data
+	
+	for(i in 1:length(domains))
+		plot_cons_per_node(df, domains[i])
+}
+
+# Different lines per RAPL domain. Needs to focus on a node, unless you want to use a sum or a mean
+plot_cons_per_domain <- function(df, node = 0){
+	df_n <- df[df$node == node, ] # Gets data from the specified node
+
+	domains <- unique(df_n$domain) # Gets domains involved in data
+	cl <- rainbow(length(domains))
+	legend_labels <- sapply(domains, function(d) paste("energy-", d)) # Not necessary but meh
+	
+	plt_title <- paste("Energy consumption per domain (node ", node, ")", sep="")
+	plot(0, 0, xlim=c(-0.1, max(df$it)+0.1), ylim=c(-0.1, max(df$val)+0.1), type="n", main=plt_title, xlab="Iteration", ylab="Joules")
+	for(i in 1:length(domains)){ # One line per domain
+		df_node <- df_n[df_n$domain == domains[i], ] # Gets data for domain i
+		lines(df_node$it, df_node$val, col = cl[i])
+	}
+	legend("topleft", legend = legend_labels, col=cl, pch=1) # Adds legend
+}
+
+plot_all_cons_per_domain <- function(df){
+	nodes <- unique(df$node) # Gets nodes involved in data
+	
+	for(i in 1:length(nodes))
+		plot_cons_per_domain(df, nodes[i])
+}
 
 #setwd("")
 df <- read_data("data.csv")
-plot_cons_per_node(df)
+plot_cons_per_node(df, "ram")
+plot_cons_per_domain(df, 0)
+
+#plot_all_cons_per_node(df)
+#plot_all_cons_per_domain(df)
 
