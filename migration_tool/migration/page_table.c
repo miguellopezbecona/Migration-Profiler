@@ -134,20 +134,21 @@ void page_table_t::remove_tid(pid_t tid){
 void page_table_t::remove_finished_tids(){
 	unsigned int erased = 0;
 
-	for(map<int, short>::iterator it = tid_index.begin(); it != tid_index.end(); ++it) {
+	for(auto it = tid_index.begin(); it != tid_index.end(); ) {
 		pid_t tid = it->first;
 		int pos = it->second;
 
 		// Removing a thread (row) implies deleting the map association (also in system struct), deleting the element in the vector, and updating following positions
 		if(!is_tid_alive(pid, tid)){
 			printf("TID %d is dead. It will be removed from the table.\n", tid);
-			tid_index.erase(it);
-			++it;
+			it = tid_index.erase(it); // For erasing correctly
+
 			table.erase(table.begin() + pos - erased);
 			erased++;
 			system_struct_t::remove_tid(tid, false);
 		}
 		else {
+			++it; // For erasing correctly
 			if(!perf_per_tid[tid].active)
 				system_struct_t::remove_tid(tid, true);
 			

@@ -29,10 +29,10 @@ void add_data_to_list(my_pebs_sample_t sample){
 		pmap.clear();
 	}
 	#else
-	if(sample.is_mem_sample() && sample.dsrc != 0){
+	if(sample.is_mem_sample()){ // [TOTHINK]: Before, we discarded samples with DSRC == 0, why?
 		memory_list.add_cell(sample.cpu,sample.pid,sample.tid,sample.sample_addr,sample.weight,sample.dsrc,sample.time);
 		//memory_list.list.back().print_dsrc(); printf("\n"); // Temporal, for testing dsrc printing
-		pids.insert(sample.pid); // Currently we only use memory list so we only consider a thread is active if we get a memory sample
+		pids.insert(sample.pid); // We consider a process is active if we get a memory sample
 	} else
 		inst_list.add_cell(sample.cpu,sample.pid,sample.tid,sample.values[1],sample.values[0],sample.time);
 	#endif
@@ -133,27 +133,32 @@ int begin_migration_process(){
 	// Builds page tables for each PID
 	pages(pids, memory_list, inst_list, &page_tables);
 
-	// For each active PID, cleans "dead" TIDs from its table and it can perform a single-process migration strategy
-	// [TOTHINK]: checking active PIDs is nice but, maybe it should check every historically-collected PID so it removes dead PIDs and frees useless data
-	for (pid_t const & pid : pids){
+	// For each existent table, checks if its associated process and/or threads are alive, to clean useless data
+	// It also applies a single-PID migration strategy for active PIDs (i.e: we got at least a memory sample from it in this iteration)
+	for(auto t_it = page_tables.begin(); t_it != page_tables.end(); ) {
+		pid_t pid = t_it->first;
+		page_table* table = &t_it->second;
 		//printf("Working over table associated to PID: %d\n", pid);
 
-		// Sanity checking. It can seem redundant but it is necessary!
+		// Is PID alive?
 		if(!is_pid_alive(pid)){
-			printf("\tProcess dead even after getting sample data. Removing it from map...\n");
 
-			// [TODO]: get TIDs from PID and remove those TID rows from tid_cpu_table
+			// We get TIDs from the dead PID so we can remove those rows from tid_cpu_table
+			for(pid_t const & tid : table->get_tids())
+				tid_cpu_table.remove_row(tid);
 
-			page_tables.erase(pid);
+			t_it = page_tables.erase(t_it); // We erase entry from table map
 			continue;
 		}
-		
-		page_table* table = &page_tables[pid];
+		t_it++; // For erasing correctly
+
+		// We check finished TIDs and remove them from table		
 		table->remove_finished_tids();
 		//table->print();
 
 		#ifdef DO_MIGRATIONS
-		perform_migration_strategy(table);
+		if(pids.count(pid) > 0) // contains(pid)
+			perform_migration_strategy(table);
 		#endif
 	}
 	#ifdef DO_MIGRATIONS
