@@ -8,9 +8,9 @@
 #include "energy_data.h"
 
 // No incremental data gathering
-//#define ONE_MEASURE
+#define ONE_MEASURE
 
-#define PRINT_OUTPUT
+//#define PRINT_OUTPUT
 #define DUMP_TO_FILE
 
 // Copy paste from utils
@@ -60,6 +60,8 @@ void dump_data(vector<cons_per_dom> data){
 	}
 	fclose(fp);
 
+
+	#ifndef ONE_MEASURE
 	// Print additional statistics in other file
 	const char* metadata_filename = "metadata.csv";
 	fp = fopen(metadata_filename, "w");
@@ -85,6 +87,7 @@ void dump_data(vector<cons_per_dom> data){
 		}
 	}
 	fclose(fp);
+	#endif
 }
 
 static void clean_end(int n) {
@@ -95,11 +98,20 @@ static void clean_end(int n) {
 	printf("Elapsed time: %.2f seconds\n", elapsed_time);
 
 	ed.print_curr_vals_with_time(elapsed_time);
+
+	#ifdef DUMP_TO_FILE
+	// We store each historical consumption in our internal structure
+	double** data = ed.get_curr_vals();
+	for(int n=0;n<system_struct_t::NUM_OF_MEMORIES;n++){
+		for(int d=0;d<energy_data_t::NUM_RAPL_DOMAINS;d++)
+			cons_per_node[n][d].push_back(data[n][d] / elapsed_time); // We will store the mean consumption
+	}
+    #endif
 	#endif
 
 	ed.close_buffers();
 
-	#if defined(DUMP_TO_FILE) && ! defined(ONE_MEASURE)
+	#ifdef DUMP_TO_FILE
 	dump_data(cons_per_node);
 
 	// We clear our messy nested structure

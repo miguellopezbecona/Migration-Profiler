@@ -12,7 +12,7 @@ plot_cons_per_node <- function(df, domain = "pkg"){
 	cl <- rainbow(length(nodes))
 	legend_labels <- sapply(nodes, function(n) paste("Node ", n))
 
-	plt_title <- paste("Energy consumption per node (domain ", domain, ")", sep="")
+	plt_title <- paste("Energy consumption per node (", domain, " domain)", sep="")
 	plot(0, 0, xlim=c(-0.1, max(df_d$it)+0.1), ylim=c(-0.1, max(df_d$val)+0.1), type="n", main=plt_title, xlab="Iteration", ylab="Joules")
 	for(i in 1:length(nodes)){ # One line per node
 		df_node <- df_d[df_d$node == nodes[i], ] # Gets data from node i

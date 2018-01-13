@@ -10,7 +10,7 @@
 #include <numa.h> // numa_alloc_onnode
 
 // Default macro values
-#define DEFAULT_READ_ITERS 1000
+#define DEFAULT_main_iters 1000
 #define DEFAULT_ELEMS_ITER 1
 #define DEFAULT_REMOTE_READS 0
 #define DEFAULT_NUMBER_OPS 1
@@ -18,7 +18,7 @@
 #define DEFAULT_LOCAL_NODE 0
 #define DEFAULT_REMOTE_NODE 1
 
-//#define OUTPUT
+#define OUTPUT
 //#define DOGETPID
 
 #include "system_struct.h"
@@ -33,7 +33,7 @@ float* local_array;
 float* remote_array;
 
 // Options
-unsigned long int read_iters;
+unsigned long int main_iters;
 unsigned int elems_iter;
 unsigned int remote_reads;
 unsigned int ops;
@@ -60,8 +60,8 @@ void print_selected_cpus(){
 }
 
 void print_params(){
-	//printf("Read iterations: %lu\nElements read per iteration: %d\nRemote elements read per iteration: %d\nNumber of floating operations per iteration: %d\nNumber of threads: %d\nArray size: %lu\nLocal node: %d\nRemote node: %d\n\n",read_iters,elems_iter,remote_reads,ops,num_th,array_total_size, local_node, remote_node);
-	printf("R: %lu\nD: %d\nR: %d\nO: %d\nThs: %d\nArray size: %lu\nLocal node: %d\nRemote node: %d\n\n",read_iters,elems_iter,remote_reads,ops,num_th,array_total_size, local_node, remote_node);
+	//printf("Read iterations: %lu\nElements read per iteration: %d\nRemote elements read per iteration: %d\nNumber of floating operations per iteration: %d\nNumber of threads: %d\nArray size: %lu\nLocal node: %d\nRemote node: %d\n\n",main_iters,elems_iter,remote_reads,ops,num_th,array_total_size, local_node, remote_node);
+	printf("R: %lu\nD: %d\nR: %d\nO: %d\nThs: %d\nArray size: %lu\nLocal node: %d\nRemote node: %d\n\n",main_iters,elems_iter,remote_reads,ops,num_th,array_total_size, local_node, remote_node);
 }
 
 void usage(char **argv) {
@@ -119,33 +119,33 @@ void data_initialization(){
 
 // The kernel operation in the parallel zone. Defined as inline to reduce call overhead
 static inline void operation(pid_t my_ompid){
-	int l,d,r,o;
+	int i,n,r,o;
 	int offset = my_ompid*array_basic_size; // Different work zone for each thread
-	int index;
-	int limit;
 	
-	float data_read;
+	//float data_read;
 	
-	for(l=0; l<read_iters; l++){ // How many read iterations will we do?
-		// We could multiply l by ELEMS_PER_CACHE to avoid being in the same cache line
-		index = offset + l;
+	for(i=0; i<main_iters; i++){ // How many main iterations will we do?
+		// We could multiply i by ELEMS_PER_CACHE to avoid being in the same cache line
+		int index = offset + i;
 	
-		// This version avoids doing a lot of multiplications in inner loop
-		limit = elems_iter*ELEMS_PER_CACHE;
-		for(d=0; d<limit; d+=ELEMS_PER_CACHE) // How many items will we read? (not in same cache line)
-			data_read = local_array[index+d];
-		// Compare with:
+		// This version avoids doing a lot of multiplications in inner loop. Compare with the next multiline comment
+		int limit = elems_iter*ELEMS_PER_CACHE;
+		for(n=0; n<limit; n+=ELEMS_PER_CACHE) // How many items will we process? (not in same cache line)
+			local_array[n] = local_array[index+n];
+			//data_read = local_array[index+n]; // First I tried just doing reads, but it didn't affect energy consumption
+
 /*
-		for(d=0; d<elems_iter; d++) // How many items will we read?
-			data_read = local_array[index+d*ELEMS_PER_CACHE]; // Not in same cache line
+		for(n=0; n<elems_iter; n++)
+			data_read = local_array[index+n*ELEMS_PER_CACHE]; // Not in same cache line
 */
 
 		limit = remote_reads*ELEMS_PER_CACHE;
-		for(r=0; r<limit; r+=ELEMS_PER_CACHE) // How many remote items will we read?
-			data_read = remote_array[index+r]; // Not in same cache line
+		for(r=0; r<limit; r+=ELEMS_PER_CACHE) // How many remote items will we read/write?
+			remote_array[r] = remote_array[index+r]; // Not in same cache line
+			//data_read = remote_array[index+r]; // Not in same cache line
 
 		for(o=0; o<ops; o++) // How many float operations per iteration?
-			local_array[index+1] = data_read * 1.42;
+			local_array[index+1] = local_array[index] * 1.42;
 	}
 }
 
@@ -153,18 +153,18 @@ void set_options_from_parameters(int argc, char** argv){
 	char c;
 
 	// Parses argv with getopt
-	while ((c = getopt (argc, argv, "l:d:r:o:t:m:M:")) != -1){
+	while ((c = getopt (argc, argv, "i:n:r:o:t:m:M:")) != -1){
 		switch (c) {
-			case 'l': // Reads
-				read_iters = atol(optarg);
+			case 'i': // Main iterations
+				main_iters = atol(optarg);
 				break;
-			case 'd': // Number of elements read per iteration
+			case 'n': // Number of elements read/written per iteration
 				elems_iter = atoi(optarg);
 				break;
-			case 'r': // Remote reads
+			case 'r': // Remote reads/writes per iteration
 				remote_reads = atoi(optarg);
 				break;
-			case 'o': // Number of floating operations
+			case 'o': // Number of floating operations per iteration
 				ops = atoi(optarg);
 				break;
 			case 't': // Number of threads
@@ -217,7 +217,7 @@ void calculate_array_sizes(){
 	int max_p = elems_iter;
 	if(remote_reads > max_p)
 		max_p = remote_reads;
-	array_basic_size = read_iters + max_p*ELEMS_PER_CACHE;
+	array_basic_size = main_iters + max_p*ELEMS_PER_CACHE;
 
 	array_total_size = array_basic_size*num_th; // In this case, the whole array would be proportional to the number of threads
 	// [TOTHINK]: another option would be maintain the same array size, but reducing the number of reads per thread, or we could make the threads read each other's values
@@ -227,7 +227,7 @@ int main(int argc, char *argv[]){
 	detect_system();
 
 	// Set defaults
-	read_iters = DEFAULT_READ_ITERS;
+	main_iters = DEFAULT_main_iters;
 	elems_iter = DEFAULT_ELEMS_ITER;
 	remote_reads = DEFAULT_REMOTE_READS;
 	ops = DEFAULT_NUMBER_OPS;

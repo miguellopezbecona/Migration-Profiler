@@ -1,7 +1,7 @@
 #!/bin/bash
 
 profname=rapl
-profparams="-s1"
+profparams="-dpkg_ram"
 
 # Goes to source code folder if you execute script from another directory
 dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -19,7 +19,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # Set to what you want to profile
-toprofile="./my_test -l10000000 -d4 -r0 -o500 -t1 -m0 -M0"
+toprofile="./my_test -i10000000 -n4 -r0 -o500 -t1 -m0 -M0"
 #toprofile=~/NPB3.3.1/NPB3.3-OMP/bin/lu.B.x
 #toprofile=~/NPB3.3.1/NPB3.3-OMP/bin/bt.C.x
 
