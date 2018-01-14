@@ -9,8 +9,11 @@
 #include <omp.h> // OpenMP
 #include <numa.h> // numa_alloc_onnode
 
+#include "system_struct.h"
+
+
 // Default macro values
-#define DEFAULT_main_iters 1000
+#define DEFAULT_MAIN_ITERS 1000
 #define DEFAULT_ELEMS_ITER 1
 #define DEFAULT_REMOTE_READS 0
 #define DEFAULT_NUMBER_OPS 1
@@ -18,13 +21,11 @@
 #define DEFAULT_LOCAL_NODE 0
 #define DEFAULT_REMOTE_NODE 1
 
-#define OUTPUT
-//#define DOGETPID
-
-#include "system_struct.h"
-
 #define CACHE_LINE_SIZE 64
 #define ELEMS_PER_CACHE CACHE_LINE_SIZE / sizeof(float)
+
+#define OUTPUT
+//#define DOGETPID
 
 // Main data
 unsigned long array_basic_size; // array_total_size / num_th
@@ -227,7 +228,7 @@ int main(int argc, char *argv[]){
 	detect_system();
 
 	// Set defaults
-	main_iters = DEFAULT_main_iters;
+	main_iters = DEFAULT_MAIN_ITERS;
 	elems_iter = DEFAULT_ELEMS_ITER;
 	remote_reads = DEFAULT_REMOTE_READS;
 	ops = DEFAULT_NUMBER_OPS;

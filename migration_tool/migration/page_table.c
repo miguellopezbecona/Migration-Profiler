@@ -157,7 +157,6 @@ void page_table_t::remove_finished_tids(){
 	}
 }
 
-// Not used right now, but might be useful
 vector<pid_t> page_table_t::get_tids() const {
 	vector<pid_t> v;
 

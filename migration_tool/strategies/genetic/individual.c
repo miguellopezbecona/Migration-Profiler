@@ -3,82 +3,66 @@
 individual::individual() {
 }
 
-individual::individual(map<pid_t, page_table_t> ts){
-	// [TODO]: this is somewhat inefficient/redundant. A better solution should be achieved
+individual::individual(map<pid_t, page_table_t> ts) : v(system_struct_t::NUM_OF_CPUS, system_struct_t::FREE_CPU) {
+	// Builds list from system_struct data
+	for(int i=0;i<system_struct_t::NUM_OF_CPUS;i++){
+		if(system_struct_t::is_cpu_free(i))
+			continue;
 
-	// For each table (key/first=PID, value/second=table)...
-	for(auto const & it : ts){
-		pid_t pid = it.first;
+		pid_t tid = system_struct_t::get_tid_from_cpu(i);
+
+		// Correct index of CPU in ordered_cpus
+		int index = find(system_struct_t::ordered_cpus.begin(), system_struct_t::ordered_cpus.end(), i) - system_struct_t::ordered_cpus.begin();
+
+		v[index] = tid;
+	}
+
+	// Calculates fitness (in this case, mean latency)
+	// [TODO]: it currently uses all the historical data for the tables, it should just use the data from last iteration
+	vector<int> all_ls;
+	for(auto const & it : ts){ // For each table (PID)...
 		page_table t = it.second;
 
-		// Creates gens based on its page maps
-		for(auto const & it2 : t.page_node_map){
-			migration_cell_t mc(it2.first, it2.second.current_node, pid, false);
-			v.push_back(mc);
-		}
-
-		// Creates gens based on its TID maps
-		for(auto const & it2 : t.tid_index){
-			pid_t tid = it2.first;
-			migration_cell_t mc(tid, system_struct_t::get_cpu_from_tid(tid), pid, true);
-			v.push_back(mc);
+		for(pid_t const & tid : t.get_tids()){ // Gets all latencies for all pages
+			vector<int> l = t.get_lats_for_tid(tid);
+			all_ls.insert(end(all_ls), begin(l), end(l));	
 		}
 	}
+
+	// After all_ls is filled, the mean is calculated:
+	this->fitness = accumulate(all_ls.begin(), all_ls.end(), 0.0) / all_ls.size();
 }
     
 // To ease copy in cross
-individual::individual(vector<migration_cell_t> vec){
+individual::individual(vector<pid_t> vec){
 	v = vec;
 }
-    
-// Scratch implementation. The real one would use the perf_data from the table
-int individual::fitness() const {
-	return -1;
+
+double individual::get_fitness() const {
+	return fitness;
 }
 
 size_t individual::size(){
 	return v.size();
 }
     
-void individual::set(int index, int value){
-	v[index].dest = value;
+void individual::set(int index, ind_type value){
+	v[index] = value;
 }
 
-int individual::get(int index){
-	return v[index].dest;
-}
-
-// Mutation by changing the location directly
-migration_cell_t individual::mutate(int index){
-	migration_cell *mc = &v[index];
-	int new_dest;
-
-	// Different value range depending on type of cell (thread or page address). Avoids repeating current location
-	if(mc->is_thread_cell())
-		new_dest = gen_utils::get_rand_int(system_struct_t::NUM_OF_CPUS, mc->dest);
-	else {
-		if(system_struct_t::NUM_OF_MEMORIES == 1) // No possible memory node change. For testing in local only
-			return *mc;
-
-		new_dest = gen_utils::get_rand_int(system_struct_t::NUM_OF_MEMORIES, mc->dest);
-	}
-	mc->dest = new_dest;
-
-	return *mc;
+ind_type individual::get(int index){
+	return v[index];
 }
 
 // Simple interchange
 void individual::mutate(int idx1, int idx2) {
-	int aux = v[idx1].dest;
-	v[idx1].dest = v[idx2].dest;
-	v[idx2].dest = aux;
+	pid_t aux = v[idx1];
+	v[idx1] = v[idx2];
+	v[idx2] = aux;
 }
     
 // Order crossover
 individual individual::cross(individual r, int idx1, int idx2){
-	return get_copy();
-
-/*  // [TODO]: this needs a big rewrite
 	int cut1, cut2, copy_idx, num;
 	
 	// Gets which is the first cut and which is the second
@@ -121,7 +105,6 @@ individual individual::cross(individual r, int idx1, int idx2){
 	}
 	
 	return son;
-*/
 }
 
 individual individual::get_copy() {
@@ -129,11 +112,6 @@ individual individual::get_copy() {
 }
     
 void individual::print(){
-    printf("0 ");
-    for(migration_cell const & mc : v)
-        printf("%d ", mc.dest);
-}
-
-bool individual::operator < (const individual &other) const {
-	return (fitness() < other.fitness());
+    for(pid_t const & tid : v)
+        printf("%d ", tid);
 }

@@ -71,14 +71,14 @@ int perform_migration_strategy(map<pid_t, page_table_t> *page_ts){
 	// Very initial version of a genetic approach
 	#ifdef USE_GEN_ST
 	genetic_t gen_st;
-	pgs_migr = gen_st.get_pages_to_migrate(page_ts);
+	ths_migr = gen_st.get_threads_to_migrate(page_ts);
 
 	// Performs generated migrations. It must handle possible errors
-	for(migration_cell_t const & pgm : pgs_migr){
-		int ret = pgm.perform_migration();
+	for(migration_cell_t const & thm : ths_migr){
+		int ret = thm.perform_migration();
 		
 		if(ret != 0){ // There was an error
-			handle_error(ret, pgm, page_ts);
+			handle_error(ret, thm, page_ts);
 
 			// Instead of aborting the iteration, we could just remove the following migration cells concerning that PID/TID. Right now, for simplicity:
 			return ret;

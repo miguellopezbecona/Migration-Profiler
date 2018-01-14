@@ -25,6 +25,7 @@ typedef struct migration_cell {
 	bool thread_cell;
 
 	migration_cell(){}
+	migration_cell(long int elem, short dest);
 	migration_cell(long int elem, short dest, pid_t pid, bool thread_cell);
 	migration_cell(long int elem, short dest, short prev_dest, pid_t pid, bool thread_cell);
 

@@ -62,7 +62,7 @@ vector<labeled_migr_t> get_candidate_list(pid_t worst_tid, page_table_t *page_t)
 	vector<labeled_migr_t> migration_list;
 
 	int current_cpu = system_struct_t::get_cpu_from_tid(worst_tid);
-	int current_cell = system_struct_t::get_cpu_memory_cell(current_cpu);
+	int current_cell = system_struct_t::get_cpu_memory_node(current_cpu);
 	vector<double> current_perfs = page_t->get_perf_data(worst_tid);
 
 	// Search potential core destinations from different memory nodes 
@@ -200,7 +200,7 @@ vector<labeled_migr_t> get_candidate_list(pid_t worst_tid, map<pid_t, page_table
 	vector<labeled_migr_t> migration_list;
 
 	int current_cpu = system_struct_t::get_cpu_from_tid(worst_tid);
-	int current_cell = system_struct_t::get_cpu_memory_cell(current_cpu);
+	int current_cell = system_struct_t::get_cpu_memory_node(current_cpu);
 
 	// [TODO]: build a system_struct_t general structure that maps TID -> PID to ease these kind of operations
 	pid_t current_pid = -1;

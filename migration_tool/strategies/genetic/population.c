@@ -4,7 +4,7 @@ population::population(){
 }
     
 void population::add(individual r){
-	// Inserts circularly
+	// Inserts circularly. [TODO]: if we exceed the capacity, we can replace the worst individual instead
 	if (v.size() == MAX_SIZE)
 		v.erase(v.end());
 
@@ -14,14 +14,15 @@ void population::add(individual r){
 void population::set(int index, individual r){
     v[index] = r;
 }
-    
-void population::customSort(){
-    sort(v.begin(), v.end());
-}
-    
-// If the population is ordered by fitness, the best will be the first
+
 individual population::get_best_ind(){
-    return v[0];
+	int index = 0;
+	for(size_t i=1;i<v.size();i++){
+		if(v[i].get_fitness() < v[index].get_fitness()) // Minimization case
+			index = i;
+	}
+
+    return v[index];
 }
     
 void population::print(){
@@ -29,7 +30,7 @@ void population::print(){
 	int c = 0;
 
     for(individual i : v){
-        printf("\tInd %d = {fitness: %d, content: ", c, i.fitness());
+        printf("\tInd %d = {fitness: %.2f, content: ", c, i.get_fitness());
 		i.print();
 		printf("}\n");
 		c++;

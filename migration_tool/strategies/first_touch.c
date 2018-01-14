@@ -10,7 +10,7 @@ vector<migration_cell_t> first_touch_t::get_pages_to_migrate(page_table_t *page_
 		pg_perf_data_t pd = t_it.second;
 
 		// Gets memory node of last CPU access
-		int cpu_node = system_struct_t::get_cpu_memory_cell(pd.last_cpu_access);
+		int cpu_node = system_struct_t::get_cpu_memory_node(pd.last_cpu_access);
 
 		// Compares to page location and adds to migration list if different
 		int page_node = pd.current_node;

@@ -10,6 +10,9 @@ map<pid_t, int> system_struct_t::tid_cpu_map;
 int* system_struct_t::cpu_tid_map;
 int** system_struct_t::node_distances;
 
+vector<unsigned short> system_struct_t::ordered_cpus; // Ordered by distance nodes. Might be useful for genetic strategy
+
+
 void set_affinity_error(pid_t tid);
 
 // Each line will result in a row in the distance matrix
@@ -28,6 +31,15 @@ void read_line_from_file(int node, int* array){
 	fclose(file);
 }
 
+bool are_all_nodes_processed(bool* processed){
+	for(int i=0;i<system_struct_t::NUM_OF_MEMORIES;i++){
+		if(!processed[i])
+			return false;
+	}
+	return true;
+}
+
+
 // Gets info about number of CPUs, memory nodes and creates two maps (cpu to node and node to cpu)
 int system_struct_t::detect_system() {
 	char filename[BUFSIZ];
@@ -38,7 +50,7 @@ int system_struct_t::detect_system() {
 	cpu_node_map = (int*)malloc(NUM_OF_CPUS*sizeof(int));
 	cpu_tid_map = (int*)malloc(NUM_OF_CPUS*sizeof(int));
 
-	memset(cpu_tid_map, FREE_CORE, NUM_OF_CPUS*sizeof(int)); // All CPUs are free at the beginning
+	memset(cpu_tid_map, FREE_CPU, NUM_OF_CPUS*sizeof(int)); // All CPUs are free at the beginning
 
 	// For each CPU, reads topology file to get package (node) id
 	for(int i=0;i<NUM_OF_CPUS;i++) {
@@ -68,6 +80,7 @@ int system_struct_t::detect_system() {
 	}
 
 	// Initializes and builds node distance matrix
+
 	node_distances = (int**)malloc(NUM_OF_MEMORIES*sizeof(int*));
 	for(int i=0;i<NUM_OF_MEMORIES;i++){
 		node_distances[i] = (int*)malloc(NUM_OF_MEMORIES*sizeof(int));
@@ -78,28 +91,58 @@ int system_struct_t::detect_system() {
 	printf("Detected system: %d total CPUs, %d memory nodes, %d CPUs per node.\n", NUM_OF_CPUS, NUM_OF_MEMORIES, CPUS_PER_MEMORY);
 	//print_node_distance_matrix();
 
+	// We will calculate ordered_cpus (does not take into account hyperthreading, so a core won't be next to its HT partner)
+	ordered_cpus.reserve(NUM_OF_CPUS);
+
+	bool processed[NUM_OF_MEMORIES];
+	memset(processed, false, NUM_OF_MEMORIES*sizeof(bool));
+
+	// We begin with node 0
+	int ref_node = 0;
+	ordered_cpus.insert(end(ordered_cpus), begin(node_cpu_map[0]), end(node_cpu_map[0]));
+	processed[0] = true;
+	while(!are_all_nodes_processed(processed)){
+
+		// We get the nearest not processed node to the current one
+		int min_index = 0;
+		for(int i=0;i<NUM_OF_MEMORIES;i++){
+			if(i == ref_node || processed[i])
+				continue;
+
+			if(node_distances[ref_node][i] < node_distances[ref_node][min_index])
+				min_index = i;
+		}
+
+		// We got the new mininum: mark as processed and concat its CPUs
+		processed[min_index] = true;
+		ordered_cpus.insert(end(ordered_cpus), begin(node_cpu_map[min_index]), end(node_cpu_map[min_index]));
+		
+		ref_node = min_index;
+
+	}
+
+	// Now we should have the CPUs ordered as we want
+/*
+	for(unsigned short c : ordered_cpus)
+		printf("%d ", c);
+	printf("\n");
+*/
+
 	return 0;
 }
 
 /*** Node-CPU methods ***/
-bool system_struct_t::is_in_same_memory_cell(int cpu1, int cpu2){
+bool system_struct_t::is_in_same_memory_node(int cpu1, int cpu2){
 	return cpu_node_map[cpu1] == cpu_node_map[cpu2];
 }
 
-int system_struct_t::get_cpu_memory_cell(int cpu){
+int system_struct_t::get_cpu_memory_node(int cpu){
 	return cpu_node_map[cpu];
 }
 
-int system_struct_t::get_random_core_in_cell(int cell){
+int system_struct_t::get_random_cpu_in_node(int node){
 	int position = rand() % CPUS_PER_MEMORY;
-	return node_cpu_map[cell][position];
-}
-
-int system_struct_t::get_ordered_cpu_from_node(int cell, int num){
-	if(num >= CPUS_PER_MEMORY || num < 0)
-		return -1;
-
-	return node_cpu_map[cell][num];
+	return node_cpu_map[node][position];
 }
 
 
@@ -128,13 +171,13 @@ void system_struct_t::remove_tid(pid_t tid, bool do_unpin){
 
 	// Already finished threads don't need unpin
 	if(do_unpin){
-		cpu_tid_map[cpu] = FREE_CORE;
+		cpu_tid_map[cpu] = FREE_CPU;
 		unpin_thread(tid);
 	}
 }
 
 bool system_struct_t::is_cpu_free(int cpu){
-	return cpu_tid_map[cpu] == FREE_CORE;
+	return cpu_tid_map[cpu] == FREE_CPU;
 }
 
 

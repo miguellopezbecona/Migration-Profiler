@@ -20,7 +20,7 @@ void build_page_tables(memory_data_list_t m_list, inst_data_list_t i_list, map<p
 		//long int page_num = m_cell.addr >> expn;
 
 		int page_node = get_page_current_node(m_cell.tid, page_addr);
-		int cpu_node = system_struct_t::get_cpu_memory_cell(m_cell.cpu);
+		int cpu_node = system_struct_t::get_cpu_memory_node(m_cell.cpu);
 
 		// Page node 0 by default
 		if(page_node < 0)

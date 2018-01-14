@@ -12,8 +12,8 @@
 
 //#define USE_RAND_ST
 //#define USE_FIRST_ST
-#define USE_ANNEA_ST
-//#define USE_GEN_ST
+//#define USE_ANNEA_ST
+#define USE_GEN_ST
 
 extern unsigned int step; // Iteration number
 

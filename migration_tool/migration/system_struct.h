@@ -21,7 +21,7 @@ typedef struct system_struct {
 	static int NUM_OF_CPUS;
 	static int NUM_OF_MEMORIES;
 	static int CPUS_PER_MEMORY;
-	static const int FREE_CORE = -1;
+	static const int FREE_CPU = -1;
 
 	// To know where each CPU is (in terms of memory node)
 	static int* cpu_node_map; // cpu_node_map[cpu] = node
@@ -33,21 +33,22 @@ typedef struct system_struct {
 
 	static int** node_distances;
 
+	static vector<unsigned short> ordered_cpus; // Ordered by distance nodes. Might be useful for genetic strategy
+
 
 	static int detect_system();
 
 	// Node-CPU methods
-	static int get_cpu_memory_cell(int cpu);
-	static bool is_in_same_memory_cell(int cpu1, int cpu2);
-	static int get_random_core_in_cell(int cell);
-	static int get_ordered_cpu_from_node(int cell, int num);
+	static int get_cpu_memory_node(int cpu);
+	static bool is_in_same_memory_node(int cpu1, int cpu2);
+	static int get_random_cpu_in_node(int node);
 
 	// CPU-thread methods
 	static int get_cpu_from_tid(pid_t tid);
 	static int get_tid_from_cpu(int cpu);
 	static int set_tid_cpu(pid_t tid, int cpu, bool do_pin);
 	static void remove_tid(pid_t tid, bool do_unpin);
-	static bool is_cpu_free(int core);
+	static bool is_cpu_free(int cpu);
 
 	// CPU-pin/free methods
 	static int pin_thread_to_cpu(pid_t tid, int cpu);

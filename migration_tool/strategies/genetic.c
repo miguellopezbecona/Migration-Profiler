@@ -6,7 +6,7 @@ vector<migration_cell_t> genetic::do_genetic(individual r){
 	// First iteration. No other individuals so only mutation will be done
 	if(p.v.empty()){
 		mutation(&r, &v);
-		//p.add(r); // Final result is appended to historic population
+		p.add(r); // Final result is appended to historic population
 		it = 1;
 		best_sol = r;
 		best_it = 1;
@@ -15,30 +15,34 @@ vector<migration_cell_t> genetic::do_genetic(individual r){
 
 	/** Tournament, cross, mutation, sort and replacement **/
 	// Right now, all this will be skipped
-/*
 	individual chosen = tournament();
+
+	#ifdef GENETIC_OUTPUT
 	printf("The following individual has won the tournament:\n");
 	chosen.print();
+	#endif
 
 	individual aux = cross(chosen, r);
 
+	#ifdef GENETIC_OUTPUT
 	printf("Mutation process:\n");
-	mutation(&aux);
+	#endif
+	mutation(&aux, &v);
 	
-	p.add(aux); // Final result is appended to population	
-	//p.customSort(); // Sorts by fitness, not necessary
-	//printf("Population sorted by fitness. End of iteration.\n");
-	p.print(); // Prints poblation content
+	p.add(aux); // Final result is appended to population
 
+	#ifdef GENETIC_OUTPUT
+	printf("End of iteration.\n");
+	p.print(); // Prints poblation content
+	#endif
 
 	individual best = p.get_best_ind();
 
 	// Updates best_sol if needed
-	if(best.fitness() < best_sol.fitness()){
+	if(best.get_fitness() < best_sol.get_fitness()){
 		best_sol = best;
 		best_it = it;
 	}
-*/
 	it++;
 
 	#ifdef GENETIC_OUTPUT
@@ -56,13 +60,7 @@ individual genetic::tournament(){
     
 // Crosses tournament winner with current individual. Should be adapted to create migration cells as well
 individual genetic::cross(individual from_iter, individual chosen){
-	size_t sz1 = from_iter.size();
-	size_t sz2 = chosen.size();
-	size_t sz = sz1;
-
-	// We keep the minimum size to "avoid" (no) crossing issues
-	if(sz2 < sz1)
-		sz = sz2;
+	size_t sz = from_iter.size();
 
 	// Cross probability
 	double prob = gen_utils::get_rand_double();
@@ -88,9 +86,20 @@ individual genetic::cross(individual from_iter, individual chosen){
 		printf("index cuts: %d %d\n", ind1, ind2);
 		#endif
 
-		return r3; // Just one of them? Alternate each iteration?
-	}
+		prob = gen_utils::get_rand_double();
 
+		if(prob > 0.5){
+			#ifdef GENETIC_OUTPUT
+			printf("We kept first child.\n");
+			#endif
+			return r3;
+		} else {
+			#ifdef GENETIC_OUTPUT
+			printf("We kept second child.\n");
+			#endif
+			return r4;
+		}
+	}
 }
        
 // Mutates current individual
@@ -111,22 +120,15 @@ void genetic::mutation(individual *r, vector<migration_cell_t> *v){
 			printf("mutation not done\n");
 			#endif
 		} else {
-
-			// Mutation by changing the location directly
-			migration_cell_t mc = r->mutate(pos1);
-			v->push_back(mc);
-
-			#ifdef GENETIC_OUTPUT
-			printf("mutated to %d\n", mc.dest);
-			#endif
-
 			// Mutation by interchange
-/*
 			int pos2 = gen_utils::get_rand_int(sz, pos1);
 
 			// Generates two migration cells: r.v[pos1] goes to r.v[pos2] location and viceversa
-			migration_cell_t mc1(r->v[pos1].elem, r->v[pos2].dest);
-			migration_cell_t mc2(r->v[pos2].elem, r->v[pos1].dest);
+			int dest1 = system_struct_t::ordered_cpus[pos2]; // CPU associated to pos2
+			int dest2 = system_struct_t::ordered_cpus[pos1];
+
+			migration_cell_t mc1(r->v[pos1], dest1);
+			migration_cell_t mc2(r->v[pos2], dest2);
 			v->push_back(mc1);
 			v->push_back(mc2);
 
@@ -136,23 +138,19 @@ void genetic::mutation(individual *r, vector<migration_cell_t> *v){
 			#ifdef GENETIC_OUTPUT
 			printf("interchanges with position %d\n", pos2);
 			#endif
-*/
-
 		}
-
-
 	}
 }
 
 void genetic::print_best_sol(){
 	printf("\nBEST SOLUTION:\n");
 	best_sol.print();
-	printf("Fitness: %d\n", best_sol.fitness());
+	printf("Fitness: %.2f\n", best_sol.get_fitness());
 	printf("Obtained in iteration: %d\n", best_it);
 }
 
 vector<migration_cell_t> genetic_t::get_pages_to_migrate(map<pid_t, page_table_t> *page_ts){
-	// Converts both node_maps (page_node_map and tid_node_map) to a individual (list of cells). This may imply a slowdown
+	// Generates an individual for current state and calculates its performance
 	individual ind(*page_ts);
 	return do_genetic(ind);
 }

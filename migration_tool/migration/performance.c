@@ -38,7 +38,7 @@ void rm3d_data_t::calc_perf(double mean_lat){
 		double inst_per_s = (double) insts[cpu] * 1000 / times[cpu]; // Óscar used inst/ms, so * 10^3
 		double inst_per_b = (double) insts[cpu] / (reqs[cpu] * CACHE_LINE_SIZE);
 
-		int cpu_node = system_struct_t::get_cpu_memory_cell(cpu);
+		int cpu_node = system_struct_t::get_cpu_memory_node(cpu);
 		v_perfs[cpu_node] = inv_mean_lat * inst_per_s * inst_per_b;
 
 		// Debug

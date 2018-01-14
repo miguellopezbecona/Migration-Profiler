@@ -3,6 +3,14 @@
 int migration_cell_t::total_thread_migrations = 0;
 int migration_cell_t::total_page_migrations = 0;
 
+migration_cell_t::migration_cell(long int elem, short dest) {
+	this->elem = elem;
+	this->dest = dest;
+	this->prev_dest = -1;
+	this->pid = -1;
+	this->thread_cell = true; // If we don't use a PID, it HAS to be a thread cell
+}
+
 migration_cell_t::migration_cell(long int elem, short dest, pid_t pid, bool thread_cell) {
 	this->elem = elem;
 	this->dest = dest;

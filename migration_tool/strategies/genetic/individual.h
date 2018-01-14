@@ -11,23 +11,20 @@ using namespace std;
 #include "../../migration/migration_cell.h"
 #include "../../migration/page_table.h"
 
-class individual {
-	private:
-	// Migration cell instead of just numbers (locations) so we can keep which PID and memory page/TID is associated to that location
-	//vector<migration_cell_t> v;
-    
-	public:
-	vector<migration_cell_t> v;
+typedef pid_t ind_type;
+
+typedef struct individual {
+	vector<ind_type> v; // Internal representation: list of TIDs where the index indicates the (ordered) CPU
+	double fitness; // Currently defined as the mean latency of all the system
 
 	individual();
 	individual(map<pid_t, page_table_t> ts);
-	individual(vector<migration_cell_t> vec);
+	individual(vector<pid_t> vec);
 
-	int fitness() const;
-
+	double get_fitness() const;
 	size_t size();
-	void set(int index, int value);
-	int get(int index);
+	void set(int index, ind_type value);
+	ind_type get(int index);
 
 	migration_cell_t mutate(int index); // Changes location directly
 	void mutate(int idx1, int idx2); // Interchange
@@ -36,6 +33,4 @@ class individual {
 	individual get_copy();
 
 	void print();
-
-	bool operator < (const individual &otro) const; 
-};
+} individual_t;

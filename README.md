@@ -67,7 +67,7 @@ Another option was implementing it as a single map with a pair of two values as 
 * `strategies/strategy.h`: defines which operations should define a scratch strategy.
 * `strategies/random`: there is a simple strategy implemented which is a simple random approach.
 * `strategies/annealing`: this strategy is based on what Óscar did in his PhD work.
-* `strategies/genetic` and `strategies/genetic/*`: I am working in a strategy based on a genetic algorithm, but in a simplified way.
+* `strategies/genetic` and `strategies/genetic/*`: I am working in a strategy based on a genetic algorithm, but in a simplified way. A single iteration is executed in each migration iteration, and it currently aims to work over thread migrations. Each individual of the population is represented by a list of TIDs, whose index means the CPU index, but these are ordered by memory node rather than actual physical CPU index.
 * `strategies/first_touch`: simple strategy for memory pages which migrates the ones accessed by CPUs from different nodes.
 
 The following is the brief explanation of some of the other files:

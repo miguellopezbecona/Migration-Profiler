@@ -299,6 +299,7 @@ static void clean_end(int n) {
 int mainloop(char **arg) {
 	// Obtains some important "constants" in execution time
 	system_struct_t::detect_system();
+
 	uid = getuid();
 	pgsz = sysconf(_SC_PAGESIZE);
 	map_size = (options.mmap_pages+1)*pgsz;
@@ -391,7 +392,7 @@ int mainloop(char **arg) {
 }
 
 static void usage(void){
-	printf("usage: my_profiler_tm [-h] [--help] [-m(do thread migration)] [-M(do page migration)] [-p period_memory] [-P period_indtructions] [-l minimum_latency] [-s seconds_between_migrations]\n");
+	printf("usage: my_profiler_tm [-h] [--help] [-p period_memory] [-P period_indtructions] [-l minimum_latency] [-s seconds_between_migrations]\n");
 }
 
 int main(int argc, char **argv){
@@ -416,7 +417,7 @@ int main(int argc, char **argv){
 		switch(c) {
 			case 0: continue;
 			case 'p':
-				// This needs to be redefined in the future, probably with something like "period_g0;period_g1;"...
+				// In the future it will be better if this gets redefined with something like "periodG0_periodG1_p..."
 				options.periods[0] = atoi(optarg);
 				break;
 			case 'P':
