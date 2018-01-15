@@ -63,6 +63,10 @@ void handle_error(int errn, migration_cell_t mc, map<pid_t, page_table_t> *page_
 	}
 }
 
+#ifdef USE_GEN_ST
+genetic_t gen_st;
+#endif
+
 // All-system level strategies
 int perform_migration_strategy(map<pid_t, page_table_t> *page_ts){
 	vector<migration_cell_t> ths_migr;
@@ -70,7 +74,6 @@ int perform_migration_strategy(map<pid_t, page_table_t> *page_ts){
 
 	// Very initial version of a genetic approach
 	#ifdef USE_GEN_ST
-	genetic_t gen_st;
 	ths_migr = gen_st.get_threads_to_migrate(page_ts);
 
 	// Performs generated migrations. It must handle possible errors

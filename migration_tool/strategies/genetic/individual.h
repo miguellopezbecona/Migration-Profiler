@@ -2,20 +2,20 @@
 
 #include <stdio.h>
 
-#include <algorithm> // find
-#include <map>
+#include <algorithm> // find, count
+#include <set>
 #include <vector>
 using namespace std;
 
-#include "gen_utils.h" // perf_data
+#include "gen_utils.h"
 #include "../../migration/migration_cell.h"
-#include "../../migration/page_table.h"
+#include "../../migration/page_table.h" // perf_data
 
-typedef pid_t ind_type;
+typedef pid_t ind_type; // TID
 
 typedef struct individual {
 	vector<ind_type> v; // Internal representation: list of TIDs where the index indicates the (ordered) CPU
-	double fitness; // Currently defined as the mean latency of all the system
+	double fitness; // Currently defined as the mean latency of all the system. The lower the better
 
 	individual();
 	individual(map<pid_t, page_table_t> ts);
@@ -33,4 +33,8 @@ typedef struct individual {
 	individual get_copy();
 
 	void print();
+
+	// For easing readibility
+	ind_type operator[](int i) const;
+	ind_type & operator[](int i);
 } individual_t;

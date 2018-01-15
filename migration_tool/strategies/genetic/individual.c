@@ -1,6 +1,7 @@
 #include "individual.h"
 
 individual::individual() {
+	fitness = 1e10; // Unknown potential. Big number for minimization problem
 }
 
 individual::individual(map<pid_t, page_table_t> ts) : v(system_struct_t::NUM_OF_CPUS, system_struct_t::FREE_CPU) {
@@ -62,45 +63,64 @@ void individual::mutate(int idx1, int idx2) {
 }
     
 // Order crossover
-individual individual::cross(individual r, int idx1, int idx2){
+individual individual::cross(individual other, int idx1, int idx2){
+	size_t sz = v.size();
 	int cut1, cut2, copy_idx, num;
 	
-	// Gets which is the first cut and which is the second
+	// Gets which one is the first cut and which is the second
 	if(idx1 > idx2){
 		cut1 = idx2;
 		cut2 = idx1;
 	} else {
 		cut1 = idx1;
 		cut2 = idx2;
-	} 
+	}
+
+	// We will only allow a maximum of free CPUs (repeated values)
+	short free_cpus = count(v.begin(), v.end(), system_struct_t::FREE_CPU);
+	short free_cpus_other = count(other.v.begin(), other.v.end(), system_struct_t::FREE_CPU);
+	if(free_cpus_other > free_cpus)
+		free_cpus = free_cpus_other;
 	
 	// Creates a copy which will already have the center block copied
 	individual son = get_copy();
+
+	// Gets central block from current individual
+	std::set<int> sublist(v.begin() + cut1, v.begin() + cut2+1);
 	
 	//// Changes what is not the central block ////
-	// Gets central block. 
-
-	vector<int> sublist(v.begin() + cut1, v.begin() + cut2+1);
 	
-	// Copies from second cut until the end
-	copy_idx = (cut2+1) % v.size();
-	for(int i=cut2+1;i<v.size();i++){
-		// Si el índice generado ya forma parte de la sublist, se continúa al siguiente de forma circular
+	// Copies from second cut until the end from the other individual
+	copy_idx = (cut2+1) % sz;
+	for(size_t i=cut2+1;i<sz;i++){
+		// If the generated index is already part of the sublist, then we continue to the next in a circular manner
 		do {
-			num = r.get(copy_idx);
-			copy_idx = (copy_idx + 1) % v.size();
-		} while(find(sublist.begin(), sublist.end(), num) != sublist.end()); // sublist.contains(num)
-		sublist.push_back(num);
+			num = other.get(copy_idx);
+			copy_idx = (copy_idx + 1) % sz;
+
+			// We will only allow a maximum of free CPUs (repeated values)
+			if(num == system_struct_t::FREE_CPU && free_cpus){
+				free_cpus--;
+				break;
+			}
+		} while(sublist.count(num)); // sublist.contains(num)
+		sublist.insert(num);
 		son.set(i, num);
 	}
 	
 	// Copies from start to second cut
 	for(int i=0;i<cut1;i++){
 		do {
-			num = r.get(copy_idx);
-			copy_idx = (copy_idx + 1) % v.size();
-		} while(find(sublist.begin(), sublist.end(), num) != sublist.end()); // sublist.contains(num)
-		sublist.push_back(num);
+			num = other.get(copy_idx);
+			copy_idx++;
+
+			// We will only allow a maximum of free CPUs (repeated values)
+			if(num == system_struct_t::FREE_CPU && free_cpus){
+				free_cpus--;
+				break;
+			}	
+		} while(sublist.count(num));
+		sublist.insert(num);
 		son.set(i, num);
 	}
 	
@@ -108,10 +128,22 @@ individual individual::cross(individual r, int idx1, int idx2){
 }
 
 individual individual::get_copy() {
-	return *(new individual(v));    
+	individual i = *(new individual(v));
+	i.fitness = 1e10; // Unknown potential. Big number for minimization problem
+	return i;
 }
     
 void individual::print(){
-    for(pid_t const & tid : v)
-        printf("%d ", tid);
+	printf("{fitness: %.2f, content: ", fitness);
+	for(pid_t const & tid : v)
+		printf("%d ", tid);
+	printf("}\n");
+}
+
+ind_type individual::operator[](int i) const {
+	return v[i];
+}
+
+ind_type & individual::operator[](int i) {
+	return v[i];
 }

@@ -26,12 +26,10 @@ void build_page_tables(memory_data_list_t m_list, inst_data_list_t i_list, map<p
 		if(page_node < 0)
 			page_node = 0;
 
-		// If TID does not exist in system's map, we store its CPU and pin the thread to it if the CPU is free
-		if(system_struct_t::tid_cpu_map.count(m_cell.tid) == 0)
-			system_struct_t::set_tid_cpu(m_cell.tid, m_cell.cpu, system_struct_t::is_cpu_free(m_cell.cpu));
-		// [TOTHINK] Maybe should it be migrated to a free core within the same memory node if the initial isn't free?
+		// Registers TID in system structure if needed
+		system_struct_t::add_tid(m_cell.tid, m_cell.cpu);
 
-		if(page_ts->count(m_cell.pid) == 0){ // = !contains(pid). We init the entry if it doesn't exist
+		if(!page_ts->count(m_cell.pid)){ // = !contains(pid). We init the entry if it doesn't exist
 			page_table_t t(m_cell.pid);
 			page_ts->operator[](m_cell.pid) = t;
 		}
@@ -47,7 +45,7 @@ void build_page_tables(memory_data_list_t m_list, inst_data_list_t i_list, map<p
 	for(inst_data_cell_t const & i_cell : i_list.list){
 
 		// If there is no table associated (no mem sample) to the pid, the data will be discarded
-		if(page_ts->count(i_cell.pid) == 0) // = !contains(pid)
+		if(!page_ts->count(i_cell.pid)) // = !contains(pid)
 			continue;
 		
 		page_ts->operator[](i_cell.pid).add_inst_data_for_tid(i_cell.tid, i_cell.cpu, i_cell.inst, i_cell.req_dr, i_cell.time);

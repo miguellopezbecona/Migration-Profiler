@@ -44,6 +44,7 @@ typedef struct system_struct {
 	static int get_random_cpu_in_node(int node);
 
 	// CPU-thread methods
+	static void add_tid(pid_t tid, int cpu);
 	static int get_cpu_from_tid(pid_t tid);
 	static int get_tid_from_cpu(int cpu);
 	static int set_tid_cpu(pid_t tid, int cpu, bool do_pin);

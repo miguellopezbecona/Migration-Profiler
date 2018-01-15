@@ -9,9 +9,9 @@
 // If you only want to use this tool for profiling, uncomment the following:
 //#define JUST_PROFILE
 
-//#define DO_MIGRATIONS
+#define DO_MIGRATIONS
 
-// Macros for some specific anlaysis
+// Macros for some specific analysis
 //#define MEAN_ACS_ANALY
 //#define MEAN_LAT_ANALY
 

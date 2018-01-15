@@ -104,10 +104,13 @@ void work_with_fake_data(){
 */
 	pages(pids, memory_list, inst_list, &page_tables);
 
-	tid_cpu_table.print(); // Debugging purposes
+	//tid_cpu_table.print(); // Debugging purposes
 
-	//perform_migration_strategy(&page_tables);
-	perform_migration_strategy(&page_tables[500]);
+	// For testing two iterations of genetic
+	perform_migration_strategy(&page_tables);
+	perform_migration_strategy(&page_tables);
+
+	//perform_migration_strategy(&page_tables[500]);
 
 	clean_migration_structures();
 }

@@ -104,13 +104,16 @@ int system_struct_t::detect_system() {
 	while(!are_all_nodes_processed(processed)){
 
 		// We get the nearest not processed node to the current one
-		int min_index = 0;
+		int min_index = -1;
+		int min_distance = 1e3;
 		for(int i=0;i<NUM_OF_MEMORIES;i++){
 			if(i == ref_node || processed[i])
 				continue;
 
-			if(node_distances[ref_node][i] < node_distances[ref_node][min_index])
+			if(node_distances[ref_node][i] < min_distance){
+				min_distance = node_distances[ref_node][i];
 				min_index = i;
+			}
 		}
 
 		// We got the new mininum: mark as processed and concat its CPUs
@@ -147,6 +150,13 @@ int system_struct_t::get_random_cpu_in_node(int node){
 
 
 /*** CPU-thread methods ***/
+void system_struct_t::add_tid(pid_t tid, int cpu){
+	// Adds TID to map if it isn't exists there already
+	if(!tid_cpu_map.count(tid))
+		set_tid_cpu(tid, cpu, is_cpu_free(cpu)); // The thread is pinned if the CPU is free
+	// [TOTHINK] Maybe should it be migrated to a free core within the same memory node if the initial isn't free?
+}
+
 int system_struct_t::get_cpu_from_tid(pid_t tid){
 	return tid_cpu_map[tid];
 }

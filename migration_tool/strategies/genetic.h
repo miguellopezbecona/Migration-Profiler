@@ -19,12 +19,12 @@ typedef struct genetic : strategy {
 	int best_it;
 	individual best_sol;
 
-	genetic(){}
+	genetic();
 
-	vector<migration_cell_t> do_genetic(individual r);
+	vector<migration_cell_t> do_genetic(individual ind);
 	individual tournament();
-	individual cross(individual from_iter, individual chosen);
-	void mutation(individual *r, vector<migration_cell_t> *v);
+	individual cross(individual from_iter, individual chosen, vector<migration_cell_t> *v);
+	void mutation(individual *ind, vector<migration_cell_t> *v);
 	void print_best_sol();
 
 	// The following should not be written because it should inherit it from strategy
