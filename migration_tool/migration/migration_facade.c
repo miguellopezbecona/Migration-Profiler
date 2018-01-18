@@ -18,7 +18,7 @@ void add_data_to_list(my_pebs_sample_t sample){
 
 	// Gets children processes por sample's PID
 	pid_t pid = sample.pid;
-	if(pmap.count(pid) == 0) // !contains(pid)
+	if(!pmap.count(pid)) // !contains(pid)
 		pmap[pid] = get_children_processes(pid);
 
 	// Time to do a periodic print!
@@ -32,7 +32,7 @@ void add_data_to_list(my_pebs_sample_t sample){
 	if(sample.is_mem_sample()){ // [TOTHINK]: Before, we discarded samples with DSRC == 0, why?
 		memory_list.add_cell(sample.cpu,sample.pid,sample.tid,sample.sample_addr,sample.weight,sample.dsrc,sample.time);
 		//memory_list.list.back().print_dsrc(); printf("\n"); // Temporal, for testing dsrc printing
-		pids.insert(sample.pid); // We consider a process is active if we get a memory sample
+		pids.insert(sample.pid); // We will consider a process is active if we get a memory sample from it
 	} else
 		inst_list.add_cell(sample.cpu,sample.pid,sample.tid,sample.values[1],sample.values[0],sample.time);
 	#endif
@@ -155,12 +155,17 @@ int begin_migration_process(){
 		}
 		t_it++; // For erasing correctly
 
-		// We check finished TIDs and remove them from table		
-		table->remove_finished_tids();
-		//table->print();
+		// We check finished TIDs and remove them from table
+		#ifdef USE_ANNEA_ST	// Since we can't check in page_table.c if this macro is defined, we have to do a little trick to avoid a bug
+		table->remove_finished_tids(true);
+		#else
+		table->remove_finished_tids(false);
+		#endif
+
+		//table->print(); // For debugging
 
 		#ifdef DO_MIGRATIONS
-		if(pids.count(pid) > 0) // contains(pid)
+		if(pids.count(pid)) // contains(pid)
 			perform_migration_strategy(table);
 		#endif
 	}

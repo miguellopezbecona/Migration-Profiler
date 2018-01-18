@@ -50,7 +50,7 @@ typedef struct page_table {
 	table_cell_t* get_cell(long int page_addr, int cpu);
 	vector<int> get_latencies_from_cell(long int page_addr, int cpu);
 	void remove_tid(pid_t tid);
-	void remove_finished_tids();
+	void remove_finished_tids(bool unpin_3drminactive_tids);
 	vector<pid_t> get_tids() const;
 	void print();
 

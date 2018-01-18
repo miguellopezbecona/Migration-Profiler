@@ -131,7 +131,7 @@ void page_table_t::remove_tid(pid_t tid){
 }
 
 // Also unpins inactive threads
-void page_table_t::remove_finished_tids(){
+void page_table_t::remove_finished_tids(bool unpin_3drminactive_tids){
 	unsigned int erased = 0;
 
 	for(auto it = tid_index.begin(); it != tid_index.end(); ) {
@@ -149,7 +149,9 @@ void page_table_t::remove_finished_tids(){
 		}
 		else {
 			++it; // For erasing correctly
-			if(!perf_per_tid[tid].active)
+
+			// Only when we use annealing strategy
+			if(unpin_3drminactive_tids && !perf_per_tid[tid].active)
 				system_struct_t::remove_tid(tid, true);
 			
 			tid_index[tid] = pos - erased;
@@ -171,7 +173,7 @@ void page_table_t::print() {
 
 	// Prints each row (TID)
 	for(auto const & t_it : tid_index) {
-		int tid = t_it.first;
+		pid_t tid = t_it.first;
 		int pos = t_it.second;
 
 		printf("TID: %d\n", tid);
