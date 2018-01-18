@@ -39,7 +39,6 @@ bool are_all_nodes_processed(bool* processed){
 	return true;
 }
 
-
 // Gets info about number of CPUs, memory nodes and creates two maps (cpu to node and node to cpu)
 int system_struct_t::detect_system() {
 	char filename[BUFSIZ];
@@ -80,7 +79,6 @@ int system_struct_t::detect_system() {
 	}
 
 	// Initializes and builds node distance matrix
-
 	node_distances = (int**)malloc(NUM_OF_MEMORIES*sizeof(int*));
 	for(int i=0;i<NUM_OF_MEMORIES;i++){
 		node_distances[i] = (int*)malloc(NUM_OF_MEMORIES*sizeof(int));
@@ -151,10 +149,38 @@ int system_struct_t::get_random_cpu_in_node(int node){
 
 /*** CPU-thread methods ***/
 void system_struct_t::add_tid(pid_t tid, int cpu){
-	// Adds TID to map if it isn't exists there already
-	if(!tid_cpu_map.count(tid))
-		set_tid_cpu(tid, cpu, is_cpu_free(cpu)); // The thread is pinned if the CPU is free
-	// [TOTHINK] Maybe should it be migrated to a free core within the same memory node if the initial isn't free?
+	if(tid_cpu_map.count(tid)) // We don't continue if the TID already exists in map
+		return;
+
+	if(is_cpu_free(cpu)){ // The thread is also pinned to the CPU if it is free
+		set_tid_cpu(tid, cpu, true);
+		return;
+	}
+	
+	// If not, we search a free CPU on its same node
+	int node = cpu_node_map[cpu];
+	for(int const & other_cpu : node_cpu_map[node]){
+		if(is_cpu_free(other_cpu)){
+			set_tid_cpu(tid, other_cpu, true);
+			return;
+		}
+	}
+
+	// If we are here, we didn't found a free CPU in the memory node of the CPU where the sample was gotten. We will try with the rest
+	// [TODO]: We could use the info from node_distances to continue the search from the nearest node to the initial one to the farthest one
+	for(int n=0;n<NUM_OF_MEMORIES;n++){
+		if(n == node)
+			 continue; // Already checked
+
+		for(int const & other_cpu : node_cpu_map[n]){
+			if(is_cpu_free(other_cpu)){ // The thread is pinned to the CPU if it is free
+				set_tid_cpu(tid, other_cpu, true);
+				return;
+			}
+		}
+	}
+
+	set_tid_cpu(tid, cpu, false); // If there aren't any free CPUs, we assign the thread to the initial CPU without pinning it
 }
 
 int system_struct_t::get_cpu_from_tid(pid_t tid){
