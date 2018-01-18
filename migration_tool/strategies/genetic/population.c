@@ -9,7 +9,7 @@ void population::add(individual idv){
 	if (v.size() == MAX_SIZE)
 		v.erase(v.begin());
 
-    v.push_back(idv);
+	v.push_back(idv);
 }
     
 void population::set(int idx, individual idv){
@@ -17,20 +17,23 @@ void population::set(int idx, individual idv){
 }
 
 void population::update_fitness(double f){
-	// We are assuming we replace the 
+	// We are assuming we are replacing the oldest element. If not, we have to search the idv with -1 fitness
 	size_t index = v.size() - 1;
-    v[index].fitness = f;
+	v[index].fitness = f;
 }
-
 
 individual population::get_best_ind(){
 	int index = 0;
 	for(size_t i=1;i<v.size();i++){
-		if(v[i].get_fitness() < v[index].get_fitness()) // Minimization case
+		#ifdef MAXIMIZATION
+		if(v[i].get_fitness() > v[index].get_fitness())
+		#elif defined(MINIMIZATION)
+		if(v[i].get_fitness() < v[index].get_fitness())
+		#endif
 			index = i;
 	}
 
-    return v[index];
+	return v[index];
 }
 
 bool population::is_first_iteration(){
@@ -41,9 +44,10 @@ void population::print(){
 	printf("Printing population content:\n");
 	int c = 0;
 
-    for(individual i : v){
-        printf("\tIndiv. %d = ", c);
+	for(individual i : v){
+		printf("\tIndiv. %d = ", c);
 		i.print();
 		c++;
-    }
+	}
 }
+

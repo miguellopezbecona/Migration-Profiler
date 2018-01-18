@@ -22,9 +22,6 @@ vector<migration_cell_t> genetic::do_genetic(individual ind){
 	individual child = ind;
 	if(!p.is_first_iteration()){
 		p.update_fitness(ind.get_fitness());
-		// [TOTHINK]: even if we don't mix strategies, the individuals regarding i_th iteration and the one that resulted in i-1_th iteration
-		// don't have to be exactly the same because the counters might get new process/threads, and we have to rebuild it anyway
-		// In this case, is it correct to assign i_th fitness to i-1_th fitness?
 
 		individual chosen = tournament();
 		child = cross(ind, chosen, &v);
@@ -40,7 +37,11 @@ vector<migration_cell_t> genetic::do_genetic(individual ind){
 	individual best = p.get_best_ind();
 
 	// Updates best_sol if needed
+	#ifdef MAXIMIZATION
+	if(best.get_fitness() > best_sol.get_fitness()){
+	#elif defined(MINIMIZATION)
 	if(best.get_fitness() < best_sol.get_fitness()){
+	#endif
 		best_sol = best;
 		best_it = it;
 	}
@@ -66,7 +67,7 @@ individual genetic::tournament(){
 	return ind;
 }
     
-// Crosses tournament winner with current individual. Should be adapted to create migration cells as well
+// Crosses tournament winner with current individual
 individual genetic::cross(individual from_iter, individual from_selec, vector<migration_cell_t> *v){
 	size_t sz = from_iter.size();
 

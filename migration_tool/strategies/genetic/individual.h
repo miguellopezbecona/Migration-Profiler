@@ -1,17 +1,15 @@
 #pragma once
 
-#include <stdio.h>
-
-#include <algorithm> // find, count
-#include <set>
-#include <vector>
-using namespace std;
-
-#include "gen_utils.h"
-#include "../../migration/migration_cell.h"
-#include "../../migration/page_table.h" // perf_data
+#include "gen_utils.h" // MAX/MIN macro
+#include "../../migration/page_table.h" // It uses it in one constructor
 
 typedef pid_t ind_type; // TID
+
+#ifdef MAXIMIZATION
+const double NO_FITNESS = -1.0;
+#elif defined(MINIMIZATION)
+const double NO_FITNESS = 1e6;
+#endif
 
 typedef struct individual {
 	vector<ind_type> v; // Internal representation: list of TIDs where the index indicates the (ordered) CPU
@@ -19,7 +17,7 @@ typedef struct individual {
 
 	individual();
 	individual(map<pid_t, page_table_t> ts);
-	individual(vector<pid_t> vec);
+	individual(vector<ind_type> vec);
 
 	double get_fitness() const;
 	size_t size();

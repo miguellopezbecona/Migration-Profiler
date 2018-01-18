@@ -1,7 +1,7 @@
 #include "individual.h"
 
 individual::individual() {
-	fitness = 1e10; // Unknown potential. Big number for minimization problem
+	fitness = NO_FITNESS; // Unknown potential
 }
 
 individual::individual(map<pid_t, page_table_t> ts) : v(system_struct_t::NUM_OF_CPUS, system_struct_t::FREE_CPU) {
@@ -35,8 +35,9 @@ individual::individual(map<pid_t, page_table_t> ts) : v(system_struct_t::NUM_OF_
 }
     
 // To ease copy in cross
-individual::individual(vector<pid_t> vec){
+individual::individual(vector<ind_type> vec){
 	v = vec;
+	fitness = NO_FITNESS; // Unknown potential
 }
 
 double individual::get_fitness() const {
@@ -57,7 +58,7 @@ ind_type individual::get(int index){
 
 // Simple interchange
 void individual::mutate(int idx1, int idx2) {
-	pid_t aux = v[idx1];
+	ind_type aux = v[idx1];
 	v[idx1] = v[idx2];
 	v[idx2] = aux;
 }
@@ -129,7 +130,6 @@ individual individual::cross(individual other, int idx1, int idx2){
 
 individual individual::get_copy() {
 	individual i = *(new individual(v));
-	i.fitness = 1e10; // Unknown potential. Big number for minimization problem
 	return i;
 }
     

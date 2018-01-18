@@ -78,7 +78,7 @@ int perform_migration_strategy(map<pid_t, page_table_t> *page_ts){
 
 	// Performs generated migrations. It must handle possible errors
 	for(migration_cell_t const & thm : ths_migr){
-		int ret = thm.perform_migration();
+		int ret = thm.perform_thread_migration();
 		
 		if(ret != 0){ // There was an error
 			handle_error(ret, thm, page_ts);

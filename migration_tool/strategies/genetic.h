@@ -1,14 +1,12 @@
-#include <math.h>
+#pragma once
 
 #include "strategy.h"
 
 #include "genetic/population.h"
-#include "genetic/individual.h"
 #include "genetic/gen_utils.h"
+#include "../migration/migration_cell.h"
 
 #define GENETIC_OUTPUT
-
-using namespace std;
 
 const double CROSS_PROB = 0.9;
 const double MUT_PROB = 0.1;

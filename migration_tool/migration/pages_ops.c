@@ -40,7 +40,7 @@ void build_page_tables(memory_data_list_t m_list, inst_data_list_t i_list, map<p
 		tid_cpu_table.add_data(m_cell.tid, m_cell.cpu, m_cell.latency);
 	}
 
-	#ifdef USE_ANNEA_ST	// Useless if we don't use annealing strategy
+	#ifdef USE_ANNEA_ST	// Unnecessary processing if we don't use annealing strategy
 	// Adds inst data from i_list for better performance calculation
 	for(inst_data_cell_t const & i_cell : i_list.list){
 
