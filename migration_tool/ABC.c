@@ -22,8 +22,10 @@
 
 int max_cpus; // Detected by the system
 
+typedef float data_type; // For changing data type easily
+
 // Main data
-float *A, *B, *C;
+data_type *A, *B, *C;
 
 // Options
 unsigned int blocks_per_thread;
@@ -87,9 +89,9 @@ void data_initialization(){
 	int i, th, offset;
 
 	// Memory allocation on memory node
-	A = numa_alloc_onnode(array_total_size*sizeof(float), mem_node);
-	B = numa_alloc_onnode(array_total_size*sizeof(float), mem_node);
-	C = numa_alloc_onnode(array_total_size*sizeof(float), mem_node);
+	A = numa_alloc_onnode(array_total_size*sizeof(data_type), mem_node);
+	B = numa_alloc_onnode(array_total_size*sizeof(data_type), mem_node);
+	C = numa_alloc_onnode(array_total_size*sizeof(data_type), mem_node);
 
 	// Random initialization
 	for(th=0;th<num_th;th++){
@@ -274,8 +276,8 @@ int main(int argc, char *argv[]){
 
 	// Frees resources and end
 	free(selected_cpus);
-	numa_free(A, array_total_size*sizeof(float));
-	numa_free(B, array_total_size*sizeof(float));
-	numa_free(C, array_total_size*sizeof(float));
+	numa_free(A, array_total_size*sizeof(data_type));
+	numa_free(B, array_total_size*sizeof(data_type));
+	numa_free(C, array_total_size*sizeof(data_type));
 	return 0;
 }

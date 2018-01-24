@@ -3,6 +3,7 @@
 #include <unistd.h> // optarg, getting number of CPUs...
 #include <sys/syscall.h> // gettid
 #include <ctype.h> // isprint
+#include <sys/time.h>
 
 #include <sched.h> // CPU affinity stuff
 #include <errno.h> // Affinity error's constants
@@ -11,6 +12,8 @@
 
 #include "system_struct.h"
 
+typedef float data_type; // For changing data type easily
+typedef unsigned long int bigint; // For readibility and changing it easier
 
 // Default macro values
 #define DEFAULT_MAIN_ITERS 1000
@@ -22,22 +25,29 @@
 #define DEFAULT_REMOTE_NODE 1
 
 #define CACHE_LINE_SIZE 64
-#define ELEMS_PER_CACHE CACHE_LINE_SIZE / sizeof(float)
+#define ELEMS_PER_CACHE CACHE_LINE_SIZE / sizeof(data_type)
 
 #define OUTPUT
 //#define DOGETPID
 
+// For a specific test. Can be commented
+#define PRINT_PHASE_CHANGE
+
+#ifdef PRINT_PHASE_CHANGE
+struct timeval t_beg, t_end;
+#endif
+
 // Main data
-unsigned long array_basic_size; // array_total_size / num_th
-unsigned long array_total_size;
-float* local_array;
-float* remote_array;
+bigint array_basic_size; // array_total_size / num_th
+bigint array_total_size;
+data_type* local_array;
+data_type* remote_array;
 
 // Options
-unsigned long int main_iters;
-unsigned int elems_iter;
-unsigned int remote_reads;
-unsigned int ops;
+bigint main_iters;
+bigint elems_iter;
+bigint remote_reads;
+bigint ops;
 unsigned int num_th;
 unsigned char *selected_cpus;
 unsigned char local_node;
@@ -61,12 +71,12 @@ void print_selected_cpus(){
 }
 
 void print_params(){
-	//printf("Read iterations: %lu\nElements read per iteration: %d\nRemote elements read per iteration: %d\nNumber of floating operations per iteration: %d\nNumber of threads: %d\nArray size: %lu\nLocal node: %d\nRemote node: %d\n\n",main_iters,elems_iter,remote_reads,ops,num_th,array_total_size, local_node, remote_node);
-	printf("R: %lu\nD: %d\nR: %d\nO: %d\nThs: %d\nArray size: %lu\nLocal node: %d\nRemote node: %d\n\n",main_iters,elems_iter,remote_reads,ops,num_th,array_total_size, local_node, remote_node);
+	//printf("Main iterations: %lu\nElements read/written per iteration: %lu\nRemote elements read/written per iteration: %d\nNumber of floating operations per iteration: %d\nNumber of threads: %d\nArray size: %lu\nLocal node: %d\nRemote node: %d\n\n",main_iters,elems_iter,remote_reads,ops,num_th,array_total_size, local_node, remote_node);
+	printf("I: %lu\nN: %lu\nR: %lu\nO: %lu\nThs: %d\nArray size: %lu\nLocal node: %d\nRemote node: %d\n\n",main_iters,elems_iter,remote_reads,ops,num_th,array_total_size, local_node, remote_node);
 }
 
 void usage(char **argv) {
-	printf("Usage: %s [-lread_iterations] [-delements_read_per_iteration] [-rremote_elements_read_per_iteration] [-ooperations_per_iteration] [-tnumber_of_threads] [-mlocal_node] [-Mremote_node]\n\n", argv[0]);
+	printf("Usage: %s [-imain_iterations] [-nelements_processed_per_iteration] [-rremote_elements_processed_per_iteration] [-ooperations_per_iteration] [-tnumber_of_threads] [-mlocal_node] [-Mremote_node]\n\n", argv[0]);
 }
 
 void set_affinity_error(){
@@ -93,8 +103,18 @@ void set_affinity_error(){
 void data_initialization(){
 	int th, offset;
 
-	local_array = (float*)numa_alloc_onnode(array_total_size*sizeof(float), local_node);
-	remote_array = (float*)numa_alloc_onnode(array_total_size*sizeof(float), remote_node);
+	local_array = (data_type*)numa_alloc_onnode(array_total_size*sizeof(data_type), local_node);
+	if(local_array == NULL){
+		printf("Local malloc failed, probably due to not enough memory.\n");
+		exit(-1);
+	}
+
+	remote_array = (data_type*)numa_alloc_onnode(array_total_size*sizeof(data_type), remote_node);
+	if(local_array == NULL){
+		printf("Remote malloc failed, probably due to not enough memory.\n");
+		numa_free(local_array, array_total_size*sizeof(data_type));
+		exit(-1);
+	}
 
 	// Random initialization
 	for(th=0;th<num_th;th++){
@@ -116,14 +136,19 @@ void data_initialization(){
 		);
 		#endif
 	}
+
+
+	#ifdef PRINT_PHASE_CHANGE
+	gettimeofday(&t_beg, NULL);
+	#endif
 }
 
 // The kernel operation in the parallel zone. Defined as inline to reduce call overhead
 static inline void operation(pid_t my_ompid){
-	int i,n,r,o;
+	bigint i,n,r,o;
 	int offset = my_ompid*array_basic_size; // Different work zone for each thread
 	
-	//float data_read;
+	//data_type data_read;
 	
 	for(i=0; i<main_iters; i++){ // How many main iterations will we do?
 		// We could multiply i by ELEMS_PER_CACHE to avoid being in the same cache line
@@ -145,8 +170,22 @@ static inline void operation(pid_t my_ompid){
 			remote_array[r] = remote_array[index+r]; // Not in same cache line
 			//data_read = remote_array[index+r]; // Not in same cache line
 
+		#ifdef PRINT_PHASE_CHANGE
+		gettimeofday(&t_end, NULL);
+		double elapsed_time = (t_end.tv_sec - t_beg.tv_sec + (t_end.tv_usec - t_beg.tv_usec)/1.e6);
+		//printf("End of low OI phase. Elapsed time since the beginning: %.2f seconds\n", elapsed_time);
+		printf("l %.2f\n", elapsed_time);
+		#endif
+
 		for(o=0; o<ops; o++) // How many float operations per iteration?
 			local_array[index+1] = local_array[index] * 1.42;
+
+		#ifdef PRINT_PHASE_CHANGE
+		gettimeofday(&t_end, NULL);
+		elapsed_time = (t_end.tv_sec - t_beg.tv_sec + (t_end.tv_usec - t_beg.tv_usec)/1.e6);
+		//printf("End of high OI phase. Elapsed time since the beginning: %.2f seconds\n", elapsed_time);
+		printf("h %.2f\n", elapsed_time);
+		#endif
 	}
 }
 
@@ -160,13 +199,13 @@ void set_options_from_parameters(int argc, char** argv){
 				main_iters = atol(optarg);
 				break;
 			case 'n': // Number of elements read/written per iteration
-				elems_iter = atoi(optarg);
+				elems_iter = atol(optarg);
 				break;
 			case 'r': // Remote reads/writes per iteration
-				remote_reads = atoi(optarg);
+				remote_reads = atol(optarg);
 				break;
 			case 'o': // Number of floating operations per iteration
-				ops = atoi(optarg);
+				ops = atol(optarg);
 				break;
 			case 't': // Number of threads
 				num_th = atoi(optarg);
@@ -198,7 +237,7 @@ void pick_cpus(){
 	if(sched_getaffinity(0,sizeof(cpu_set_t),&aff))
 		set_affinity_error();
 
-	// Gets available CPU IDs from loca_node to pin the threads
+	// Gets available CPU IDs from local_node to pin the threads
 	int i, picked_cpus = 0;
 	for(i=0;i<CPUS_PER_MEMORY && i != num_th;i++) {
 		int current_cpu = node_cpu_map[local_node][i]; // Working with node 0
@@ -215,7 +254,7 @@ void pick_cpus(){
 
 void calculate_array_sizes(){
 	// This way we avoid being out of bounds
-	int max_p = elems_iter;
+	bigint max_p = elems_iter;
 	if(remote_reads > max_p)
 		max_p = remote_reads;
 	array_basic_size = main_iters + max_p*ELEMS_PER_CACHE;
@@ -293,7 +332,7 @@ int main(int argc, char *argv[]){
 		free(node_cpu_map[i]);
 	free(node_cpu_map);
 	free(selected_cpus);
-	numa_free(local_array, array_total_size*sizeof(float));
-	numa_free(remote_array, array_total_size*sizeof(float));
+	numa_free(local_array, array_total_size*sizeof(data_type));
+	numa_free(remote_array, array_total_size*sizeof(data_type));
 	return 0;
 }
