@@ -202,7 +202,7 @@ vector<labeled_migr_t> get_candidate_list(pid_t worst_tid, map<pid_t, page_table
 	int current_cpu = system_struct_t::get_cpu_from_tid(worst_tid);
 	int current_cell = system_struct_t::get_cpu_memory_node(current_cpu);
 
-	// [TODO]: build a system_struct_t general structure that maps TID -> PID to ease these kind of operations
+	// [TOTHINK]: it could be interesting to build a system_struct_t general structure that maps TID -> PID to ease these kind of operations
 	pid_t current_pid = -1;
 	vector<double> current_perfs;
 	for(auto const & ta_it : *page_ts){
@@ -261,50 +261,19 @@ vector<labeled_migr_t> get_candidate_list(pid_t worst_tid, map<pid_t, page_table
 
 vector<migration_cell_t> get_iteration_migration(map<pid_t, page_table_t> *page_ts){
 	pid_t worst_tid = -1;
-
-	// normalize_perf_and_get_worst_thread() for all tables
 	double min_p = 1e15;
-	int active_threads = 0;
-	double mean_perf = 0.0;
 	
-	// First, we get worst thread and we calculate the mean
-	for(auto const & ta_it : *page_ts){
-		page_table_t ta = ta_it.second;
+	// normalize_perf_and_get_worst_thread() for all tables
+	for(auto & t_it : *page_ts){
+		page_table_t *t = &t_it.second;
+		pid_t local_worst_t = t->normalize_perf_and_get_worst_thread();
 
-		// We loop over TIDs
-		for(auto const & th_it : ta.tid_index) {
-			pid_t tid = th_it.first;
-			rm3d_data_t pd = ta.perf_per_tid[tid];
+		rm3d_data_t pd = t->perf_per_tid[local_worst_t];
+		double local_worst_p = pd.v_perfs[pd.index_last_node_calc];
 
-			if(!pd.active)
-				continue;
-
-			active_threads++;
-
-			// We sum the last_perf if active
-			double pd_lp = pd.v_perfs[pd.index_last_node_calc];
-			mean_perf += pd_lp;
-			if(pd_lp < min_p){ // And we calculate the minimum
-				worst_tid = tid;
-				min_p = pd_lp;
-			}
-		}
-	}
-
-	mean_perf /= active_threads;
-
-	// Then, we loop again for normalising by the mean
-	for(auto& ta_it : *page_ts){
-		page_table_t *ta = &ta_it.second;
-
-		for(auto const & th_it : ta->tid_index) {
-			pid_t tid = th_it.first;
-			rm3d_data_t* pd = &ta->perf_per_tid[tid];
-
-			if(!pd->active)
-				continue;
-
-			pd->v_perfs[pd->index_last_node_calc] /= mean_perf;
+		if(local_worst_p < min_p){
+			worst_tid = local_worst_t;
+			min_p = local_worst_p;
 		}
 	}
 
