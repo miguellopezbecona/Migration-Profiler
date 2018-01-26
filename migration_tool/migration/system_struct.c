@@ -9,6 +9,7 @@ vector<int> system_struct_t::node_cpu_map[MAX_PACKAGES];
 map<pid_t, int> system_struct_t::tid_cpu_map;
 int* system_struct_t::cpu_tid_map;
 int** system_struct_t::node_distances;
+map<pid_t, pid_t> system_struct_t::tid_pid_map;
 
 vector<unsigned short> system_struct_t::ordered_cpus; // Ordered by distance nodes. Might be useful for genetic strategy
 
@@ -160,6 +161,7 @@ void system_struct_t::clean(){
 	tid_cpu_map.clear();
 	free(cpu_tid_map);
 	ordered_cpus.clear();
+	tid_pid_map.clear();
 }
 
 /*** Node-CPU methods ***/
@@ -232,6 +234,8 @@ int system_struct_t::set_tid_cpu(pid_t tid, int cpu, bool do_pin){
 }
 
 void system_struct_t::remove_tid(pid_t tid, bool do_unpin){
+	tid_pid_map.erase(tid);
+
 	int cpu = tid_cpu_map[tid];
 	tid_cpu_map.erase(tid);
 
@@ -291,3 +295,11 @@ void system_struct_t::print_node_distance_matrix(){
 	}	
 }
 
+/*** Other functions ***/
+void system_struct_t::set_pid_to_tid(pid_t pid, pid_t tid){
+	tid_pid_map[tid] = pid;
+}
+
+pid_t system_struct_t::get_pid_from_tid(pid_t tid){
+	return tid_pid_map[tid];
+}

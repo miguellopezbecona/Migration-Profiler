@@ -33,6 +33,9 @@ typedef struct system_struct {
 
 	static int** node_distances;
 
+	// To know where each TID is (in terms of PIDs)
+	static map<pid_t, pid_t> tid_pid_map; // input: tid, output: pid
+
 	static vector<unsigned short> ordered_cpus; // Ordered by distance nodes. Might be useful for genetic strategy
 
 	static int detect_system();
@@ -58,5 +61,9 @@ typedef struct system_struct {
 	// Node distance methods
 	static int get_node_distance(int node1, int node2);
 	static void print_node_distance_matrix();
+
+	// Other functions
+	static void set_pid_to_tid(pid_t pid, pid_t tid);
+	static pid_t get_pid_from_tid(pid_t tid);
 } system_struct_t;
 

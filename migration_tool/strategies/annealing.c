@@ -202,17 +202,8 @@ vector<labeled_migr_t> get_candidate_list(pid_t worst_tid, map<pid_t, page_table
 	int current_cpu = system_struct_t::get_cpu_from_tid(worst_tid);
 	int current_cell = system_struct_t::get_cpu_memory_node(current_cpu);
 
-	// [TOTHINK]: it could be interesting to build a system_struct_t general structure that maps TID -> PID to ease these kind of operations
-	pid_t current_pid = -1;
-	vector<double> current_perfs;
-	for(auto const & ta_it : *page_ts){
-		page_table_t ta = ta_it.second;
-		if(ta.tid_index.count(worst_tid) > 0){ // TID perfs are in this table
-			current_pid = ta.pid;
-			current_perfs = ta.get_perf_data(worst_tid);
-			break;
-		}
-	}
+	pid_t current_pid = system_struct_t::get_pid_from_tid(worst_tid);
+	vector<double> current_perfs = page_ts->operator[](current_pid).get_perf_data(worst_tid);
 
 	// Search potential core destinations from different memory nodes 
 	for(int n=0; n<system_struct_t::NUM_OF_MEMORIES; n++){
@@ -235,17 +226,8 @@ vector<labeled_migr_t> get_candidate_list(pid_t worst_tid, map<pid_t, page_table
 
 			// Not a free core: get its TID info so a possible interchange can be planned
 			pid_t other_tid = system_struct_t::get_tid_from_cpu(actual_cpu);
-			pid_t other_pid = -1;
-			vector<double> other_perfs;
-
-			for(auto const & ta_it : *page_ts){
-				page_table_t ta = ta_it.second;
-				if(ta.tid_index.count(other_tid) > 0){ // Other TID perfs are in this table
-					other_pid = ta.pid;
-					other_perfs = ta.get_perf_data(other_tid);
-					break;
-				}
-			}
+			pid_t other_pid = system_struct_t::get_pid_from_tid(other_tid);
+			vector<double> other_perfs = page_ts->operator[](other_pid).get_perf_data(other_tid);
 
 			tickets += get_tickets_from_perfs(current_cell, n, other_perfs, true);
 			

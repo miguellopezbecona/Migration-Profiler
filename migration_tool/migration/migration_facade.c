@@ -106,6 +106,14 @@ void work_with_fake_data(){
 */
 	pages(pids, memory_list, inst_list, &page_tables);
 
+	// Creates/updates TID -> PID associations
+	for(auto const & it : page_tables){
+		pid_t pid = it.first;
+		page_table t = it.second;
+		for(pid_t const & tid : t.get_tids())
+			system_struct_t::set_pid_to_tid(pid, tid);
+	}
+
 	//tid_cpu_table.print(); // Debugging purposes
 
 	// For testing two iterations of genetic
@@ -150,9 +158,11 @@ int begin_migration_process(){
 		// Is PID alive?
 		if(!is_pid_alive(pid)){
 
-			// We get TIDs from the dead PID so we can remove those rows from tid_cpu_table
-			for(pid_t const & tid : table->get_tids())
+			// We get TIDs from the dead PID so we can remove those rows from tid_cpu_table and system_struct
+			for(pid_t const & tid : table->get_tids()){
 				tid_cpu_table.remove_row(tid);
+				system_struct_t::remove_tid(tid, false);
+			}
 
 			t_it = page_tables.erase(t_it); // We erase entry from table map
 			continue;
@@ -165,6 +175,10 @@ int begin_migration_process(){
 		#else
 		table->remove_finished_tids(false);
 		#endif
+
+		// Creates/updates TID -> PID associations
+		for(pid_t const & tid : table->get_tids())
+			system_struct_t::set_pid_to_tid(pid, tid);
 
 		//table->print(); // For debugging
 
