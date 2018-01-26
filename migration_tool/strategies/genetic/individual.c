@@ -30,7 +30,7 @@ individual::individual(map<pid_t, page_table_t> ts) : v(system_struct_t::NUM_OF_
 }
     
 // To ease copy in cross
-individual::individual(vector<ind_type> vec){
+individual::individual(vector<gene> vec){
 	v = vec;
 	fitness = NO_FITNESS; // Unknown potential
 }
@@ -43,21 +43,38 @@ size_t individual::size(){
 	return v.size();
 }
     
-void individual::set(int index, ind_type value){
+void individual::set(int index, gene value){
 	v[index] = value;
 }
 
-ind_type individual::get(int index){
-	return v[index];
+bool individual::is_too_old(){
+	const double PERC_THRES = 0.5;
+
+	unsigned short tids = 0;
+	unsigned short dead_tids = 0;
+
+	for(gene const & tid : v){
+		if(tid == system_struct_t::FREE_CPU)
+			continue;
+
+		tids++;
+
+		pid_t pid = system_struct_t::get_pid_from_tid(tid);
+		if(!is_tid_alive(pid,tid))
+			dead_tids++;
+	}
+
+	double perc = dead_tids / tids;
+	return perc >= PERC_THRES;
 }
 
 // Simple interchange
 void individual::mutate(int idx1, int idx2) {
-	ind_type aux = v[idx1];
+	gene aux = v[idx1];
 	v[idx1] = v[idx2];
 	v[idx2] = aux;
 }
-    
+
 // Order crossover
 individual individual::cross(individual other, int idx1, int idx2){
 	size_t sz = v.size();
@@ -91,7 +108,7 @@ individual individual::cross(individual other, int idx1, int idx2){
 	for(size_t i=cut2+1;i<sz;i++){
 		// If the generated index is already part of the sublist, then we continue to the next in a circular manner
 		do {
-			num = other.get(copy_idx);
+			num = other[copy_idx];
 			copy_idx = (copy_idx + 1) % sz;
 
 			// We will only allow a maximum of free CPUs (repeated values)
@@ -107,7 +124,7 @@ individual individual::cross(individual other, int idx1, int idx2){
 	// Copies from start to second cut
 	for(int i=0;i<cut1;i++){
 		do {
-			num = other.get(copy_idx);
+			num = other[copy_idx];
 			copy_idx++;
 
 			// We will only allow a maximum of free CPUs (repeated values)
@@ -128,17 +145,17 @@ individual individual::get_copy() {
 	return i;
 }
     
-void individual::print(){
+void individual::print() const {
 	printf("{fitness: %.2f, content: ", fitness);
 	for(pid_t const & tid : v)
 		printf("%d ", tid);
 	printf("}\n");
 }
 
-ind_type individual::operator[](int i) const {
+gene individual::operator[](int i) const {
 	return v[i];
 }
 
-ind_type & individual::operator[](int i) {
+gene & individual::operator[](int i) {
 	return v[i];
 }

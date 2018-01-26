@@ -4,7 +4,7 @@
 
 const int MAX_SIZE = 5;
 
-class population {    
+class population {
 	public:
 	vector<individual> v;
 	
