@@ -58,13 +58,13 @@ uint64_t unknown_samples = 0;
 static perf_event_desc_t **all_fds[NUM_GROUPS];
 static int num_fds[NUM_GROUPS];
 static options_t options;
-static size_t sz, pgsz;
+static size_t pgsz;
 static size_t map_size;
 
 time_t last_migr_time;
 
 static const char *events[2] = {
-	//"RAPL_ENERGY_CPUS:period=1000",
+	//"RAPL_ENERGY_PKG:period=1000",
 	"MEM_TRANS_RETIRED:LATENCY_ABOVE_THRESHOLD:period=1000"
 	,"INST_RETIRED:period=1000000,OFFCORE_REQUESTS:ALL_DATA_RD"
 };
@@ -237,7 +237,7 @@ int setup_cpu(int cpu, int fd, int group) {
 	 * and then for each event we get a pair of values.
 	 */
 	if (num_fds[group] > 1) {
-		sz = (3+2*num_fds[group])*sizeof(uint64_t);
+		size_t sz = (3+2*num_fds[group])*sizeof(uint64_t);
 		uint64_t val[3+2*num_fds[group]];
 
 		ret = read(fds[0].fd, val, sz);
@@ -280,6 +280,8 @@ static void clean_end(int n) {
 	// Special print for a specific analysis: period,minlat,samples,meanacs
 	//printf("%d,%d,%lu\n", options.periods[0], options.minimum_latency,processed_samples_group[0]);
 	clean_migration_structures();
+
+	system_struct_t::clean();
 
 	//#ifdef EVENT_OUTPUT
 	const char* types[2] = {"memory", "instruction"};

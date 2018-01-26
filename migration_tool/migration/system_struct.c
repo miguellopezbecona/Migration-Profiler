@@ -13,7 +13,23 @@ int** system_struct_t::node_distances;
 vector<unsigned short> system_struct_t::ordered_cpus; // Ordered by distance nodes. Might be useful for genetic strategy
 
 
-void set_affinity_error(pid_t tid);
+/*** Auxiliar functions ***/
+void set_affinity_error(pid_t tid){
+	switch(errno){
+		case EFAULT:
+			printf("Error setting affinity: A supplied memory address was invalid.\n");
+			break;
+		case EINVAL:
+			printf("Error setting affinity: The affinity bitmask mask contains no processors that are physically on the system, or cpusetsize is smaller than the size of the affinity mask used by the kernel.\n");
+			break;
+		case EPERM:
+			printf("Error setting affinity: The calling process does not have appropriate privileges for TID %d,\n", tid);
+			break;
+		case ESRCH: // When this happens, it's practically unavoidable
+			//printf("Error setting affinity: The process whose ID is %d could not be found\n", tid);
+			break;
+	}
+}
 
 // Each line will result in a row in the distance matrix
 void read_line_from_file(int node, int* array){
@@ -38,6 +54,8 @@ bool are_all_nodes_processed(bool* processed){
 	}
 	return true;
 }
+
+/*** system_struct_t functions ***/
 
 // Gets info about number of CPUs, memory nodes and creates two maps (cpu to node and node to cpu)
 int system_struct_t::detect_system() {
@@ -130,6 +148,18 @@ int system_struct_t::detect_system() {
 */
 
 	return 0;
+}
+
+void system_struct_t::clean(){
+	free(cpu_node_map);
+	for(int i=0;i<NUM_OF_MEMORIES;i++){
+		node_cpu_map[i].clear();
+		free(node_distances[i]);
+	}
+	free(node_distances);
+	tid_cpu_map.clear();
+	free(cpu_tid_map);
+	ordered_cpus.clear();
 }
 
 /*** Node-CPU methods ***/
@@ -261,21 +291,3 @@ void system_struct_t::print_node_distance_matrix(){
 	}	
 }
 
-
-// Auxiliar function
-void set_affinity_error(pid_t tid){
-	switch(errno){
-		case EFAULT:
-			printf("Error setting affinity: A supplied memory address was invalid.\n");
-			break;
-		case EINVAL:
-			printf("Error setting affinity: The affinity bitmask mask contains no processors that are physically on the system, or cpusetsize is smaller than the size of the affinity mask used by the kernel.\n");
-			break;
-		case EPERM:
-			printf("Error setting affinity: The calling process does not have appropriate privileges for TID %d,\n", tid);
-			break;
-		case ESRCH: // When this happens, it's practically unavoidable
-			//printf("Error setting affinity: The process whose ID is %d could not be found\n", tid);
-			break;
-	}
-}

@@ -35,8 +35,8 @@ typedef struct system_struct {
 
 	static vector<unsigned short> ordered_cpus; // Ordered by distance nodes. Might be useful for genetic strategy
 
-
 	static int detect_system();
+	static void clean();
 
 	// Node-CPU methods
 	static int get_cpu_memory_node(int cpu);
