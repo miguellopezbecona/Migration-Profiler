@@ -156,8 +156,11 @@ void perf_table_t::print() const {
 
 		printf("%s: %lu\n", keys[is_page_table], row);
 		
-		// Prints each cell
+		// Prints each non-empty cell
 		for(int i=0;i<coln;i++){
+			if(!pv[i].is_filled())
+				continue;
+
 			printf("\t%s %d: ", colns[is_page_table], i);
 			pv[i].print();
 		}

@@ -360,7 +360,20 @@ void page_table_t::update_page_locations(vector<migration_cell_t> pg_migr){
 }
 
 /*** Functions made for replicating Óscar's work ***/
-vector<int> page_table_t::get_lats_for_tid(pid_t tid){
+vector<int> page_table_t::get_all_lats() {
+	vector<int> v;
+	v.reserve(2*uniq_addrs.size());
+
+	// We loop over TIDs
+	for(auto & t_it : tid_index) {
+		vector<int> ls = get_lats_for_tid(t_it.first);
+		v.insert(v.end(), ls.begin(), ls.end()); // Appends latencies to main list
+	}
+
+	return v;
+}
+
+vector<int> page_table_t::get_lats_for_tid(pid_t tid) {
 	vector<int> v;
 
 	int pos = tid_index[tid];
@@ -389,18 +402,7 @@ double page_table_t::get_mean_acs_to_pages(){
 
 // Gets the mean of the latencies of all pages for the whole table
 double page_table_t::get_mean_lat_to_pages(){
-	vector<int> v;
-	v.reserve(2*uniq_addrs.size());
-
-	/// We collect the means of the latencies for each page
-
-	// We loop over TIDs
-	for(auto const & t_it : tid_index) {
-		vector<int> ls = get_lats_for_tid(t_it.first);
-		v.insert(v.end(), ls.begin(), ls.end()); // Appends latencies to main list
-	}
-
-	// ... and then we calculate the total mean for all the table
+	vector<int> v = get_all_lats();
 	return accumulate(v.begin(), v.end(), 0.0) / v.size();
 }
 
@@ -408,7 +410,7 @@ void page_table_t::add_inst_data_for_tid(pid_t tid, int core, long int insts, lo
 	perf_per_tid[tid].add_data(core, insts, req_dr, time);
 }
 
-// Needs getting the mean latency for each TID. Maybe we could write a function to get all the latencies for a given TID so get_mean_lat_to_pages() could reuse that
+// Needs getting the mean latency for each TID
 void page_table_t::calc_perf() {
 	// We loop over TIDs
 	for(auto const & t_it : tid_index) {
@@ -417,20 +419,10 @@ void page_table_t::calc_perf() {
 		if(!perf_per_tid[tid].active) // Only for active
 			continue;
 
-		vector<int> v;
-		int pos = t_it.second;
-
-		// We get latencies for each cell for that TID
-		for(auto const & it : table[pos]) {
-			table_cell_t cell = it.second;
-			vector<int> ls = cell.latencies;
-			v.insert(v.end(), ls.begin(), ls.end()); // Appends latencies to main list
-		}
-
-		// ... and then we calculate the total mean for all the TID
+		vector<int> v = get_lats_for_tid(tid);
 		double mean_lat = accumulate(v.begin(), v.end(), 0.0) / v.size();
 
-		// And we calculate perf
+		// Performance is updated
 		perf_per_tid[tid].calc_perf(mean_lat);
 	}
 }

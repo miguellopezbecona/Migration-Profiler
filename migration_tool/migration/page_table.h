@@ -31,7 +31,7 @@ typedef map<long int, table_cell_t> column; // Each column of the table, defined
 typedef struct page_table {
 	vector<column> table; // Matrix/table where rows are threads (uses index from tid_index) and columns are indexed by page address
 	set<long int> uniq_addrs; // All different addresses used in this table, useful for heatmap printing
-	map<int, short> tid_index; // Translates TID to row index
+	map<pid_t, short> tid_index; // Translates TID to row index
 
 	map<long int, pg_perf_data_t> page_node_map; // Maps page address to memory node and other data (may be redundant with page_node_table)
 
@@ -66,6 +66,7 @@ typedef struct page_table {
 	double get_total_performance();
 	vector<double> get_perf_data(pid_t tid);
 
+	vector<int> get_all_lats();
 	vector<int> get_lats_for_tid(pid_t tid);
 	double get_mean_acs_to_pages();
 	double get_mean_lat_to_pages();

@@ -18,16 +18,11 @@ individual::individual(map<pid_t, page_table_t> ts) : v(system_struct_t::NUM_OF_
 		v[index] = tid;
 	}
 
-	// Calculates fitness (in this case, mean latency)
-	// [TODO]: it currently uses all the historical data for the tables, it should just use the data from last iteration
+	// Calculates fitness (in this case, mean latency), using only data from last iteration
 	vector<int> all_ls;
-	for(auto const & it : ts){ // For each table (PID)...
-		page_table t = it.second;
-
-		for(pid_t const & tid : t.get_tids()){ // Gets all latencies for all pages
-			vector<int> l = t.get_lats_for_tid(tid);
-			all_ls.insert(end(all_ls), begin(l), end(l));	
-		}
+	for(auto & it : ts){ // For each table (PID), gets all its latencies
+		vector<int> l = it.second.get_all_lats();
+		all_ls.insert(end(all_ls), begin(l), end(l));
 	}
 
 	// After all_ls is filled, the mean is calculated:

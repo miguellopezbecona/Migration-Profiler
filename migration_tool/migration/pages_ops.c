@@ -57,8 +57,11 @@ void build_page_tables(memory_data_list_t m_list, inst_data_list_t i_list, map<p
 	#endif
 
 	#ifdef PERFORMANCE_OUTPUT
+	// This generates way too much output. Uncomment only when really necessary
+/*
 	for(auto const & it : *page_ts)
 		it.second.print_performance();
+*/
 	tid_cpu_table.print();
 	#endif
 }
