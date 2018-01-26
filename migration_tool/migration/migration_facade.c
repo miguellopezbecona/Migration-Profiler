@@ -3,7 +3,9 @@
 memory_data_list_t memory_list;
 inst_data_list_t inst_list;
 set<pid_t> pids;
-map<pid_t, page_table_t> page_tables; // Each table is associated to a specific PID
+
+map<pid_t, page_table_t> page_tables; // Keeps everything
+map<pid_t, page_table_t> temp_page_tables; // Maintains data from current iteration
 
 #ifdef JUST_PROFILE
 vector<my_pebs_sample_t> samples;
@@ -113,6 +115,7 @@ void work_with_fake_data(){
 	//perform_migration_strategy(&page_tables[500]);
 
 	clean_migration_structures();
+	system_struct_t::clean();
 }
 
 int begin_migration_process(){
@@ -135,12 +138,13 @@ int begin_migration_process(){
 
 	// Builds page tables for each PID
 	pages(pids, memory_list, inst_list, &page_tables);
+	pages(pids, memory_list, inst_list, &temp_page_tables); // Somewhat inefficient
 
 	// For each existent table, checks if its associated process and/or threads are alive, to clean useless data
 	// It also applies a single-PID migration strategy for active PIDs (i.e: we got at least a memory sample from it in this iteration)
 	for(auto t_it = page_tables.begin(); t_it != page_tables.end(); ) {
 		pid_t pid = t_it->first;
-		page_table* table = &t_it->second;
+		page_table_t* table = &t_it->second;
 		//printf("Working over table associated to PID: %d\n", pid);
 
 		// Is PID alive?
@@ -171,7 +175,8 @@ int begin_migration_process(){
 	}
 	#ifdef DO_MIGRATIONS
 	//printf("Going to perform the global strategy.\n");
-	perform_migration_strategy(&page_tables);
+	//perform_migration_strategy(&page_tables);
+	perform_migration_strategy(&temp_page_tables); // Over tables from current iteration instead
 	#endif
 
 	step++;
@@ -180,6 +185,8 @@ int begin_migration_process(){
 	memory_list.clear();
 	inst_list.clear();
 	pids.clear(); // To maintain only active PIDs in each iteration
+
+	temp_page_tables.clear(); // Only-current-iteration data is erased
 
 	return 0;
 }
