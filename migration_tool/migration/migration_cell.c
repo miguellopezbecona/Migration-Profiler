@@ -60,7 +60,7 @@ int migration_cell_t::perform_thread_migration() const {
 	int ret = system_struct_t::set_tid_cpu((pid_t) elem, dest, true);
 
 	#ifdef TH_MIGR_OUTPUT
-	printf("Migrated thread %d to core %d\n", (pid_t) elem, dest);
+	printf("Migrated thread %d to CPU %d\n", (pid_t) elem, dest);
 	#endif
 
 	total_thread_migrations++;

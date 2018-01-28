@@ -224,6 +224,13 @@ int system_struct_t::get_tid_from_cpu(int cpu){
 }
 
 int system_struct_t::set_tid_cpu(pid_t tid, int cpu, bool do_pin){
+	// We drop the previous CPU-TID assignation, if there was one
+	if(tid_cpu_map.count(tid)){ // contains
+		int old_cpu = tid_cpu_map[tid];
+		if(cpu_tid_map[old_cpu] == tid) // Sanity checking
+			cpu_tid_map[old_cpu] = FREE_CPU;
+	}
+
 	tid_cpu_map[tid] = cpu;
 
 	if(!do_pin)

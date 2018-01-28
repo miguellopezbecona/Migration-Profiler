@@ -92,8 +92,9 @@ individual individual::cross(individual other, int idx1, int idx2){
 	}
 
 	// We will only allow a maximum of free CPUs (repeated values)
-	short free_cpus = count(v.begin(), v.end(), *(new gene()) );
-	short free_cpus_other = count(other.v.begin(), other.v.end(), *(new gene()) );
+	gene empty; // Empty list -> free CPU
+	short free_cpus = count(v.begin(), v.end(), empty);
+	short free_cpus_other = count(other.v.begin(), other.v.end(), empty);
 	if(free_cpus_other > free_cpus)
 		free_cpus = free_cpus_other;
 	
@@ -143,7 +144,7 @@ individual individual::cross(individual other, int idx1, int idx2){
 }
 
 individual individual::get_copy() {
-	individual i = *(new individual(v));
+	individual i(v);
 	return i;
 }
     
@@ -151,11 +152,11 @@ void individual::print() const {
 	printf("{fitness: %.2f, content: ", fitness);
 	for(gene const & tids : v){
 		if(tids.empty()){
-			printf("F ");
+			printf("F "); // Free CPU
 			continue;
 		}
 
-		auto &last = *(--tids.end());
+		auto &last = *(--tids.end()); // To know when to stop printing underscores
 		for(pid_t const & tid : tids){
 			printf("%d", tid);
 			if (&tid != &last)

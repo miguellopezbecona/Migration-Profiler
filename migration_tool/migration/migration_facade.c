@@ -116,9 +116,9 @@ void work_with_fake_data(){
 
 	//tid_cpu_table.print(); // Debugging purposes
 
-	// For testing two iterations of genetic
-	perform_migration_strategy(&page_tables);
-	perform_migration_strategy(&page_tables);
+	// For testing some iterations of genetic
+	for(int i=0;i<10;i++)
+		perform_migration_strategy(&page_tables);
 
 	//perform_migration_strategy(&page_tables[500]);
 

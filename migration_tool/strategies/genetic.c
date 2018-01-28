@@ -14,6 +14,8 @@ vector<migration_cell_t> genetic::do_genetic(individual ind){
 
 	#ifdef GENETIC_OUTPUT
 	printf("Begin of iteration %d of genetic process.\n", it);
+	printf("Current idv is: ");
+	ind.print();
 	#endif
 
 	/** Tournament, cross, mutation, and replacement **/
@@ -87,13 +89,13 @@ individual genetic::cross(individual from_iter, individual from_selec, vector<mi
 		int idx1 = gen_utils::get_rand_int(sz, -1); // Any possible index
 		int idx2 = gen_utils::get_rand_int(sz, idx1); // The second index can't be the first one...
 
-		// Two descendents can be obtained with order crossover
-		individual c1 = from_selec.cross(from_iter, idx1, idx2);
-		individual c2 = from_iter.cross(from_selec, idx1, idx2);
-
 		#ifdef GENETIC_OUTPUT
 		printf("index cuts: %d %d\n", idx1, idx2);
 		#endif
+
+		// Two descendents can be obtained with order crossover
+		individual c1 = from_selec.cross(from_iter, idx1, idx2);
+		individual c2 = from_iter.cross(from_selec, idx1, idx2);
 
 		// We can only keep one child, decided randomly
 		prob = gen_utils::get_rand_double();
