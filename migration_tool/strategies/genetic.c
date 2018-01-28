@@ -116,9 +116,11 @@ individual genetic::cross(individual from_iter, individual from_selec, vector<mi
 
 		// We generate migration cells seeing the differences between the idvs from the iteration and the selected son
 		for(size_t i=0;i<sz;i++){
-			if(chosen_child[i] != system_struct_t::FREE_CPU && from_iter[i] != chosen_child[i]){ // Difference: TID from child is migrated to its CPU possition
-				migration_cell_t mc(chosen_child[i], system_struct_t::ordered_cpus[i]);
-				v->push_back(mc);
+			if(from_iter[i] != chosen_child[i]){ // Difference: TIDs from child are migrated to its CPU possition
+				for(pid_t tid : chosen_child[i]){
+					migration_cell_t mc(tid, system_struct_t::ordered_cpus[i]);
+					v->push_back(mc);
+				}
 			}
 		}
 
@@ -158,24 +160,33 @@ void genetic::mutation(individual *ind, vector<migration_cell_t> *v){
 			bool first_exists = false, sec_exists = false;
 			for(size_t i=0; i<v->size();i++){
 				migration_cell_t *mc = &v->operator[](i);
-				if(mc->elem == ind->v[pos1]){ // Cell already exists: changes its destination
-					mc->dest = dest2;
-					first_exists = true;
+				for(pid_t const & tid : ind->v[pos1]){
+					if(mc->elem == tid){ // Cell already exists: changes its destination
+						mc->dest = dest2;
+						first_exists = true;
+					}
 				}
-				if(mc->elem == ind->v[pos2]){ // Cell already exists: changes its destination
-					mc->dest = dest1;
-					sec_exists = true;
+
+				for(pid_t const & tid : ind->v[pos2]){
+					if(mc->elem == tid){ // Cell already exists: changes its destination
+						mc->dest = dest1;
+						sec_exists = true;
+					}
 				}
 			}
 
-			// It won't generate migration cells for free CPUs positions or existing cells
-			if(!first_exists && ind->v[pos1] != system_struct_t::FREE_CPU){
-				migration_cell_t mc1(ind->v[pos1], dest1);
-				v->push_back(mc1);
+			// It won't generate migration cells for free CPUs positions (empty arrays) or existing cells
+			if(!first_exists){
+				for(pid_t const & tid : ind->v[pos1]){
+					migration_cell_t mc1(tid, dest1);
+					v->push_back(mc1);
+				}
 			}
-			if(!sec_exists && ind->v[pos2] != system_struct_t::FREE_CPU){
-				migration_cell_t mc2(ind->v[pos2], dest2);
-				v->push_back(mc2);
+			if(!sec_exists){
+				for(pid_t const & tid : ind->v[pos2]){
+					migration_cell_t mc2(tid, dest2);
+					v->push_back(mc2);
+				}
 			}
 
 			// Key function

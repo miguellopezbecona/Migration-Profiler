@@ -6,7 +6,7 @@
 // This would fit better in genetic.h, but it raised double link problems
 #define GENETIC_OUTPUT
 
-typedef pid_t gene; // TID
+typedef vector<pid_t> gene; // List of TID per CPU
 
 #ifdef MAXIMIZATION
 const double NO_FITNESS = -1.0;

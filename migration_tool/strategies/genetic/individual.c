@@ -4,7 +4,7 @@ individual::individual() {
 	fitness = NO_FITNESS; // Unknown potential
 }
 
-individual::individual(map<pid_t, page_table_t> ts) : v(system_struct_t::NUM_OF_CPUS, system_struct_t::FREE_CPU) {
+individual::individual(map<pid_t, page_table_t> ts) : v(system_struct_t::NUM_OF_CPUS) {
 	// Builds list from system_struct data
 	for(int i=0;i<system_struct_t::NUM_OF_CPUS;i++){
 		if(system_struct_t::is_cpu_free(i))
@@ -15,7 +15,7 @@ individual::individual(map<pid_t, page_table_t> ts) : v(system_struct_t::NUM_OF_
 		// Correct index of CPU in ordered_cpus
 		int index = find(system_struct_t::ordered_cpus.begin(), system_struct_t::ordered_cpus.end(), i) - system_struct_t::ordered_cpus.begin();
 
-		v[index] = tid;
+		v[index].push_back(tid);
 	}
 
 	// Calculates fitness (in this case, mean latency), using only data from last iteration
@@ -50,21 +50,21 @@ void individual::set(int index, gene value){
 bool individual::is_too_old(){
 	const double PERC_THRES = 0.5;
 
-	unsigned short tids = 0;
+	unsigned short num_tids = 0;
 	unsigned short dead_tids = 0;
 
-	for(gene const & tid : v){
-		if(tid == system_struct_t::FREE_CPU)
-			continue;
+	// Check the percentage of dead TIDs the idv has
+	for(gene const & tids : v){
+		for(pid_t const & tid : tids){
+			num_tids++;
 
-		tids++;
-
-		pid_t pid = system_struct_t::get_pid_from_tid(tid);
-		if(!is_tid_alive(pid,tid))
-			dead_tids++;
+			pid_t pid = system_struct_t::get_pid_from_tid(tid);
+			if(!is_tid_alive(pid,tid))
+				dead_tids++;
+		}
 	}
 
-	double perc = dead_tids / tids;
+	double perc = dead_tids / num_tids;
 	return perc >= PERC_THRES;
 }
 
@@ -78,7 +78,9 @@ void individual::mutate(int idx1, int idx2) {
 // Order crossover
 individual individual::cross(individual other, int idx1, int idx2){
 	size_t sz = v.size();
-	int cut1, cut2, copy_idx, num;
+	int cut1, cut2, copy_idx;
+
+	gene num;
 	
 	// Gets which one is the first cut and which is the second
 	if(idx1 > idx2){
@@ -90,8 +92,8 @@ individual individual::cross(individual other, int idx1, int idx2){
 	}
 
 	// We will only allow a maximum of free CPUs (repeated values)
-	short free_cpus = count(v.begin(), v.end(), system_struct_t::FREE_CPU);
-	short free_cpus_other = count(other.v.begin(), other.v.end(), system_struct_t::FREE_CPU);
+	short free_cpus = count(v.begin(), v.end(), *(new gene()) );
+	short free_cpus_other = count(other.v.begin(), other.v.end(), *(new gene()) );
 	if(free_cpus_other > free_cpus)
 		free_cpus = free_cpus_other;
 	
@@ -99,7 +101,7 @@ individual individual::cross(individual other, int idx1, int idx2){
 	individual son = get_copy();
 
 	// Gets central block from current individual
-	std::set<int> sublist(v.begin() + cut1, v.begin() + cut2+1);
+	std::set<gene> sublist(v.begin() + cut1, v.begin() + cut2+1);
 	
 	//// Changes what is not the central block ////
 	
@@ -112,7 +114,7 @@ individual individual::cross(individual other, int idx1, int idx2){
 			copy_idx = (copy_idx + 1) % sz;
 
 			// We will only allow a maximum of free CPUs (repeated values)
-			if(num == system_struct_t::FREE_CPU && free_cpus){
+			if(num.empty() && free_cpus){
 				free_cpus--;
 				break;
 			}
@@ -128,7 +130,7 @@ individual individual::cross(individual other, int idx1, int idx2){
 			copy_idx++;
 
 			// We will only allow a maximum of free CPUs (repeated values)
-			if(num == system_struct_t::FREE_CPU && free_cpus){
+			if(num.empty() && free_cpus){
 				free_cpus--;
 				break;
 			}	
@@ -147,8 +149,20 @@ individual individual::get_copy() {
     
 void individual::print() const {
 	printf("{fitness: %.2f, content: ", fitness);
-	for(pid_t const & tid : v)
-		printf("%d ", tid);
+	for(gene const & tids : v){
+		if(tids.empty()){
+			printf("F ");
+			continue;
+		}
+
+		auto &last = *(--tids.end());
+		for(pid_t const & tid : tids){
+			printf("%d", tid);
+			if (&tid != &last)
+				printf("_");
+		}
+		printf(" ");
+	}
 	printf("}\n");
 }
 
