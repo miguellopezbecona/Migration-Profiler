@@ -19,13 +19,14 @@ if [ $? -ne 0 ]; then
 fi
 
 # Set to what you want to profile
-toprofile="./my_test -i10000000 -n4 -r0 -o500 -t1 -m0 -M0"
+toprofile="./my_test -i10 -n50000000 -r0 -o350000000 -t$1 -m0 -M0"
+#toprofile="./my_test -i10000000 -n4 -r0 -o500 -t1 -m0 -M0"
 #toprofile=~/NPB3.3.1/NPB3.3-OMP/bin/lu.B.x
 #toprofile=~/NPB3.3.1/NPB3.3-OMP/bin/bt.C.x
 
 # Executes app to profile in background along with the profiler
 ./$profname $profparams &
-$toprofile > /dev/null
+$toprofile > ios.csv #/dev/null
 
 pkill -2 $profname # Ends profiler cleanly when the other app finishes
 

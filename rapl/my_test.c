@@ -27,7 +27,7 @@ typedef unsigned long int bigint; // For readibility and changing it easier
 #define CACHE_LINE_SIZE 64
 #define ELEMS_PER_CACHE CACHE_LINE_SIZE / sizeof(data_type)
 
-#define OUTPUT
+//#define OUTPUT
 //#define DOGETPID
 
 // For a specific test. Can be commented
@@ -156,9 +156,17 @@ static inline void operation(pid_t my_ompid){
 	
 		// This version avoids doing a lot of multiplications in inner loop. Compare with the next multiline comment
 		int limit = elems_iter*ELEMS_PER_CACHE;
+
+		#ifdef PRINT_PHASE_CHANGE // To add load without using a bigger array
+		int j;
+		for(j=0; j<5; j++){
+		#endif
 		for(n=0; n<limit; n+=ELEMS_PER_CACHE) // How many items will we process? (not in same cache line)
 			local_array[n] = local_array[index+n];
 			//data_read = local_array[index+n]; // First I tried just doing reads, but it didn't affect energy consumption
+		#ifdef PRINT_PHASE_CHANGE
+		}
+		#endif
 
 /*
 		for(n=0; n<elems_iter; n++)
@@ -171,20 +179,24 @@ static inline void operation(pid_t my_ompid){
 			//data_read = remote_array[index+r]; // Not in same cache line
 
 		#ifdef PRINT_PHASE_CHANGE
-		gettimeofday(&t_end, NULL);
-		double elapsed_time = (t_end.tv_sec - t_beg.tv_sec + (t_end.tv_usec - t_beg.tv_usec)/1.e6);
-		//printf("End of low OI phase. Elapsed time since the beginning: %.2f seconds\n", elapsed_time);
-		printf("l %.2f\n", elapsed_time);
+		if(my_ompid == 0){ // Only one TID printing
+			gettimeofday(&t_end, NULL);
+			double elapsed_time = (t_end.tv_sec - t_beg.tv_sec + (t_end.tv_usec - t_beg.tv_usec)/1.e6);
+			//printf("End of low OI phase. Elapsed time since the beginning: %.2f seconds\n", elapsed_time);
+			printf("l,%.2f\n", elapsed_time);
+		}
 		#endif
 
 		for(o=0; o<ops; o++) // How many float operations per iteration?
 			local_array[index+1] = local_array[index] * 1.42;
 
 		#ifdef PRINT_PHASE_CHANGE
-		gettimeofday(&t_end, NULL);
-		elapsed_time = (t_end.tv_sec - t_beg.tv_sec + (t_end.tv_usec - t_beg.tv_usec)/1.e6);
-		//printf("End of high OI phase. Elapsed time since the beginning: %.2f seconds\n", elapsed_time);
-		printf("h %.2f\n", elapsed_time);
+		if(my_ompid == 0){ // Only one TID printing
+			gettimeofday(&t_end, NULL);
+			double elapsed_time = (t_end.tv_sec - t_beg.tv_sec + (t_end.tv_usec - t_beg.tv_usec)/1.e6);
+			//printf("End of high OI phase. Elapsed time since the beginning: %.2f seconds\n", elapsed_time);
+			printf("h,%.2f\n", elapsed_time);
+		}
 		#endif
 	}
 }
@@ -301,8 +313,12 @@ int main(int argc, char *argv[]){
 	
 	data_initialization();
 
+	#ifdef PRINT_PHASE_CHANGE
+	printf("s,t\n");
+	#endif
+
 	// Parallel zone
-	#pragma omp parallel
+	#pragma omp parallel shared(local_array, remote_array, selected_cpus)
 	{
 		int tid = syscall(SYS_gettid);
 		pid_t ompid = omp_get_thread_num(); // From 0 to num_th

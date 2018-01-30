@@ -8,7 +8,7 @@
 #include "energy_data.h"
 
 // No incremental data gathering
-#define ONE_MEASURE
+//#define ONE_MEASURE
 
 //#define PRINT_OUTPUT
 #define DUMP_TO_FILE
@@ -31,6 +31,7 @@ double get_median_from_list(vector<double> l){
 struct timeval t_beg, t_end;
 #else
 unsigned int sleep_time = 1000 * 1000; // One second (in microseconds) by default
+double seconds_sleep;
 #endif
 
 energy_data_t ed;
@@ -51,11 +52,11 @@ void dump_data(vector<cons_per_dom> data){
 		return;
 	}
 
-	fprintf(fp, "it,node,domain,val\n"); // Header
+	fprintf(fp, "time,node,domain,val\n"); // Header
 	for(size_t it=0;it<v_size;it++){
 		for(int n=0;n<system_struct_t::NUM_OF_MEMORIES;n++){
 			for(int d=0;d<energy_data_t::NUM_RAPL_DOMAINS;d++)
-				fprintf(fp, "%lu,%d,%s,%.3f\n", it, n, energy_data_t::rapl_domain_names[d], data[n][d][it]);
+				fprintf(fp, "%.2f,%d,%s,%.3f\n", it*seconds_sleep, n, energy_data_t::rapl_domain_names[d], data[n][d][it]);
 		}
 	}
 	fclose(fp);
@@ -106,7 +107,7 @@ static void clean_end(int n) {
 		for(int d=0;d<energy_data_t::NUM_RAPL_DOMAINS;d++)
 			cons_per_node[n][d].push_back(data[n][d] / elapsed_time); // We will store the mean consumption
 	}
-    #endif
+	#endif
 	#endif
 
 	ed.close_buffers();
@@ -182,6 +183,8 @@ int main(int argc, char **argv) {
 	}
 
 	#ifndef ONE_MEASURE
+	seconds_sleep = sleep_time / (1000*1000.0);
+	double inv_seconds_sleep = 1 / seconds_sleep; // For using "*" instead of "/" and therefore being more efficient
 	while(1){
 		usleep(sleep_time);
 		ed.read_buffer();
@@ -191,12 +194,12 @@ int main(int argc, char **argv) {
 		double** data = ed.get_curr_vals();
 		for(int n=0;n<system_struct_t::NUM_OF_MEMORIES;n++){
 			for(int d=0;d<energy_data_t::NUM_RAPL_DOMAINS;d++)
-				cons_per_node[n][d].push_back(data[n][d]);
+				cons_per_node[n][d].push_back(data[n][d] * inv_seconds_sleep);
 		}
 		#endif
 
 		#ifdef PRINT_OUTPUT
-		ed.print_curr_vals();
+		ed.print_curr_vals_with_time(seconds_sleep);
 		#endif
 	}
 	#else

@@ -13,10 +13,10 @@ plot_cons_per_node <- function(df, domain = "pkg"){
 	legend_labels <- sapply(nodes, function(n) paste("Node ", n))
 
 	plt_title <- paste("Energy consumption per node (", domain, " domain)", sep="")
-	plot(0, 0, xlim=c(-0.1, max(df_d$it)+0.1), ylim=c(-0.1, max(df_d$val)+0.1), type="n", main=plt_title, xlab="Iteration", ylab="Joules")
+	plot(0, 0, xlim=c(-0.1, max(df_d$time)+0.1), ylim=c(-0.1, max(df_d$val)+0.1), type="n", main=plt_title, xlab="Time (s)", ylab="Joules")
 	for(i in 1:length(nodes)){ # One line per node
 		df_node <- df_d[df_d$node == nodes[i], ] # Gets data from node i
-		lines(df_node$it, df_node$val, col = cl[i])
+		lines(df_node$time, df_node$val, col = cl[i])
 	}
 	legend("topleft", legend = legend_labels, col=cl, pch=1) # Adds legend
 }
@@ -37,12 +37,18 @@ plot_cons_per_domain <- function(df, node = 0){
 	legend_labels <- sapply(domains, function(d) paste("energy-", d)) # Not necessary but meh
 	
 	plt_title <- paste("Energy consumption per domain (node ", node, ")", sep="")
-	plot(0, 0, xlim=c(-0.1, max(df$it)+0.1), ylim=c(-0.1, max(df$val)+0.1), type="n", main=plt_title, xlab="Iteration", ylab="Joules")
+	#plot(0, 0, xlim=c(-0.1, max(df$time)+0.1), ylim=c(-0.1, max(df$val)+0.1), type="n", main=plt_title, xlab="Time (s)", ylab="Joules")
+	
+	plot(0, 0, xlim=c(-0.1, max(df$time)+0.1), ylim=c(-0.1, max(df$val)+0.1), type="n", main=plt_title, xlab="Time (s)", ylab="Joules", xaxt = "n")
+	m <- max(df$time)
+	sq <- seq(1,m,5)
+	axis(1, at=sq, labels=sq)
+	
 	for(i in 1:length(domains)){ # One line per domain
 		df_node <- df_n[df_n$domain == domains[i], ] # Gets data for domain i
-		lines(df_node$it, df_node$val, col = cl[i])
+		lines(df_node$time, df_node$val, col = cl[i])
 	}
-	legend("topleft", legend = legend_labels, col=cl, pch=1) # Adds legend
+	legend("left", legend = legend_labels, col=cl, pch=1) # Adds legend
 }
 
 plot_all_cons_per_domain <- function(df){
@@ -52,10 +58,42 @@ plot_all_cons_per_domain <- function(df){
 		plot_cons_per_domain(df, nodes[i])
 }
 
+# Very optional function to process output from my_test.c with PRINT_PHASE_CHANGE macro uncommented
+read_and_process_iosfile <- function(filename) {
+	ios <- read.csv(filename, header = TRUE, stringsAsFactors = FALSE)
+	ios$s[ios$s == "l" ] <- 0
+	ios$s[ios$s == "h" ] <- 1
+	ios$s <- as.integer(ios$s)
+	x <- c(0)
+	y <- c(0)
+
+	for(i in 1:nrow(ios)){
+		s <- ios[i,]$s
+		t <- ios[i,]$t
+		
+		x <- c(x, t) 
+		y <- c(y, s)
+		
+		# A second point for doing a vertical line (same x value, inverted y one)
+		x <- c(x, t)
+		y <- c(y, as.integer(!s))
+	}
+	
+	#plot(x,y, type="l", col="red", xlab="Time (s)", ylab="Low/high IO")
+	
+	# This version of the plot changes x axis ticks to be more readable
+	plot(x,y, type="l", col="red", xlab="Time (s)", ylab="Low/high IO", xaxt = "n")
+	m <- max(ios$t)
+	sq <- seq(1,m,5)
+	axis(1, at=sq, labels=sq)
+}
+
 #setwd("")
-df <- read_data("data.csv")
+df <- read_data("energy.csv")
 plot_cons_per_node(df, "ram")
 plot_cons_per_domain(df, 0)
+
+read_and_process_iosfile("ios.csv")
 
 #plot_all_cons_per_node(df)
 #plot_all_cons_per_domain(df)
