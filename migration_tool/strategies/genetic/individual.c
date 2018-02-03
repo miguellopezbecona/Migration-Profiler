@@ -10,12 +10,11 @@ individual::individual(map<pid_t, page_table_t> ts) : v(system_struct_t::NUM_OF_
 		if(system_struct_t::is_cpu_free(i))
 			continue;
 
-		pid_t tid = system_struct_t::get_tid_from_cpu(i);
-
 		// Correct index of CPU in ordered_cpus
 		int index = find(system_struct_t::ordered_cpus.begin(), system_struct_t::ordered_cpus.end(), i) - system_struct_t::ordered_cpus.begin();
 
-		v[index].push_back(tid);
+		// Assigns list
+		v[index] = system_struct_t::get_tids_from_cpu(i);
 	}
 
 	// Calculates fitness (in this case, mean latency), using only data from last iteration

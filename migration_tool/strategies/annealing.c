@@ -84,11 +84,23 @@ vector<labeled_migr_t> get_candidate_list(pid_t worst_tid, page_table_t *page_t)
 				continue;
 			}
 
-			// Not a free core: get its TID info so a possible interchange can be planned
-			pid_t other_tid = system_struct_t::get_tid_from_cpu(actual_cpu);
-			vector<double> other_perfs = page_t->get_perf_data(other_tid);
+			// We will choose the TID with generates the higher number of tickets
+			vector<pid_t> tids = system_struct_t::get_tids_from_cpu(actual_cpu);
+			pid_t other_tid = -1;
+			int aux_tickets = -1;
 
-			tickets += get_tickets_from_perfs(current_cell, n, other_perfs, true);
+			for(pid_t const & aux_tid : tids){
+				vector<double> other_perfs =  page_t->get_perf_data(aux_tid);
+				int tid_tickets = get_tickets_from_perfs(current_cell, n, other_perfs, true);
+
+				// Better TID to pick
+				if(tid_tickets > aux_tickets){
+					aux_tickets = tid_tickets;
+					other_tid = aux_tid;
+				}
+			}
+
+			tickets += aux_tickets;
 			
 			migration_cell mc2(other_tid, current_cpu, actual_cpu, page_t->pid, true);
 			labeled_migr_t lm(mc, mc2, tickets);
@@ -224,14 +236,28 @@ vector<labeled_migr_t> get_candidate_list(pid_t worst_tid, map<pid_t, page_table
 				continue;
 			}
 
-			// Not a free core: get its TID info so a possible interchange can be planned
-			pid_t other_tid = system_struct_t::get_tid_from_cpu(actual_cpu);
-			pid_t other_pid = system_struct_t::get_pid_from_tid(other_tid);
-			vector<double> other_perfs = page_ts->operator[](other_pid).get_perf_data(other_tid);
+			// Not a free core: get its TIDs info so a possible interchange can be planned
 
-			tickets += get_tickets_from_perfs(current_cell, n, other_perfs, true);
+			// We will choose the TID with generates the higher number of tickets
+			vector<pid_t> tids = system_struct_t::get_tids_from_cpu(actual_cpu);
+			pid_t other_tid = -1;
+			int aux_tickets = -1;
+
+			for(pid_t const & aux_tid : tids){
+				pid_t other_pid = system_struct_t::get_pid_from_tid(aux_tid);
+				vector<double> other_perfs = page_ts->operator[](other_pid).get_perf_data(aux_tid);
+				int tid_tickets = get_tickets_from_perfs(current_cell, n, other_perfs, true);
+
+				// Better TID to pick
+				if(tid_tickets > aux_tickets){
+					aux_tickets = tid_tickets;
+					other_tid = aux_tid;
+				}
+			}
+
+			tickets += aux_tickets;
 			
-			migration_cell mc2(other_tid, current_cpu, actual_cpu, other_pid, true);
+			migration_cell mc2(other_tid, current_cpu, actual_cpu, system_struct_t::get_pid_from_tid(other_tid), true);
 			labeled_migr_t lm(mc, mc2, tickets);
 			migration_list.push_back(lm);
 		}

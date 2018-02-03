@@ -11,6 +11,7 @@
 #include <errno.h>
 #include <sched.h>
 
+#include <algorithm>
 #include <map>
 #include <vector>
 using namespace std;
@@ -21,7 +22,6 @@ typedef struct system_struct {
 	static int NUM_OF_CPUS;
 	static int NUM_OF_MEMORIES;
 	static int CPUS_PER_MEMORY;
-	static const int FREE_CPU = -1;
 
 	// To know where each CPU is (in terms of memory node)
 	static int* cpu_node_map; // cpu_node_map[cpu] = node
@@ -29,7 +29,7 @@ typedef struct system_struct {
 
 	// To know where each TID is (in terms of CPUs)
 	static map<pid_t, int> tid_cpu_map; // input: tid, output: cpu
-	static int* cpu_tid_map; // input: cpu, output, tid
+	static vector<vector<pid_t>> cpu_tid_map; // input: cpu, output, list of tids
 
 	static int** node_distances;
 
@@ -49,7 +49,7 @@ typedef struct system_struct {
 	// CPU-thread methods
 	static void add_tid(pid_t tid, int cpu);
 	static int get_cpu_from_tid(pid_t tid);
-	static int get_tid_from_cpu(int cpu);
+	static vector<pid_t> get_tids_from_cpu(int cpu);
 	static int set_tid_cpu(pid_t tid, int cpu, bool do_pin);
 	static void remove_tid(pid_t tid, bool do_unpin);
 	static bool is_cpu_free(int cpu);

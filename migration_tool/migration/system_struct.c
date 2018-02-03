@@ -7,7 +7,7 @@ int system_struct_t::CPUS_PER_MEMORY;
 int* system_struct_t::cpu_node_map;
 vector<int> system_struct_t::node_cpu_map[MAX_PACKAGES];
 map<pid_t, int> system_struct_t::tid_cpu_map;
-int* system_struct_t::cpu_tid_map;
+vector<vector<pid_t>> system_struct_t::cpu_tid_map;
 int** system_struct_t::node_distances;
 map<pid_t, pid_t> system_struct_t::tid_pid_map;
 
@@ -66,9 +66,7 @@ int system_struct_t::detect_system() {
 
 	NUM_OF_CPUS = sysconf(_SC_NPROCESSORS_ONLN);
 	cpu_node_map = (int*)malloc(NUM_OF_CPUS*sizeof(int));
-	cpu_tid_map = (int*)malloc(NUM_OF_CPUS*sizeof(int));
-
-	memset(cpu_tid_map, FREE_CPU, NUM_OF_CPUS*sizeof(int)); // All CPUs are free at the beginning
+	cpu_tid_map.resize(NUM_OF_CPUS);
 
 	// For each CPU, reads topology file to get package (node) id
 	for(int i=0;i<NUM_OF_CPUS;i++) {
@@ -159,7 +157,9 @@ void system_struct_t::clean(){
 	}
 	free(node_distances);
 	tid_cpu_map.clear();
-	free(cpu_tid_map);
+	for(int i=0;i<NUM_OF_CPUS;i++)
+		cpu_tid_map[i].clear();
+	cpu_tid_map.clear();
 	ordered_cpus.clear();
 	tid_pid_map.clear();
 }
@@ -198,28 +198,16 @@ void system_struct_t::add_tid(pid_t tid, int cpu){
 		}
 	}
 
-	// If we are here, we didn't found a free CPU in the memory node of the CPU where the sample was gotten. We will try with the rest
-	// [TODO]: We could use the info from node_distances to continue the search from the nearest node to the initial one to the farthest one
-	for(int n=0;n<NUM_OF_MEMORIES;n++){
-		if(n == node)
-			 continue; // Already checked
-
-		for(int const & other_cpu : node_cpu_map[n]){
-			if(is_cpu_free(other_cpu)){ // The thread is pinned to the CPU if it is free
-				set_tid_cpu(tid, other_cpu, true);
-				return;
-			}
-		}
-	}
-
-	set_tid_cpu(tid, cpu, false); // If there aren't any free CPUs, we assign the thread to the initial CPU without pinning it
+	// If we are here, we didn't found a free CPU in the memory node of the CPU where the sample was gotten
+	// We will pin it to the initial CPU anyway
+	set_tid_cpu(tid, cpu, true);
 }
 
 int system_struct_t::get_cpu_from_tid(pid_t tid){
 	return tid_cpu_map[tid];
 }
 
-int system_struct_t::get_tid_from_cpu(int cpu){
+vector<pid_t> system_struct_t::get_tids_from_cpu(int cpu){
 	return cpu_tid_map[cpu];
 }
 
@@ -227,8 +215,10 @@ int system_struct_t::set_tid_cpu(pid_t tid, int cpu, bool do_pin){
 	// We drop the previous CPU-TID assignation, if there was one
 	if(tid_cpu_map.count(tid)){ // contains
 		int old_cpu = tid_cpu_map[tid];
-		if(cpu_tid_map[old_cpu] == tid) // Sanity checking
-			cpu_tid_map[old_cpu] = FREE_CPU;
+
+		// Drops TID from the list
+		vector<pid_t> *l = &cpu_tid_map[old_cpu];
+		l->erase(remove(l->begin(), l->end(), tid), l->end());
 	}
 
 	tid_cpu_map[tid] = cpu;
@@ -236,7 +226,7 @@ int system_struct_t::set_tid_cpu(pid_t tid, int cpu, bool do_pin){
 	if(!do_pin)
 		return 0;
 	
-	cpu_tid_map[cpu] = tid;
+	cpu_tid_map[cpu].push_back(tid);
 	return pin_thread_to_cpu(tid, cpu);
 }
 
@@ -248,13 +238,15 @@ void system_struct_t::remove_tid(pid_t tid, bool do_unpin){
 
 	// Already finished threads don't need unpin
 	if(do_unpin){
-		cpu_tid_map[cpu] = FREE_CPU;
+		vector<pid_t> *l = &cpu_tid_map[cpu];
+		l->erase(remove(l->begin(), l->end(), tid), l->end());
+
 		unpin_thread(tid);
 	}
 }
 
 bool system_struct_t::is_cpu_free(int cpu){
-	return cpu_tid_map[cpu] == FREE_CPU;
+	return cpu_tid_map[cpu].empty();
 }
 
 
