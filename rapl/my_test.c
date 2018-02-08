@@ -6,9 +6,10 @@
 #include <sys/time.h>
 
 #include <sched.h> // CPU affinity stuff
-#include <errno.h> // Affinity error's constants
 #include <omp.h> // OpenMP
 #include <numa.h> // numa_alloc_onnode
+
+//#include <asm/cachectl.h> // cacheflush, but it isn't found...
 
 #include "system_struct.h"
 
@@ -40,8 +41,10 @@ struct timeval t_beg, t_end;
 // Main data
 bigint array_basic_size; // array_total_size / num_th
 bigint array_total_size;
-data_type* local_array;
-data_type* remote_array;
+data_type* local_array_a;
+data_type* local_array_b;
+data_type* remote_array_a;
+data_type* remote_array_b;
 
 // Options
 bigint main_iters;
@@ -57,7 +60,6 @@ unsigned char remote_node;
 void print_selected_cpus();
 void print_params();
 void usage(char **argv);
-void set_affinity_error();
 
 /*** Auxiliar functions ***/
 void print_selected_cpus(){
@@ -79,21 +81,18 @@ void usage(char **argv) {
 	printf("Usage: %s [-imain_iterations] [-nelements_processed_per_iteration] [-rremote_elements_processed_per_iteration] [-ooperations_per_iteration] [-tnumber_of_threads] [-mlocal_node] [-Mremote_node]\n\n", argv[0]);
 }
 
-void set_affinity_error(){
-	switch(errno){
-		case EFAULT:
-			printf("Error settting affinity: A supplied memory address was invalid\n");
-			break;
-		case EINVAL:
-			printf("Error settting affinity: The affinity bitmask mask contains no processors that are physically on the system, or cpusetsize is smaller than the size of the affinity mask used by the kernel\n");
-			break;
-		case EPERM:
-			printf("Error settting affinity: The calling process does not have appropriate privileges\n");
-			break;
-		case ESRCH:
-			printf("Error settting affinity: The process whose ID is pid could not be found\n");
-			break;
-	}
+// Alternative for cacheflush? Source: https://stackoverflow.com/a/43694725
+void cache_flush(const void *p, unsigned int allocation_size){
+	const char *cp = (const char *)p;
+	size_t i = 0;
+
+	if (p == NULL || allocation_size <= 0)
+		return;
+
+	for (i = 0; i < allocation_size; i += CACHE_LINE_SIZE)
+		asm volatile("clflush (%0)\n\t" : : "r"(&cp[i]) : "memory");
+
+	asm volatile("sfence\n\t" : : : "memory");
 }
 
 
@@ -103,16 +102,19 @@ void set_affinity_error(){
 void data_initialization(){
 	int th, offset;
 
-	local_array = (data_type*)numa_alloc_onnode(array_total_size*sizeof(data_type), local_node);
-	if(local_array == NULL){
+	local_array_a = (data_type*)numa_alloc_onnode(array_total_size*sizeof(data_type), local_node);
+	local_array_b = (data_type*)numa_alloc_onnode(array_total_size*sizeof(data_type), local_node);
+	if(local_array_a == NULL || local_array_b == NULL){
 		printf("Local malloc failed, probably due to not enough memory.\n");
 		exit(-1);
 	}
 
-	remote_array = (data_type*)numa_alloc_onnode(array_total_size*sizeof(data_type), remote_node);
-	if(local_array == NULL){
+	remote_array_a = (data_type*)numa_alloc_onnode(array_total_size*sizeof(data_type), remote_node);
+	remote_array_b = (data_type*)numa_alloc_onnode(array_total_size*sizeof(data_type), remote_node);
+	if(remote_array_a == NULL || remote_array_b == NULL){
 		printf("Remote malloc failed, probably due to not enough memory.\n");
-		numa_free(local_array, array_total_size*sizeof(data_type));
+		numa_free(local_array_a, array_total_size*sizeof(data_type));
+		numa_free(local_array_b, array_total_size*sizeof(data_type));
 		exit(-1);
 	}
 
@@ -120,19 +122,15 @@ void data_initialization(){
 	for(th=0;th<num_th;th++){
 		offset = th*array_basic_size;
 
-/*		// Can consume a lot of time and it's not necessary
-		int i;
-		for(i=0;i<array_basic_size;i++){
-			local_array[offset+i] = (rand()%10)*1.0;
-			remote_array[offset+i] = (rand()%10)*1.0;
-		}
-*/
-
 		#ifdef OUTPUT
 		// Gets the memory range where each thread will work in
-		printf("local_array[%d] from %lx to %lx\nremote_array[%d] from %lx to %lx\n\n",
-			th,(long unsigned int)&local_array[offset],(long unsigned int)&local_array[offset+array_basic_size],
-			th,(long unsigned int)&remote_array[offset],(long unsigned int)&remote_array[offset+array_basic_size]
+		printf("local_array_a[%d] from %lx to %lx\nremote_array_a[%d] from %lx to %lx\n\n",
+			th,(long unsigned int)&local_array_a[offset],(long unsigned int)&local_array_a[offset+array_basic_size],
+			th,(long unsigned int)&remote_array_a[offset],(long unsigned int)&remote_array_a[offset+array_basic_size]
+		);
+		printf("local_array_b[%d] from %lx to %lx\nremote_array_b[%d] from %lx to %lx\n\n",
+			th,(long unsigned int)&local_array_b[offset],(long unsigned int)&local_array_b[offset+array_basic_size],
+			th,(long unsigned int)&remote_array_b[offset],(long unsigned int)&remote_array_b[offset+array_basic_size]
 		);
 		#endif
 	}
@@ -148,36 +146,24 @@ static inline void operation(pid_t my_ompid){
 	bigint i,n,r,o;
 	int offset = my_ompid*array_basic_size; // Different work zone for each thread
 	
-	//data_type data_read;
-	
 	for(i=0; i<main_iters; i++){ // How many main iterations will we do?
-		// We could multiply i by ELEMS_PER_CACHE to avoid being in the same cache line
 		int index = offset + i;
 	
-		// This version avoids doing a lot of multiplications in inner loop. Compare with the next multiline comment
+		// This is done to avoid doing a lot of multiplications in inner loop
 		int limit = elems_iter*ELEMS_PER_CACHE;
 
+		/// Reads/writes in LOCAL arrays
 		#ifdef PRINT_PHASE_CHANGE // To add load without using a bigger array
 		int j;
 		for(j=0; j<5; j++){
 		#endif
 		for(n=0; n<limit; n+=ELEMS_PER_CACHE) // How many items will we process? (not in same cache line)
-			local_array[n] = local_array[index+n];
-			//data_read = local_array[index+n]; // First I tried just doing reads, but it didn't affect energy consumption
+			local_array_b[index+n] = local_array_a[index+n];
 		#ifdef PRINT_PHASE_CHANGE
 		}
 		#endif
 
-/*
-		for(n=0; n<elems_iter; n++)
-			data_read = local_array[index+n*ELEMS_PER_CACHE]; // Not in same cache line
-*/
-
-		limit = remote_reads*ELEMS_PER_CACHE;
-		for(r=0; r<limit; r+=ELEMS_PER_CACHE) // How many remote items will we read/write?
-			remote_array[r] = remote_array[index+r]; // Not in same cache line
-			//data_read = remote_array[index+r]; // Not in same cache line
-
+		#pragma omp barrier
 		#ifdef PRINT_PHASE_CHANGE
 		if(my_ompid == 0){ // Only one TID printing
 			gettimeofday(&t_end, NULL);
@@ -187,9 +173,18 @@ static inline void operation(pid_t my_ompid){
 		}
 		#endif
 
-		for(o=0; o<ops; o++) // How many float operations per iteration?
-			local_array[index+1] = local_array[index] * 1.42;
+		/// Reads/writes in REMOTE arrays
+		limit = remote_reads*ELEMS_PER_CACHE;
+		for(r=0; r<limit; r+=ELEMS_PER_CACHE) // How many remote items will we read/write?
+			remote_array_b[index+r] = remote_array_a[index+r]; // Not in same cache line
 
+		/// Floating point OPERATIONS
+		data_type datum_a = local_array_a[index];
+		data_type datum_b = local_array_b[index];
+		for(o=0; o<ops; o++) // How many float operations per iteration?
+			datum_a * 1.42 + datum_b * 0.58;
+
+		#pragma omp barrier
 		#ifdef PRINT_PHASE_CHANGE
 		if(my_ompid == 0){ // Only one TID printing
 			gettimeofday(&t_end, NULL);
@@ -198,6 +193,15 @@ static inline void operation(pid_t my_ompid){
 			printf("h,%.2f\n", elapsed_time);
 		}
 		#endif
+
+		/// The cache is flushed (not the whole array, just what we processed in this iteration) to force fails and going to the main memory
+		// Library version, but it isn't found...
+		//cacheflush(&local_array_a[index], limit, DCACHE);
+		//cacheflush(&local_array_b[index], limit, DCACHE);
+
+		// Alternative version
+		cache_flush(&local_array_a[index], limit);
+		cache_flush(&local_array_b[index], limit);
 	}
 }
 
@@ -246,8 +250,7 @@ void set_options_from_parameters(int argc, char** argv){
 void pick_cpus(){
 	selected_cpus = (unsigned char*)calloc(num_th, sizeof(unsigned char));
 	cpu_set_t aff;
-	if(sched_getaffinity(0,sizeof(cpu_set_t),&aff))
-		set_affinity_error();
+	sched_getaffinity(0,sizeof(cpu_set_t),&aff);
 
 	// Gets available CPU IDs from local_node to pin the threads
 	int i, picked_cpus = 0;
@@ -272,7 +275,6 @@ void calculate_array_sizes(){
 	array_basic_size = main_iters + max_p*ELEMS_PER_CACHE;
 
 	array_total_size = array_basic_size*num_th; // In this case, the whole array would be proportional to the number of threads
-	// [TOTHINK]: another option would be maintain the same array size, but reducing the number of reads per thread, or we could make the threads read each other's values
 }
 
 int main(int argc, char *argv[]){
@@ -318,7 +320,7 @@ int main(int argc, char *argv[]){
 	#endif
 
 	// Parallel zone
-	#pragma omp parallel shared(local_array, remote_array, selected_cpus)
+	#pragma omp parallel shared(local_array_a, local_array_b, remote_array_a, remote_array_b, selected_cpus)
 	{
 		int tid = syscall(SYS_gettid);
 		pid_t ompid = omp_get_thread_num(); // From 0 to num_th
@@ -328,8 +330,7 @@ int main(int argc, char *argv[]){
 		cpu_set_t my_affinity;
 		CPU_ZERO(&my_affinity);
 		CPU_SET(my_cpu, &my_affinity);
-		if(sched_setaffinity(0,sizeof(cpu_set_t),&my_affinity))
-			set_affinity_error();
+		sched_setaffinity(0,sizeof(cpu_set_t),&my_affinity);
 
 		#ifdef OUTPUT
 		printf("I am thread (%d,%d) and I got CPU %u\n", ompid, tid, my_cpu);
@@ -348,7 +349,9 @@ int main(int argc, char *argv[]){
 		free(node_cpu_map[i]);
 	free(node_cpu_map);
 	free(selected_cpus);
-	numa_free(local_array, array_total_size*sizeof(data_type));
-	numa_free(remote_array, array_total_size*sizeof(data_type));
+	numa_free(local_array_a, array_total_size*sizeof(data_type));
+	numa_free(local_array_b, array_total_size*sizeof(data_type));
+	numa_free(remote_array_a, array_total_size*sizeof(data_type));
+	numa_free(remote_array_b, array_total_size*sizeof(data_type));
 	return 0;
 }

@@ -16,7 +16,7 @@ gcc -fopenmp -o ABC ABC.c -lnuma
 # Compiles profiler
 make
 
-# Exits if it there was a problem
+# Exits if there was a problem
 if [ $? -ne 0 ]; then
 	exit 1
 fi
@@ -36,7 +36,7 @@ fi
 
 # Set to what you want to profile
 #toprofile="numactl --physcpubind 1,2,3 ./ABC -m0 -r5000 -s5000000 -t8"
-toprofile="./ABC -m0 -r5000 -s10000000 -t8"
+toprofile="./ABC -m0 -r5000 -s35000000 -t8"
 #toprofile=~/NPB3.3.1/NPB3.3-OMP/bin/lu.B.x
 #toprofile=~/NPB3.3.1/NPB3.3-OMP/bin/bt.C.x
 
@@ -63,7 +63,7 @@ if [ $? -ne 0 ]; then
 	exit 0
 fi
 
-### Preprocessing of generated files (the ones with PRINT_CSVS macro, not JUST_PROFILE)
+### Preprocessing of generated heatmap CSVs (the ones gotten with PRINT_CSVS macro, not with JUST_PROFILE one)
 
 # Removes last comma from each CSV
 sed -i 's/.$//' acs_*.csv max_*.csv min_*.csv avg_*.csv
