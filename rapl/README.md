@@ -22,7 +22,7 @@ Using RAPL requires a Linux system with a 3.13+ kernel version. RAPL values are 
 echo "0" | sudo tee /proc/sys/kernel/perf_event_paranoid > /dev/null
 ```
 
-The C app requires `libnuma-dev` package, so you need to install it first.
+The two apps require `libnuma-dev` package as well, so you need to install it first.
 
 If you just want to build the profiler, you can use the Makefile inside the source code folder. I have already facilitated a bash script to also execute it along with the test program. Just go to the source code folder and execute `test` script:
 ```bash

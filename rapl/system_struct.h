@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <numa.h> // numa_alloc_onnode, numa_num_configured_nodes
 
 extern int NUM_OF_CPUS;
 extern int NUM_OF_MEMORIES;

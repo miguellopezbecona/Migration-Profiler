@@ -10,13 +10,12 @@
 
 #include <errno.h>
 #include <sched.h>
+#include <numa.h>
 
 #include <algorithm>
 #include <map>
 #include <vector>
 using namespace std;
-
-#define MAX_PACKAGES 8
 
 typedef struct system_struct {
 	static int NUM_OF_CPUS;
@@ -25,7 +24,7 @@ typedef struct system_struct {
 
 	// To know where each CPU is (in terms of memory node)
 	static int* cpu_node_map; // cpu_node_map[cpu] = node
-	static vector<int> node_cpu_map[MAX_PACKAGES]; // cpu_node_map[node] = list(cpus)
+	static int** node_cpu_map; // cpu_node_map[node] = list(cpus)
 
 	// To know where each TID is (in terms of CPUs)
 	static map<pid_t, int> tid_cpu_map; // input: tid, output: cpu

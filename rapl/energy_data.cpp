@@ -159,11 +159,10 @@ int energy_data_t::prepare_energy_data(){
 			if (config[d]==0) continue;
 
 			fd[n][d] = perf_event_open(&attr,-1, system_struct_t::node_cpu_map[n][0],-1,0);
-			/*if(fd[n][d] < 0) {
+			if(fd[n][d] < 0) {
 				printf("\tError code while opening buffer for CPU %d, config %d: %d\n\n", system_struct_t::node_cpu_map[n][0], config[d], fd[n][d]);
 				return -1;
 			}
-*/
 		}
 	}
 

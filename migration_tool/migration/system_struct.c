@@ -5,7 +5,7 @@ int system_struct_t::NUM_OF_CPUS;
 int system_struct_t::NUM_OF_MEMORIES;
 int system_struct_t::CPUS_PER_MEMORY;
 int* system_struct_t::cpu_node_map;
-vector<int> system_struct_t::node_cpu_map[MAX_PACKAGES];
+int** system_struct_t::node_cpu_map;
 map<pid_t, int> system_struct_t::tid_cpu_map;
 vector<vector<pid_t>> system_struct_t::cpu_tid_map;
 int** system_struct_t::node_distances;
@@ -65,6 +65,16 @@ int system_struct_t::detect_system() {
 	int package;
 
 	NUM_OF_CPUS = sysconf(_SC_NPROCESSORS_ONLN);
+	NUM_OF_MEMORIES = numa_num_configured_nodes();
+	CPUS_PER_MEMORY = NUM_OF_CPUS / NUM_OF_MEMORIES;
+
+	node_cpu_map = (int**)malloc(NUM_OF_MEMORIES*sizeof(int*));
+	for(int i=0;i<NUM_OF_MEMORIES;i++)
+		node_cpu_map[i] = (int*)malloc(CPUS_PER_MEMORY*sizeof(int));
+
+	int counters[CPUS_PER_MEMORY]; // For keeping indexes to build node_cpu_map
+	memset(counters, 0, sizeof(counters));
+
 	cpu_node_map = (int*)malloc(NUM_OF_CPUS*sizeof(int));
 	cpu_tid_map.resize(NUM_OF_CPUS);
 
@@ -80,19 +90,12 @@ int system_struct_t::detect_system() {
 			return -1;
 
 		// Saves data to structures
+		int index = counters[package];
+		node_cpu_map[package][index] = i;
 		cpu_node_map[i] = package;
-		node_cpu_map[package].push_back(i);
-	}
 
-	// Size from first node
-	CPUS_PER_MEMORY = node_cpu_map[0].size();
+		counters[package]++;
 
-	// Gets real number of packages (position of first empty vector)
-	for(int i=0;i<MAX_PACKAGES;i++){
-		if(node_cpu_map[i].empty()){
-			NUM_OF_MEMORIES = i;
-			break;
-		}
 	}
 
 	// Initializes and builds node distance matrix
@@ -114,7 +117,7 @@ int system_struct_t::detect_system() {
 
 	// We begin with node 0
 	int ref_node = 0;
-	ordered_cpus.insert(end(ordered_cpus), begin(node_cpu_map[0]), end(node_cpu_map[0]));
+	ordered_cpus.insert(end(ordered_cpus), node_cpu_map[0], node_cpu_map[0] + CPUS_PER_MEMORY);
 	processed[0] = true;
 	while(!are_all_nodes_processed(processed)){
 
@@ -133,7 +136,7 @@ int system_struct_t::detect_system() {
 
 		// We got the new mininum: mark as processed and concat its CPUs
 		processed[min_index] = true;
-		ordered_cpus.insert(end(ordered_cpus), begin(node_cpu_map[min_index]), end(node_cpu_map[min_index]));
+		ordered_cpus.insert(end(ordered_cpus), node_cpu_map[min_index], node_cpu_map[min_index] + CPUS_PER_MEMORY);
 		
 		ref_node = min_index;
 
@@ -152,10 +155,11 @@ int system_struct_t::detect_system() {
 void system_struct_t::clean(){
 	free(cpu_node_map);
 	for(int i=0;i<NUM_OF_MEMORIES;i++){
-		node_cpu_map[i].clear();
+		free(node_cpu_map[i]);
 		free(node_distances[i]);
 	}
 	free(node_distances);
+	free(node_cpu_map);
 	tid_cpu_map.clear();
 	for(int i=0;i<NUM_OF_CPUS;i++)
 		cpu_tid_map[i].clear();
@@ -191,7 +195,8 @@ void system_struct_t::add_tid(pid_t tid, int cpu){
 	
 	// If not, we search a free CPU on its same node
 	int node = cpu_node_map[cpu];
-	for(int const & other_cpu : node_cpu_map[node]){
+	for(size_t i=0;i<CPUS_PER_MEMORY;i++){
+		int other_cpu = node_cpu_map[node][i];
 		if(is_cpu_free(other_cpu)){
 			set_tid_cpu(tid, other_cpu, true);
 			return;

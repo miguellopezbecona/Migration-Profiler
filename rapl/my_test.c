@@ -7,7 +7,6 @@
 
 #include <sched.h> // CPU affinity stuff
 #include <omp.h> // OpenMP
-#include <numa.h> // numa_alloc_onnode
 
 //#include <asm/cachectl.h> // cacheflush, but it isn't found...
 

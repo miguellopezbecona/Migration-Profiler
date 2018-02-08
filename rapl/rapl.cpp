@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <sys/time.h>
+#include <ctype.h> // isprint
 
 #include <numeric> // accumulate
 
