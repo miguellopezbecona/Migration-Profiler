@@ -6,7 +6,7 @@
 #include "genetic/gen_utils.h"
 #include "../migration/migration_cell.h"
 
-const double CROSS_PROB = 0.9;
+const double CROSS_PROB = 0.5;
 const double MUT_PROB = 0.1;
 
 typedef struct genetic : strategy {

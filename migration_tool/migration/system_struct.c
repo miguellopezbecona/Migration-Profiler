@@ -236,13 +236,12 @@ void system_struct_t::remove_tid(pid_t tid, bool do_unpin){
 	int cpu = tid_cpu_map[tid];
 	tid_cpu_map.erase(tid);
 
-	// Already finished threads don't need unpin
-	if(do_unpin){
-		vector<pid_t> *l = &cpu_tid_map[cpu];
-		l->erase(remove(l->begin(), l->end(), tid), l->end());
+	vector<pid_t> *l = &cpu_tid_map[cpu];
+	l->erase(remove(l->begin(), l->end(), tid), l->end());
 
+	// Already finished threads don't need unpin
+	if(do_unpin)
 		unpin_thread(tid);
-	}
 }
 
 bool system_struct_t::is_cpu_free(int cpu){

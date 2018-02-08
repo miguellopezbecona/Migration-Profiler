@@ -69,6 +69,7 @@ genetic_t gen_st;
 
 // All-system level strategies
 int perform_migration_strategy(map<pid_t, page_table_t> *page_ts){
+	int final_ret = 0;
 	vector<migration_cell_t> ths_migr;
 	vector<migration_cell_t> pgs_migr;
 
@@ -82,9 +83,7 @@ int perform_migration_strategy(map<pid_t, page_table_t> *page_ts){
 		
 		if(ret != 0){ // There was an error
 			handle_error(ret, thm, page_ts);
-
-			// Instead of aborting the iteration, we could just remove the following migration cells concerning that PID/TID. Right now, for simplicity:
-			return ret;
+			final_ret += ret;
 		}
 	}
 	#endif
@@ -99,6 +98,6 @@ int perform_migration_strategy(map<pid_t, page_table_t> *page_ts){
 	#endif
 */
 
-	return 0;
+	return final_ret;
 }
 

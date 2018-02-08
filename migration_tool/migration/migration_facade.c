@@ -88,6 +88,7 @@ void work_with_fake_data(){
 	inst_list.add_cell(0,500,500,50000000L,500,1000);
 	inst_list.add_cell(0,500,501,50000000L,1500,1000);
 	inst_list.add_cell(0,500,501,50000000L,100,2000);
+	memory_list.add_cell(0,500,502,0x12345000,500,0,2000);
 
 /*  // Fake data into table directly
 	page_table_t t1(500);
@@ -117,7 +118,7 @@ void work_with_fake_data(){
 	//tid_cpu_table.print(); // Debugging purposes
 
 	// For testing some iterations of genetic
-	for(int i=0;i<10;i++)
+	for(int i=0;i<5;i++)
 		perform_migration_strategy(&page_tables);
 
 	//perform_migration_strategy(&page_tables[500]);

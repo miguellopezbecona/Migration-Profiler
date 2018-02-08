@@ -148,14 +148,20 @@ individual individual::get_copy() {
 }
     
 void individual::print() const {
-	printf("{fitness: %.2f, content: ", fitness);
+	printf("{fitness: ");
+	if(fitness == NO_FITNESS)
+		printf("???");
+	else
+		printf("%.2f", fitness);
+	printf(", content: ");
+
 	for(gene const & tids : v){
 		if(tids.empty()){
 			printf("F "); // Free CPU
 			continue;
 		}
 
-		auto &last = *(--tids.end()); // To know when to stop printing underscores
+		auto &last = *(--tids.end()); // To know when stop printing underscores
 		for(pid_t const & tid : tids){
 			printf("%d", tid);
 			if (&tid != &last)

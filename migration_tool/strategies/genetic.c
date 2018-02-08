@@ -13,7 +13,7 @@ vector<migration_cell_t> genetic::do_genetic(individual ind){
 	it++;
 
 	#ifdef GENETIC_OUTPUT
-	printf("Begin of iteration %d of genetic process.\n", it);
+	printf("Beginning of iteration %d of genetic process.\n", it);
 	printf("Current idv is: ");
 	ind.print();
 	#endif
@@ -150,54 +150,55 @@ void genetic::mutation(individual *ind, vector<migration_cell_t> *v){
 			#ifdef GENETIC_OUTPUT
 			printf("mutation not done\n");
 			#endif
-		} else {
-			// Mutation by interchange: selects second index
-			int pos2 = gen_utils::get_rand_int(sz, pos1);
-
-			// Generates two migration cells: ind[pos1] goes to ind[pos2] location and viceversa
-			int dest1 = system_struct_t::ordered_cpus[pos2]; // CPU associated to pos2
-			int dest2 = system_struct_t::ordered_cpus[pos1];
-
-			// Migration cells concerning to those TIDs may already exist from cross process. If this is the case, we just have to change their destination
-			bool first_exists = false, sec_exists = false;
-			for(size_t i=0; i<v->size();i++){
-				migration_cell_t *mc = &v->operator[](i);
-				for(pid_t const & tid : ind->v[pos1]){
-					if(mc->elem == tid){ // Cell already exists: changes its destination
-						mc->dest = dest2;
-						first_exists = true;
-					}
-				}
-
-				for(pid_t const & tid : ind->v[pos2]){
-					if(mc->elem == tid){ // Cell already exists: changes its destination
-						mc->dest = dest1;
-						sec_exists = true;
-					}
-				}
-			}
-
-			// It won't generate migration cells for free CPUs positions (empty arrays) or existing cells
-			if(!first_exists){
-				for(pid_t const & tid : ind->v[pos1]){
-					migration_cell_t mc1(tid, dest1);
-					v->push_back(mc1);
-				}
-			}
-			if(!sec_exists){
-				for(pid_t const & tid : ind->v[pos2]){
-					migration_cell_t mc2(tid, dest2);
-					v->push_back(mc2);
-				}
-			}
-
-			// Key function
-			ind->mutate(pos1, pos2);
-
-			#ifdef GENETIC_OUTPUT
-			printf("interchanges with position %d\n", pos2);
-			#endif
+			continue;
 		}
+
+		// Mutation by interchange: selects second index
+		int pos2 = gen_utils::get_rand_int(sz, pos1);
+
+		// Generates two migration cells: ind[pos1] goes to ind[pos2] location and viceversa
+		int dest1 = system_struct_t::ordered_cpus[pos2]; // CPU associated to pos2
+		int dest2 = system_struct_t::ordered_cpus[pos1];
+
+		// Migration cells concerning to those TIDs may already exist from cross process. If this is the case, we just have to change their destination
+		bool first_exists = false, sec_exists = false;
+		for(migration_cell_t & mc_ : *v){
+			migration_cell_t *mc = &mc_;
+			for(pid_t const & tid : ind->v[pos1]){
+				if(mc->elem == tid){ // Cell already exists: changes its destination
+					mc->dest = dest1;
+					first_exists = true;
+				}
+			}
+
+			for(pid_t const & tid : ind->v[pos2]){
+				if(mc->elem == tid){ // Cell already exists: changes its destination
+					mc->dest = dest2;
+					sec_exists = true;
+				}
+			}
+		}
+
+		// It won't generate migration cells for free CPUs positions (empty arrays) or existing cells
+		if(!first_exists){
+			for(pid_t const & tid : ind->v[pos1]){
+				migration_cell_t mc1(tid, dest1);
+				v->push_back(mc1);
+			}
+		}
+		if(!sec_exists){
+			for(pid_t const & tid : ind->v[pos2]){
+				migration_cell_t mc2(tid, dest2);
+				v->push_back(mc2);
+			}
+		}
+
+		// Key function
+		ind->mutate(pos1, pos2);
+
+		#ifdef GENETIC_OUTPUT
+		printf("interchanges with position %d\n", pos2);
+		#endif
 	}
 }
 
