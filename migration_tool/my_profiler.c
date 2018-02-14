@@ -33,6 +33,7 @@
 #include "utils.h" // For time utils
 #include "sample_data.h"
 #include "migration/migration_facade.h" // begin_migration_process
+#include "rapl/rapl.h" // energy stuff
 
 // Using a value greater than 2 requires additional changes in, at least, "events" and "periods" array
 #define NUM_GROUPS 2
@@ -76,9 +77,15 @@ void perform_migration(){
 	time_t current_time = time(NULL);
 
 	// We profile every 1, 2 or 4 seconds depending on current_time_value
-	if((difftime(current_time,last_migr_time)) > (get_time_value() * inv_1000)){
+	double secs = difftime(current_time, last_migr_time);
+	if(secs > (get_time_value() * inv_1000)){
 		last_migr_time = current_time;
 		//printf("\n***********\nAt %s\n",ctime(&last_migr_time));
+
+		// Energy data is read
+		read_energy_data(secs);
+
+		//ed.print_curr_vals(); // Just for test we got the data
 
 		begin_migration_process();
 	}
@@ -281,6 +288,8 @@ static void clean_end(int n) {
 	//printf("%d,%d,%lu\n", options.periods[0], options.minimum_latency,processed_samples_group[0]);
 	clean_migration_structures();
 
+	clean_energy_end();
+
 	system_struct_t::clean();
 
 	//#ifdef EVENT_OUTPUT
@@ -299,8 +308,13 @@ static void clean_end(int n) {
 }
 
 int mainloop(char **arg) {
-	// Obtains some important "constants" in execution time
-	system_struct_t::detect_system();
+	// Obtains some important system "constants" in execution time
+	int ret = system_struct_t::detect_system();
+	if(ret != 0)
+		exit(ret);
+	ret = init_energy_things(); // Needs detect_system be called before
+	if(ret != 0)
+		exit(ret);
 
 	uid = getuid();
 	pgsz = sysconf(_SC_PAGESIZE);

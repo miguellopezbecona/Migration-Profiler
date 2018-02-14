@@ -69,6 +69,7 @@ Another option was implementing it as a single map with a pair of two values as 
 * `strategies/annealing`: this strategy is based on what Óscar did in his PhD work.
 * `strategies/genetic` and `strategies/genetic/*`: I am working in a strategy based on a genetic algorithm, but in a simplified way. A single iteration is executed in each migration iteration, and it currently aims to work over thread migrations. Each individual of the population is represented by a list of TIDs, whose index means the CPU index, but these are ordered by memory node rather than actual physical CPU index.
 * `strategies/first_touch`: simple strategy for memory pages which migrates the ones accessed by CPUs from different nodes.
+* `rapl/*`: see README file from `rapl` folder (not the one within `migration_tool`) for more information.
 
 The following is the brief explanation of some of the other files:
 * `perfmon/*`: most of its content comes from `libpfm` library, so in general it should not be modified. `perf_util.c` may be interesting because it defines how to get the counter data into the structure defined in `sample_data`.
