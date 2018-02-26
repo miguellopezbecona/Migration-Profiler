@@ -165,7 +165,7 @@ void read_parameters(int argc, char** argv){
 }
 
 int main(int argc, char **argv) {
-	// Sets up handler for some signals for a clean t_end
+	// Sets up handler for some signals for a clean end
 	signal(SIGINT, clean_end);
 	system_struct_t::detect_system();
 
