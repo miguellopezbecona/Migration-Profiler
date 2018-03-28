@@ -57,6 +57,7 @@ typedef struct page_table {
 	void calculate_performance_page(int threshold);
 	void print_performance() const;
 	void update_page_locations(vector<migration_cell_t> pg_migr);
+	void update_page_location(migration_cell_t pgm);
 
 	// Code made for replicating Óscar's work
 	void add_inst_data_for_tid(pid_t tid, int core, long int insts, long int req_dr, long int time);

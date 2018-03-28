@@ -73,11 +73,11 @@ void print_selected_cpus(){
 
 void print_params(){
 	//printf("Main iterations: %lu\nElements read/written per iteration: %lu\nRemote elements read/written per iteration: %d\nNumber of floating operations per iteration: %d\nNumber of threads: %d\nArray size: %lu\nLocal node: %d\nRemote node: %d\n\n",main_iters,elems_iter,remote_reads,ops,num_th,array_total_size, local_node, remote_node);
-	printf("I: %lu\nN: %lu\nR: %lu\nO: %lu\nThs: %d\nArray size: %lu\nLocal node: %d\nRemote node: %d\n\n",main_iters,elems_iter,remote_reads,ops,num_th,array_total_size, local_node, remote_node);
+	printf("I: %lu\nL: %lu\nR: %lu\nO: %lu\nThs: %d\nArray size: %lu\nLocal node: %d\nRemote node: %d\n\n",main_iters,elems_iter,remote_reads,ops,num_th,array_total_size, local_node, remote_node);
 }
 
 void usage(char **argv) {
-	printf("Usage: %s [-imain_iterations] [-nelements_processed_per_iteration] [-rremote_elements_processed_per_iteration] [-ooperations_per_iteration] [-tnumber_of_threads] [-mlocal_node] [-Mremote_node]\n\n", argv[0]);
+	printf("Usage: %s [-imain_iterations] [-lelements_processed_per_iteration] [-rremote_elements_processed_per_iteration] [-ooperations_per_iteration] [-tnumber_of_threads] [-mlocal_node] [-Mremote_node]\n\n", argv[0]);
 }
 
 #ifdef DO_CLFLUSH
@@ -210,12 +210,12 @@ void set_options_from_parameters(int argc, char** argv){
 	char c;
 
 	// Parses argv with getopt
-	while ((c = getopt (argc, argv, "i:n:r:o:t:m:M:")) != -1){
+	while ((c = getopt (argc, argv, "i:l:r:o:t:m:M:")) != -1){
 		switch (c) {
 			case 'i': // Main iterations
 				main_iters = atol(optarg);
 				break;
-			case 'n': // Number of elements read/written per iteration
+			case 'l': // Number of elements read/written per iteration
 				elems_iter = atol(optarg);
 				break;
 			case 'r': // Remote reads/writes per iteration

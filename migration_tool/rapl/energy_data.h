@@ -14,7 +14,7 @@ typedef struct energy_data {
 	static vector<char*> rapl_domain_names;
 	static int NUM_RAPL_DOMAINS;
 
-	double** base_vals; // For baseincrements
+	double** base_vals; // For base increments
 	double** prev_vals; // For increments
 	double** curr_vals;
 	char** units;
@@ -32,6 +32,7 @@ typedef struct energy_data {
 	int get_domain_pos(const char* domain);
 
 	void read_buffer(double secs);
+	double get_ratio_against_base(double val, int node, const char* domain);
 	void print_curr_vals();
 
 	// Some of them may not be used, but they can come handy in the future

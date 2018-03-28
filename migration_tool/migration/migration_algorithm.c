@@ -11,7 +11,7 @@ int perform_migration_strategy(page_table_t *page_t){
 	// You can mix strategies at your wish
 
 	vector<migration_cell_t> ths_migr;
-	vector<migration_cell_t> pages_migr;
+	vector<migration_cell_t> pgs_migr;
 
 	#ifdef USE_RAND_ST
 	random_t rand_st;
@@ -19,19 +19,19 @@ int perform_migration_strategy(page_table_t *page_t){
 	for(migration_cell_t const & thm : ths_migr)
 		thm.perform_thread_migration();
 
-	pages_migr = rand_st.get_pages_to_migrate(page_t);
-	for(migration_cell_t const & pgm : pages_migr)
+	pgs_migr = rand_st.get_pages_to_migrate(page_t);
+	for(migration_cell_t const & pgm : pgs_migr)
 		pgm.perform_page_migration();
-	page_t->update_page_locations(pages_migr);
+	page_t->update_page_locations(pgs_migr);
 	#endif
 
 	// First touch policy for pages
 	#ifdef USE_FIRST_ST
 	first_touch_t ft_st;
-	pages_migr = ft_st.get_pages_to_migrate(page_t);
-	for(migration_cell_t const & pgm : pages_migr)
+	pgs_migr = ft_st.get_pages_to_migrate(page_t);
+	for(migration_cell_t const & pgm : pgs_migr)
 		pgm.perform_page_migration();
-	page_t->update_page_locations(pages_migr);
+	page_t->update_page_locations(pgs_migr);
 	#endif
 
 	// Annealing strategy for threads, should be better as global strategy, but it didn't seem so...
@@ -101,9 +101,15 @@ int perform_migration_strategy(map<pid_t, page_table_t> *page_ts){
 
 	#ifdef USE_ENER_ST
 	energy_str_t e_st;
-	vector<migration_cell_t> mcs = e_st.get_migrations(page_ts);
-	for(migration_cell_t const & mc : mcs)
-		mc.perform_migration();
+	ths_migr = e_st.get_threads_to_migrate(page_ts);
+	for(migration_cell_t const & thm : ths_migr)
+		thm.perform_thread_migration();
+
+	pgs_migr = e_st.get_pages_to_migrate(page_ts);
+	for(migration_cell_t const & pgm : pgs_migr){
+		pgm.perform_page_migration();
+		page_ts->operator[](pgm.pid).update_page_location(pgm);
+	}
 	#endif
 
 	return final_ret;

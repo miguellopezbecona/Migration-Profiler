@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <map>
 #include <vector>
+#include <set>
 using namespace std;
 
 typedef struct system_struct {
@@ -52,6 +53,7 @@ typedef struct system_struct {
 	static int set_tid_cpu(pid_t tid, int cpu, bool do_pin);
 	static void remove_tid(pid_t tid, bool do_unpin);
 	static bool is_cpu_free(int cpu);
+	static int get_free_cpu_from_node(int node, set<int> nopes);
 
 	// CPU-pin/free methods
 	static int pin_thread_to_cpu(pid_t tid, int cpu);

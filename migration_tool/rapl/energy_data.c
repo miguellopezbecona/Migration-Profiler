@@ -9,6 +9,10 @@ bool comparison_func(const char *c1, const char *c2){
 
 // Frees everything
 energy_data_t::~energy_data(){
+	// Nothing was initialized
+	if(curr_vals == NULL)
+		return;
+
 	for(int i=0; i<system_struct_t::NUM_OF_MEMORIES; i++){
 		free(base_vals[i]);
 		free(prev_vals[i]);
@@ -263,6 +267,11 @@ vector<double> energy_data_t::get_curr_vals_from_domain(const char* domain) {
 // Everything
 double** energy_data_t::get_curr_vals() {
 	return curr_vals;
+}
+
+double energy_data_t::get_ratio_against_base(double val, int node, const char* domain){
+	int col = get_domain_pos(domain);
+	return val / base_vals[node][col];
 }
 
 void energy_data_t::print_curr_vals() {

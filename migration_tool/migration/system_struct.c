@@ -253,6 +253,18 @@ bool system_struct_t::is_cpu_free(int cpu){
 	return cpu_tid_map[cpu].empty();
 }
 
+int system_struct_t::get_free_cpu_from_node(int node, set<int> nopes){
+	for(size_t c=0;c<CPUS_PER_MEMORY;c++){
+		int cpu = node_cpu_map[node][c];
+		if(is_cpu_free(cpu) && !nopes.count(cpu))
+			return cpu;
+	}
+
+	// If no free/feasible CPUs, picks any random one
+	int index = rand() % CPUS_PER_MEMORY;
+	return node_cpu_map[node][index];
+}
+
 
 /*** CPU-pin/free methods ***/
 int system_struct_t::pin_thread_to_cpu(pid_t tid, int cpu) {

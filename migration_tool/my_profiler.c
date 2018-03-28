@@ -36,12 +36,13 @@
 #include "rapl/energy_data.h" // energy stuff
 
 // Using a value greater than 2 requires additional changes in, at least, "events" and "periods" array
-#define NUM_GROUPS 2
+#define NUM_GROUPS 1
 
 // Uncomment the following for testing functionalities without using the hardware counters
 //#define FAKE_DATA
 
 //#define EVENT_OUTPUT
+//#define ABORT_IF_MANY_UNKNOWN
 
 typedef struct {
 	char* base_filename;
@@ -84,9 +85,10 @@ void perform_migration(){
 		last_migr_time = current_time;
 		//printf("\n***********\nAt %s\n",ctime(&last_migr_time));
 
-		// Energy data is read
-		ed.read_buffer(secs);
-		ed.print_curr_vals(); // Just for testing we got the data
+		#ifdef USE_ENER_ST		
+		ed.read_buffer(secs); // Energy data is read
+		//ed.print_curr_vals(); // Just for testing we got the data
+		#endif
 
 		begin_migration_process();
 	}
@@ -142,14 +144,13 @@ static void process_smpl_buf(perf_event_desc_t *hw, int cpu, perf_event_desc_t *
 
 				unknown_samples++;
 
-				// Let's assume we won't get trapped in a infinite loop
-				/*
+				#ifdef ABORT_IF_MANY_UNKNOWN
 				if(unknown_samples > 50){
 					printf("Error while reading buffer, too many unknown samples, exiting...\n");
 					clean_end(-1);
 					exit(-1);
 				}
-				*/
+				#endif
 
 				break;
 		}
@@ -289,7 +290,9 @@ static void clean_end(int n) {
 	//printf("%d,%d,%lu\n", options.periods[0], options.minimum_latency,processed_samples_group[0]);
 	clean_migration_structures();
 
+	#ifdef USE_ENER_ST	
 	ed.close_buffers();
+	#endif
 
 	system_struct_t::clean();
 
@@ -313,9 +316,12 @@ int mainloop(char **arg) {
 	int ret = system_struct_t::detect_system();
 	if(ret != 0)
 		exit(ret);
+
+	#ifdef USE_ENER_ST	
 	ret = ed.prepare_energy_data(options.base_filename); // Needs detect_system be called before
 	if(ret != 0)
 		exit(ret);
+	#endif
 
 	uid = getuid();
 	pgsz = sysconf(_SC_PAGESIZE);

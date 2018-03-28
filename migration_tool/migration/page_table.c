@@ -359,6 +359,13 @@ void page_table_t::update_page_locations(vector<migration_cell_t> pg_migr){
 	}
 }
 
+// No list version, useful for global strategies
+void page_table_t::update_page_location(migration_cell_t pgm){
+	long int addr = pgm.elem;
+	short new_dest = pgm.dest;
+	page_node_map[addr].current_node = new_dest;
+}
+
 /*** Functions made for replicating Óscar's work ***/
 vector<int> page_table_t::get_all_lats() {
 	vector<int> v;
