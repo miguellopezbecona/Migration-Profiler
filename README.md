@@ -39,10 +39,11 @@ Both the ABC and the profiler use some static parameters described below. You ca
   - `-s`: array total size. Each thread will work in same-size chunks, so this value can be altered to distribute the work problem perfectly (default: 1000000).
   - `-t`: array stride while operating (default: 1).
 * `my_profiler`
-  - `-l`: minimum memory latency access to sample (default: 200).
+  - `-b`: filename for base energy consumptions. Useful for energy strategy.
+  - `-l`: minimum memory latency access to sample (default: 250).
   - `-p`: period for memory samples (default: 1000). It will probably be rewritten to include all event groups' periods.
   - `-P`: period for instruction samples (default: 10000000). It will probably be discarded.
-  - `-s`: polling timeout in milliseconds (default: -1, which implies no timeout). Using default value seems to give issues. 1000 is a good value.
+  - `-s`: polling timeout in milliseconds (default: 1000).
 
 Furthermore, the test script allows you to indicate a NUMA configuration:
 
@@ -69,6 +70,7 @@ Another option was implementing it as a single map with a pair of two values as 
 * `strategies/annealing`: this strategy is based on what Óscar did in his PhD work.
 * `strategies/genetic` and `strategies/genetic/*`: I am working in a strategy based on a genetic algorithm, but in a simplified way. A single iteration is executed in each migration iteration, and it currently aims to work over thread migrations. Each individual of the population is represented by a list of TIDs, whose index means the CPU index, but these are ordered by memory node rather than actual physical CPU index.
 * `strategies/first_touch`: simple strategy for memory pages which migrates the ones accessed by CPUs from different nodes.
+* `strategies/energy`: strategy based on energy consumptions. Under construction.
 * `rapl/*`: see README file from `rapl` folder (not the one within `migration_tool`) for more information.
 
 The following is the brief explanation of some of the other files:

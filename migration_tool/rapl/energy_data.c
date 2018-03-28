@@ -10,17 +10,17 @@ bool comparison_func(const char *c1, const char *c2){
 // Frees everything
 energy_data_t::~energy_data(){
 	for(int i=0; i<system_struct_t::NUM_OF_MEMORIES; i++){
+		free(base_vals[i]);
 		free(prev_vals[i]);
 		free(curr_vals[i]);
 		free(fd[i]);
 	}
 
-	for(int i=0; i<NUM_RAPL_DOMAINS; i++){
+	for(int i=0; i<NUM_RAPL_DOMAINS; i++)
 		free(units[i]);
-		free(rapl_domain_names[i]);
-	}
 	rapl_domain_names.clear();
 
+	free(base_vals);
 	free(prev_vals);
 	free(curr_vals);
 	free(units);
@@ -71,6 +71,7 @@ void energy_data_t::detect_domains(){
 }
 
 void energy_data_t::allocate_data(){
+	base_vals = (double**)malloc(system_struct_t::NUM_OF_MEMORIES*sizeof(double*));
 	prev_vals = (double**)malloc(system_struct_t::NUM_OF_MEMORIES*sizeof(double*));
 	curr_vals = (double**)malloc(system_struct_t::NUM_OF_MEMORIES*sizeof(double*));
 	units = (char**)malloc(NUM_RAPL_DOMAINS*sizeof(char*));
@@ -78,6 +79,7 @@ void energy_data_t::allocate_data(){
 	scale = (double*)malloc(NUM_RAPL_DOMAINS*sizeof(double));
 
 	for(int i=0; i<system_struct_t::NUM_OF_MEMORIES; i++){
+		base_vals[i] = (double*)calloc(NUM_RAPL_DOMAINS, sizeof(double));
 		prev_vals[i] = (double*)calloc(NUM_RAPL_DOMAINS, sizeof(double));
 		curr_vals[i] = (double*)malloc(NUM_RAPL_DOMAINS*sizeof(double));
 		fd[i] = (int*)malloc(NUM_RAPL_DOMAINS*sizeof(int));
@@ -87,14 +89,43 @@ void energy_data_t::allocate_data(){
 		units[i] = (char*)malloc(8*sizeof(char));
 }
 
-int energy_data_t::prepare_energy_data(){
+int energy_data_t::read_increments_file(char* base_filename){
+	FILE *file = fopen(base_filename, "r");
+	if(file == NULL){
+		printf("Base energy consumptions could not be read. Filename was: %s\n", base_filename);
+		return -1;
+	}
+
+	// For skipping header line
+	char* buffer = (char*)malloc(32*sizeof(char));
+	buffer = fgets(buffer, 32, file);
+
+	int node;
+	double val;
+
+	while(true){
+		int ret = fscanf(file, "%d,%[^,],%lf", &node, buffer, &val);
+		if(ret < 3)
+			break;
+
+		int col = get_domain_pos(buffer);
+		base_vals[node][col] = val;
+	}
+	fclose(file);
+
+	return 0;
+}
+
+int energy_data_t::prepare_energy_data(char* base_filename){
 	FILE *fff;
 	int type;
 	char filename[BUFSIZ];
 
-	// If domains were already passed within the -d parameter, the app doesn't have to get them
-	if(rapl_domain_names.empty())
-		detect_domains();
+	// Fixed domains in this case
+	rapl_domain_names.push_back((char *) "pkg");
+	rapl_domain_names.push_back((char *) "ram");
+	//detect_domains();
+
 	NUM_RAPL_DOMAINS = rapl_domain_names.size();
 
 	allocate_data();
@@ -119,8 +150,7 @@ int energy_data_t::prepare_energy_data(){
 			dummy = fscanf(fff,"event=%x",&config[i]);
 			fclose(fff);
 		} else {
-			printf("Error while opening config file for domain %s.\nThis is probably due to passing within the -d parameter a non-existent domain. It will be removed from the list.\n", rapl_domain_names[i]);
-			free(rapl_domain_names[i]);
+			printf("Error while opening config file for domain %s.\nThis is probably due to that domain not being supported. It will be removed from the list.\n", rapl_domain_names[i]);
 			rapl_domain_names.erase(rapl_domain_names.begin() + i);
 			NUM_RAPL_DOMAINS--;
 			continue;
@@ -142,10 +172,10 @@ int energy_data_t::prepare_energy_data(){
 			fclose(fff);
 		}
 
-		#ifdef INIT_VERBOSE
 		printf("Domain: %s, config=%d, scale=%g, units=%s\n",rapl_domain_names[i],config[i], scale[i], units[i]);
-		#endif
 	}
+
+	read_increments_file(base_filename);
 
 	// Opens counters
 	for(int n=0;n<system_struct_t::NUM_OF_MEMORIES;n++) {
@@ -181,19 +211,20 @@ int energy_data_t::get_domain_pos(const char* domain){
 void energy_data_t::read_buffer(double secs) {
 	long long value;
 
-	for(int i=0;i<system_struct_t::NUM_OF_MEMORIES;i++) {
-		for(int j=0;j<NUM_RAPL_DOMAINS;j++) {
-			int dummy = read(fd[i][j],&value,8);
-			double raw_value_scaled = ((double)value*scale[j]) / secs;
-			curr_vals[i][j] = raw_value_scaled - prev_vals[i][j]; // Increments
-			prev_vals[i][j] = raw_value_scaled;
+	for(int n=0;n<system_struct_t::NUM_OF_MEMORIES;n++) {
+		for(int d=0;d<NUM_RAPL_DOMAINS;d++) {
+			int dummy = read(fd[n][d],&value,8);
+			double raw_value_scaled = ((double)value*scale[d]) / secs;
+			curr_vals[n][d] = raw_value_scaled - prev_vals[n][d] - base_vals[n][d]; // Normal and base increments
+			prev_vals[n][d] = raw_value_scaled;
+
+			// If a negative value is raised due to varying base value, this is updated and the current is nullified
+			if(curr_vals[n][d] < 0.0){
+				base_vals[n][d] += curr_vals[n][d];
+				curr_vals[n][d] = 0.0;
+			}
 		}
 	}
-}
-
-// Assuming "cores" domain
-double energy_data_t::get_curr_val(int node) {
-	return curr_vals[node][0];
 }
 
 double energy_data_t::get_curr_val(int node, const char* domain) {
@@ -250,4 +281,6 @@ void energy_data_t::close_buffers() {
 			close(fd[i][j]);
 	}
 }
+
+energy_data_t ed;
 

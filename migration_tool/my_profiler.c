@@ -33,7 +33,7 @@
 #include "utils.h" // For time utils
 #include "sample_data.h"
 #include "migration/migration_facade.h" // begin_migration_process
-#include "rapl/rapl.h" // energy stuff
+#include "rapl/energy_data.h" // energy stuff
 
 // Using a value greater than 2 requires additional changes in, at least, "events" and "periods" array
 #define NUM_GROUPS 2
@@ -44,6 +44,8 @@
 //#define EVENT_OUTPUT
 
 typedef struct {
+	char* base_filename;
+
 	int mmap_pages;
 	int sbm;
 	int periods[NUM_GROUPS];
@@ -83,9 +85,8 @@ void perform_migration(){
 		//printf("\n***********\nAt %s\n",ctime(&last_migr_time));
 
 		// Energy data is read
-		read_energy_data(secs);
-
-		//ed.print_curr_vals(); // Just for test we got the data
+		ed.read_buffer(secs);
+		ed.print_curr_vals(); // Just for testing we got the data
 
 		begin_migration_process();
 	}
@@ -288,7 +289,7 @@ static void clean_end(int n) {
 	//printf("%d,%d,%lu\n", options.periods[0], options.minimum_latency,processed_samples_group[0]);
 	clean_migration_structures();
 
-	clean_energy_end();
+	ed.close_buffers();
 
 	system_struct_t::clean();
 
@@ -299,7 +300,7 @@ static void clean_end(int n) {
 	printf("%lu unknown samples.\n", unknown_samples);
 	//#endif
 
-	#if ! defined(JUST_PROFILE) //&& defined(EVENT_OUTPUT)
+	#ifdef DO_MIGRATIONS
 	printf("%d thread migrations made.\n", migration_cell_t::total_thread_migrations);
 	printf("%d page migrations made.\n", migration_cell_t::total_page_migrations);
 	#endif
@@ -312,7 +313,7 @@ int mainloop(char **arg) {
 	int ret = system_struct_t::detect_system();
 	if(ret != 0)
 		exit(ret);
-	ret = init_energy_things(); // Needs detect_system be called before
+	ret = ed.prepare_energy_data(options.base_filename); // Needs detect_system be called before
 	if(ret != 0)
 		exit(ret);
 
@@ -408,7 +409,7 @@ int mainloop(char **arg) {
 }
 
 static void usage(void){
-	printf("usage: my_profiler_tm [-h] [--help] [-p period_memory] [-P period_indtructions] [-l minimum_latency] [-s seconds_between_migrations]\n");
+	printf("usage: my_profiler_tm [-h] [--help] [-b base_filename] [-p period_memory] [-P period_indtructions] [-l minimum_latency] [-s seconds_between_migrations]\n");
 }
 
 int main(int argc, char **argv){
@@ -420,8 +421,10 @@ int main(int argc, char **argv){
 	if(NUM_GROUPS > 1)
 		options.periods[1] = 10000000;
 
+	options.base_filename = (char*)malloc(32*sizeof(char));
+	strcpy(options.base_filename, "");
 	options.minimum_latency = 250;
-	options.sbm = -1; // Infinite timeout by default
+	options.sbm = 1000;
 	options.mmap_pages = 16;
 
 	static struct option the_options[]= {
@@ -429,9 +432,11 @@ int main(int argc, char **argv){
 		{0,0,0,0}
 	};
 
-	while ((c=getopt_long(argc, argv,"+h:p:P:l:s:", the_options, 0)) != -1) {
+	while ((c=getopt_long(argc, argv,"+h:b:p:P:l:s:", the_options, 0)) != -1) {
 		switch(c) {
-			case 0: continue;
+			case 'b': // Base_filename
+				strcpy(options.base_filename, optarg);
+				break;
 			case 'p':
 				// In the future it will be better if this gets redefined with something like "periodG0_periodG1_p..."
 				options.periods[0] = atoi(optarg);

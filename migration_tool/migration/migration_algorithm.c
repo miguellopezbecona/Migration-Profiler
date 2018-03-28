@@ -4,6 +4,7 @@
 #include "../strategies/first_touch.h"
 #include "../strategies/genetic.h"
 #include "../strategies/random.h"
+#include "../strategies/energy.h"
 
 // Strategies PID-independent
 int perform_migration_strategy(page_table_t *page_t){
@@ -97,6 +98,13 @@ int perform_migration_strategy(map<pid_t, page_table_t> *page_ts){
 		thm.perform_thread_migration();
 	#endif
 */
+
+	#ifdef USE_ENER_ST
+	energy_str_t e_st;
+	vector<migration_cell_t> mcs = e_st.get_migrations(page_ts);
+	for(migration_cell_t const & mc : mcs)
+		mc.perform_migration();
+	#endif
 
 	return final_ret;
 }
