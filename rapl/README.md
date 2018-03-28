@@ -5,7 +5,7 @@ This folder contains the following applications:
   - `-d`: RAPL domains to be read, separated by an underscore and without "energy-" (e.g: "pkg_ram"). If this parameter is not specified, the profiler tries to detect all the available RAPL domains dynamically.
 * `my_test.c`: a test application, heavily based on the `ABC` test program in `migration_tool` folder, that intends to help understanding energy consumption in a system by parametrizing specific operations such as read/write operations, remote data reads/writes, floating point operations, etc. It uses a simplified version of the `system_struct_t` component from the main migration tool to be C-compliant. Its parameters are the following:
   - `-i`: main iterations. It affects the size of the arrays. (default: 1000).
-  - `-n`: elements read/written from local arrays per iteration. These elements are from different cache lines (default: 1).
+  - `-l`: elements read/written from local arrays per iteration. These elements are from different cache lines (default: 1).
   - `-r`: elements read/written from remote arrays per iteration. These elements are from different cache lines (default: 0).
   - `-o`: floating point operations per iteration (default: 1).
   - `-t`: number of threads, which would work in different chunks of the arrays. It will be set to `CPUS_PER_MEMORY` if an upper out of bound value is provided, because threads will be pinned to CPUs from the same (local) node (default: 1).
@@ -30,7 +30,13 @@ If you just want to build the profiler, you can use the Makefile inside the sour
 bash test.sh
 ```
 
-In normal conditions, the profiler never ends and needs a `SIGINT` (Ctrl+C) signal to end in a clean way. 
+In normal conditions, the profiler never ends and needs a `SIGINT` (Ctrl+C) signal to end in a clean way.
+
+Regarding the R file, you can execute it from a terminal with the following command:
+```bash
+Rscript rapl.R data_file.csv [incr_cons_file.csv]
+```
+In that way, if will export the generated plots into PNG files with identifiable names.
 
 ## License
 Do whatever you want with this code.
