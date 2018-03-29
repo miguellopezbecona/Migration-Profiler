@@ -2,6 +2,8 @@
 
 #include "strategy.h"
 
+#define ENER_OUTPUT
+
 typedef struct energy_str : strategy {
 	vector<migration_cell_t> get_migrations(map<pid_t, page_table_t> *page_ts);
 
