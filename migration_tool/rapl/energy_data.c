@@ -143,6 +143,9 @@ int energy_data_t::prepare_energy_data(char* base_filename){
 	int dummy = fscanf(fff,"%d",&type);
 	fclose(fff);
 
+	if(dummy != 1)
+		return -1;
+
 	int config[NUM_RAPL_DOMAINS];
 
 	// Gets data to open counters
@@ -218,6 +221,12 @@ void energy_data_t::read_buffer(double secs) {
 	for(int n=0;n<system_struct_t::NUM_OF_MEMORIES;n++) {
 		for(int d=0;d<NUM_RAPL_DOMAINS;d++) {
 			int dummy = read(fd[n][d],&value,8);
+
+			// Can be uncommented to avoid a "unused-variable" warning, but I think it may affect performance
+			/*
+			if(dummy < 0)
+				//return;
+			*/
 			double raw_value_scaled = ((double)value*scale[d]) / secs;
 			curr_vals[n][d] = raw_value_scaled - prev_vals[n][d] - base_vals[n][d]; // Normal and base increments
 			prev_vals[n][d] = raw_value_scaled;

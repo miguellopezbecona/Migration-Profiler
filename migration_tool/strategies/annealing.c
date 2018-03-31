@@ -70,7 +70,7 @@ vector<labeled_migr_t> get_candidate_list(pid_t worst_tid, page_table_t *page_t)
 		if(n == current_cell)
 			continue;
 
-		for(size_t i=0;i<system_struct_t::CPUS_PER_MEMORY;i++){
+		for(int i=0;i<system_struct_t::CPUS_PER_MEMORY;i++){
 			int actual_cpu = system_struct_t::node_cpu_map[n][i];
 
 			int tickets = get_tickets_from_perfs(n, current_cell, current_perfs, false);
@@ -224,7 +224,7 @@ vector<labeled_migr_t> get_candidate_list(pid_t worst_tid, map<pid_t, page_table
 		if(n == current_cell)
 			continue;
 
-		for(size_t i=0;i<system_struct_t::CPUS_PER_MEMORY;i++){
+		for(int i=0;i<system_struct_t::CPUS_PER_MEMORY;i++){
 			int actual_cpu = system_struct_t::node_cpu_map[n][i];
 			int tickets = get_tickets_from_perfs(n, current_cell, current_perfs, false);
 

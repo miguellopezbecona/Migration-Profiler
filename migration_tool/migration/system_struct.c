@@ -195,7 +195,7 @@ void system_struct_t::add_tid(pid_t tid, int cpu){
 	
 	// If not, we search a free CPU on its same node
 	int node = cpu_node_map[cpu];
-	for(size_t i=0;i<CPUS_PER_MEMORY;i++){
+	for(int i=0;i<CPUS_PER_MEMORY;i++){
 		int other_cpu = node_cpu_map[node][i];
 		if(is_cpu_free(other_cpu)){
 			set_tid_cpu(tid, other_cpu, true);
@@ -254,7 +254,7 @@ bool system_struct_t::is_cpu_free(int cpu){
 }
 
 int system_struct_t::get_free_cpu_from_node(int node, set<int> nopes){
-	for(size_t c=0;c<CPUS_PER_MEMORY;c++){
+	for(int c=0;c<CPUS_PER_MEMORY;c++){
 		int cpu = node_cpu_map[node][c];
 		if(is_cpu_free(cpu) && !nopes.count(cpu))
 			return cpu;

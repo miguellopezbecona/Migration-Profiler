@@ -58,11 +58,11 @@ vector<migration_cell_t> energy_str_t::get_pages_to_migrate(map<pid_t, page_tabl
 	#endif
 
 	// If we meet the criteria, we will migrate from the most loaded node to the least one
-	size_t from = distance(rams.begin(), it_max);
-	size_t to = distance(rams.begin(), it_min);
+	int from = distance(rams.begin(), it_max);
+	int to = distance(rams.begin(), it_min);
 
 	#ifdef ENER_OUTPUT
-	printf("We will migrate pages from node %lu to node %lu\n", from, to);
+	printf("We will migrate pages from node %d to node %d\n", from, to);
 	#endif
 
 	// We search memory pages from "from" node to migrate
@@ -93,13 +93,17 @@ vector<migration_cell_t> energy_str_t::get_pages_to_migrate(map<pid_t, page_tabl
 		}
 	}
 
+	#ifdef ENER_OUTPUT
+	printf("\n");
+	#endif
+
 	return v;
 }
 
 vector<migration_cell_t> energy_str_t::get_threads_to_migrate(map<pid_t, page_table_t> *page_ts){
 	const double MAX_PERC_THRES = 0.3; // Threshold maximum increase ratio against base to do migrations
 	const double DIFF_PERC_THRES = 0.4; // Minimum ratio difference between lowest and highest to do migrations
-	const size_t MAX_THREADS_TO_MIGRATE = system_struct_t::CPUS_PER_MEMORY / 2;
+	const size_t MAX_THREADS_TO_MIGRATE = system_struct_t::CPUS_PER_MEMORY / 4;
 	vector<migration_cell_t> v;
 
 	// Regarding threads
@@ -135,11 +139,11 @@ vector<migration_cell_t> energy_str_t::get_threads_to_migrate(map<pid_t, page_ta
 	double mn = *(it_min);
 
 	#ifdef ENER_OUTPUT
-	printf("Minimum PKG increase: %.2f. Relation with maximum: %.2f. Threshold: %.2f -> ", mn, mn/mx, DIFF_PERC_THRES);
+	printf("Minimum PKG increase: %.2f. Diff relation with maximum: %.2f. Threshold: %.2f -> ", mn, (mx-mn)/mx, DIFF_PERC_THRES);
 	#endif
 
 	// If all nodes are quite memory loaded -> no thread migrations
-	if( (mn/mx) < DIFF_PERC_THRES){
+	if( ((mx-mn)/mx) < DIFF_PERC_THRES){
 		#ifdef ENER_OUTPUT
 		printf("no thread migrations.\n");
 		#endif
@@ -160,7 +164,7 @@ vector<migration_cell_t> energy_str_t::get_threads_to_migrate(map<pid_t, page_ta
 	// We search TIDs from CPUs from "from" node to be migrated
 	// [TODO]: use tid_cpu_table information to decide which threads to migrate
 	set<int> picked_cpus;
-	for(size_t c=0;c<system_struct_t::CPUS_PER_MEMORY && v.size() < MAX_THREADS_TO_MIGRATE;c++){
+	for(int c=0;c<system_struct_t::CPUS_PER_MEMORY && v.size() < MAX_THREADS_TO_MIGRATE;c++){
 		int from_cpu = system_struct_t::node_cpu_map[from][c];
 
 		for(pid_t const & tid : system_struct_t::cpu_tid_map[from_cpu]){
@@ -174,6 +178,10 @@ vector<migration_cell_t> energy_str_t::get_threads_to_migrate(map<pid_t, page_ta
 			v.push_back(mc);
 		}
 	}
+
+	#ifdef ENER_OUTPUT
+	printf("\n");
+	#endif
 
 	return v;
 }
