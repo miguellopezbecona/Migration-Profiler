@@ -34,7 +34,7 @@ bool migration_cell_t::is_thread_cell() const {
 // It moves only one page at once, could be arranged to move more
 int migration_cell_t::perform_page_migration() const {
 	void **page = (void **)calloc(1,sizeof(long int *));
-	page[0] = (void*) &elem;
+	page[0] = (void*) elem;
 	int dest_int = dest, status;
 
 	// Key system call: numa_move_pages

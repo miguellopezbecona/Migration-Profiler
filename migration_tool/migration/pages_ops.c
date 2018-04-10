@@ -22,9 +22,9 @@ void build_page_tables(memory_data_list_t m_list, inst_data_list_t i_list, map<p
 		int page_node = get_page_current_node(m_cell.tid, page_addr);
 		int cpu_node = system_struct_t::get_cpu_memory_node(m_cell.cpu);
 
-		// Page node 0 by default
+		// We filter pages that give problems
 		if(page_node < 0)
-			page_node = 0;
+			continue;
 
 		// Registers TID in system structure if needed
 		system_struct_t::add_tid(m_cell.tid, m_cell.cpu);
@@ -68,14 +68,17 @@ void build_page_tables(memory_data_list_t m_list, inst_data_list_t i_list, map<p
 
 inline int get_page_current_node(pid_t pid, long int pageAddr){
 	void **pages = (void **)calloc(1,sizeof(long int *));
-	pages[0] = (void *)pageAddr;
-	int *status = (int*)calloc(1,sizeof(int));
+	pages[0] = (void *) pageAddr;
+	int status;
 
-	//printf("Getting page current node for page addr 0x%016lx for PID %d. It is: ", (long int) pages[0], pid);
-	numa_move_pages(pid, 1, pages, NULL, status, MPOL_MF_MOVE); // If "nodes" parameter is NULL, in status we obtain the node where the page is
-	//printf("%d\n",status[0]);
+	//printf("Getting page current node for page addr 0x%016lx for PID %d. It is: ", pageAddr, pid);
 
-	return status[0];
+	// If "nodes" parameter is NULL, in status we obtain the node where the page is
+	numa_move_pages(pid, 1, pages, NULL, &status, MPOL_MF_MOVE);
+
+	//printf("%d\n",status);
+
+	return status;
 }
 
 int pages(set<pid_t> pids, memory_data_list_t m_list, inst_data_list i_list, map<pid_t, page_table_t> *page_ts){
