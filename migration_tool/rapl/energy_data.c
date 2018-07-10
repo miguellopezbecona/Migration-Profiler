@@ -126,9 +126,9 @@ int energy_data_t::prepare_energy_data(char* base_filename){
 	char filename[BUFSIZ];
 
 	// Fixed domains in this case
-	rapl_domain_names.push_back((char *) "pkg");
-	rapl_domain_names.push_back((char *) "ram");
-	//detect_domains();
+	//rapl_domain_names.push_back((char *) "pkg");
+	//rapl_domain_names.push_back((char *) "ram");
+	detect_domains();
 
 	NUM_RAPL_DOMAINS = rapl_domain_names.size();
 
@@ -178,8 +178,6 @@ int energy_data_t::prepare_energy_data(char* base_filename){
 			dummy = fscanf(fff,"%s",units[i]);
 			fclose(fff);
 		}
-
-		printf("Domain: %s, config=%d, scale=%g, units=%s\n",rapl_domain_names[i],config[i], scale[i], units[i]);
 	}
 
 	read_increments_file(base_filename);
@@ -227,8 +225,8 @@ void energy_data_t::read_buffer(double secs) {
 			if(dummy < 0)
 				//return;
 			*/
-			double raw_value_scaled = ((double)value*scale[d]) / secs;
-			curr_vals[n][d] = raw_value_scaled - prev_vals[n][d] - base_vals[n][d]; // Normal and base increments
+			double raw_value_scaled = ((double)value*scale[d]);
+			curr_vals[n][d] = (raw_value_scaled - prev_vals[n][d]) / secs - base_vals[n][d]; // Normal and base increments
 			prev_vals[n][d] = raw_value_scaled;
 
 			// If a negative value is raised due to varying base value, this is updated and the current is nullified

@@ -36,7 +36,7 @@
 #include "rapl/energy_data.h" // energy stuff
 
 // Using a value greater than 2 requires additional changes in, at least, "events" and "periods" array
-#define NUM_GROUPS 1
+#define NUM_GROUPS 2
 
 // Uncomment the following for testing functionalities without using the hardware counters
 //#define FAKE_DATA
@@ -65,6 +65,10 @@ static options_t options;
 static size_t pgsz;
 static size_t map_size;
 
+#ifdef JUST_PROFILE_ENERGY
+time_t last_ener_time;
+#endif
+
 time_t last_migr_time;
 
 static const char *events[2] = {
@@ -77,16 +81,16 @@ static void clean_end(int n);
 
 #ifndef JUST_PROFILE
 void perform_migration(){
+	// Time is got and energy buffers are read
 	time_t current_time = time(NULL);
-
-	// We profile every 1, 2 or 4 seconds depending on current_time_value
 	double secs = difftime(current_time, last_migr_time);
+
+	// We profile every 1, 2 or 4 seconds depending on get_time_value()
 	if(secs > (get_time_value() * inv_1000)){
 		last_migr_time = current_time;
 		//printf("\n***********\nAt %s\n",ctime(&last_migr_time));
-
-		#ifdef USE_ENER_ST		
-		ed.read_buffer(secs); // Energy data is read
+		#ifdef USE_ENER_ST
+		ed.read_buffer(secs);
 		//ed.print_curr_vals(); // Just for testing we got the data
 		#endif
 
@@ -105,8 +109,8 @@ static void process_smpl_buf(perf_event_desc_t *hw, int cpu, perf_event_desc_t *
 
 	for(;;) {
 		int ret = perf_read_buffer(hw, &ehdr, sizeof(ehdr));
-		if (ret)
-			return; /* nothing to read */
+		if (ret) // Nothing to read
+			return;
 
 		switch(ehdr.type) {
 			case PERF_RECORD_SAMPLE:
@@ -115,6 +119,11 @@ static void process_smpl_buf(perf_event_desc_t *hw, int cpu, perf_event_desc_t *
 
 				if(ret < 0) // PID from process we can't migrate so it will be skipped
 					break;
+
+				// Adds energy data to sample, if applicable
+				#ifdef JUST_PROFILE_ENERGY
+				my_sample.add_energy_data();
+				#endif
 
 				add_data_to_list(my_sample);
 				
@@ -290,20 +299,20 @@ static void clean_end(int n) {
 	//printf("%d,%d,%lu\n", options.periods[0], options.minimum_latency,processed_samples_group[0]);
 	clean_migration_structures();
 
-	#ifdef USE_ENER_ST	
+	#if defined(USE_ENER_ST) || defined(JUST_PROFILE_ENERGY)
 	ed.close_buffers();
 	#endif
 
 	system_struct_t::clean();
 
-	//#ifdef EVENT_OUTPUT
+	#ifdef EVENT_OUTPUT
 	const char* types[2] = {"memory", "instruction"};
 	for(int i=0;i<NUM_GROUPS;i++)
 		printf("%lu (%lu) %s samples collected (processed) in total %lu poll events and %lu lost samples\n", collected_samples_group[i],processed_samples_group[i], types[i], buffer_reads[i], lost_samples_group[i]);
 	printf("%lu unknown samples.\n", unknown_samples);
-	//#endif
+	#endif
 
-	#ifdef DO_MIGRATIONS
+	#if !defined(JUST_PROFILE) && defined(DO_MIGRATIONS)
 	printf("%d thread migrations made.\n", migration_cell_t::total_thread_migrations);
 	printf("%d page migrations made.\n", migration_cell_t::total_page_migrations);
 	#endif
@@ -317,8 +326,8 @@ int mainloop(char **arg) {
 	if(ret != 0)
 		exit(ret);
 
-	#ifdef USE_ENER_ST	
-	ret = ed.prepare_energy_data(options.base_filename); // Needs detect_system be called before
+	#if ( !defined(JUST_PROFILE) && defined(USE_ENER_ST) ) || defined(JUST_PROFILE_ENERGY)
+	ret = ed.prepare_energy_data(options.base_filename); // Needs system_struct_t::detect_system() be called before
 	if(ret != 0)
 		exit(ret);
 	#endif
@@ -335,7 +344,6 @@ int mainloop(char **arg) {
 	#endif
 
 	const unsigned short TOTAL_BUFFS = system_struct_t::NUM_OF_CPUS*NUM_GROUPS;
-	last_migr_time = time(NULL);
 
 	// This is the struct for polling the buffers of system_struct_t::NUM_OF_CPUS for different groups of events
 	struct pollfd pollfds[TOTAL_BUFFS];
@@ -391,12 +399,30 @@ int mainloop(char **arg) {
 		}
 	}
 
+	#ifdef JUST_PROFILE_ENERGY
+	last_ener_time = time(NULL); // Initial time
+	#endif
+	last_migr_time = time(NULL); // Initial time
+
 	// Core loop where the polling to the buffers is done, has some issues
 	for(;;) {
 
+		#ifdef JUST_PROFILE_ENERGY
+		//sleep(1);
+		usleep(options.sbm * 1000); // Not the best way, but using polling may give issues to read energy buffers
+
+		// Time is got and energy buffers are read
+		time_t current_time = time(NULL);
+		double secs = difftime(current_time, last_ener_time);
+		ed.read_buffer(secs);
+		//printf("Secs: %.3f. Pkg: %.3f\n", secs, ed.curr_vals[0][0]);
+		last_ener_time = current_time;
+		#else
+		// Core call under normal conditions: polling to counter buffers
 		int ret = poll(pollfds, TOTAL_BUFFS, options.sbm);
 		if (ret < 0 && errno == EINTR)
 			break;
+		#endif
 
 		// Reads buffers
 		for(int i=0;i<NUM_GROUPS;i++){
@@ -407,7 +433,7 @@ int mainloop(char **arg) {
 		}
 
 		#ifndef JUST_PROFILE
-		perform_migration(); // We have the data, so we can begin the migration process
+		perform_migration(secs); // We have the data, so we can begin the migration process
 		#endif
 	}
 

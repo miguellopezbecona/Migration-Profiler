@@ -1,7 +1,7 @@
 #!/bin/bash
 
-profname=my_profiler_tm
-profparams="-s1000 -l250 -p650 -P100000000"
+profname=my_profiler_jpe
+profparams="-s1000 -l600 -p1000 -P100000000"
 #profparams="-s500 -l50 -p300 -P50000000"
 #profparams="-s3500 -l750 -p1000 -P7500000"
 #profparams="-s1000 -l500 -p5000 -P1000000"
@@ -14,7 +14,8 @@ cd $dir
 gcc -fopenmp -o ABC ABC.c -lnuma
 
 # Compiles profiler
-make
+#make
+make just_profile_energy
 
 # Exits if there was a problem
 if [ $? -ne 0 ]; then
@@ -35,13 +36,13 @@ else
 fi
 
 # Set to what you want to profile
-#toprofile="numactl --physcpubind 1,2,3 ./ABC -m0 -r5000 -s5000000 -t8"
-toprofile="./ABC -m0 -r5000 -s35000000 -t8"
+toprofile="numactl --physcpubind 1,2 ./ABC -m0 -r5000 -s5000000 -t8"
+#toprofile="./ABC -m0 -r5000 -s35000000 -t8"
 #toprofile=~/NPB3.3.1/NPB3.3-OMP/bin/lu.B.x
 #toprofile=~/NPB3.3.1/NPB3.3-OMP/bin/bt.C.x
 
 # Executes app to profile in background along with the profiler
-./$profname $profparams &
+./$profname $profparams > prof.out &
 $numacommand $toprofile &>/dev/null
 toprofpid=$(($!+1)) # Keeps app PID (probably)
 

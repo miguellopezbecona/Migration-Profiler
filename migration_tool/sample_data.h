@@ -4,6 +4,10 @@
 #include <stdlib.h>
 #include <inttypes.h>
 
+#ifdef JUST_PROFILE_ENERGY
+#include "rapl/energy_data.h"
+#endif
+
 typedef struct my_pebs_sample {
 	uint64_t iip;
 	int pid;
@@ -17,6 +21,11 @@ typedef struct my_pebs_sample {
 	uint64_t nr;
 	uint64_t *values;
 	uint64_t dsrc;
+
+	#ifdef JUST_PROFILE_ENERGY
+	double* energies;
+	void add_energy_data();
+	#endif
 
 	bool is_mem_sample() const;
 	void print(FILE *fp) const;
