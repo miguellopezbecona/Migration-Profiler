@@ -6,9 +6,6 @@
 #include "pages_ops.h"
 #include "migration_algorithm.h"
 
-// If you only want to use this tool for profiling, uncomment the following:
-#define JUST_PROFILE
-
 // How many samples do you want to log in the CSV files in JUST_PROFILE mode?
 const int ELEMS_PER_PRINT = 1000000;
 

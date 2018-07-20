@@ -4,53 +4,34 @@ bool my_pebs_sample_t::is_mem_sample() const {
 	return nr == 1; //sample_addr != 0
 }
 
+#ifdef JUST_PROFILE
+int my_pebs_sample_t::max_nr = 0;
+vector<char*> my_pebs_sample_t::inst_subevent_names;
+
 void my_pebs_sample_t::print(FILE *fp) const {
-	fprintf(fp, "%#016lx ", iip);
-	fprintf(fp, "%d %d ", pid, tid);
-	fprintf(fp, "%lu ", time);
-	fprintf(fp, "%#016lx ", sample_addr);
-	fprintf(fp, "%u ", cpu);
-	fprintf(fp, "%lu ", weight);
-	fprintf(fp, "%lu %lu ", time_enabled, time_running);
-	fprintf(fp, "%#016lx", dsrc);
-	for(int i=nr-1;i>=0;i--)
-		fprintf(fp, " %lu",values[i]);
-	fprintf(fp, "\n");
-}
+	char type = 'I';
+	bool mem_sample = is_mem_sample();
+	if(mem_sample) // Memory sample format
+		type = 'M';
 
-void my_pebs_sample_t::print_for_3DyRM(FILE *fp) const {
-	if(is_mem_sample()){ // Memory sample format
-		fprintf(fp, "%c,", 'M');
-		fprintf(fp, "%#016lx,", iip);
-		fprintf(fp, "%d,%d,", pid, tid);
-		fprintf(fp, "%lu,", time);
-		fprintf(fp, "%#016lx,", sample_addr);
-		fprintf(fp, "%u,", cpu);
-		fprintf(fp, "%lu,", weight);
-		fprintf(fp, "%lu,%lu,", time_enabled, time_running);
-		fprintf(fp, "%#016lx,", dsrc);
-		fprintf(fp, "%d,", 0); // No INST data
-		fprintf(fp, "%d,", 0); // No REQ_DR
+	#ifdef SIMPL_PRINT
+	fprintf(fp, "%c,%d,%d,%u,%lu,%#lx,%lu", type, pid, tid, cpu, time, sample_addr, weight);
+	#else
+	fprintf(fp, "%c,%#lx,%d,%d,%u,%lu,%#lx,%lu,%lu,%lu,%#lx", type, iip, pid, tid, cpu, time, sample_addr, weight,time_enabled, time_running,dsrc);
+	#endif
 
-		// More zeros can be added depending on instruction additional fields (SSE_D, SSE_S...)
-		/*
-		fprintf(fp, "%d,", 0);
-		fprintf(fp, "%d,", 0);
-		*/
-		fprintf(fp, "%lu",values[0]);
-	} else { // Instruction sample format
-		fprintf(fp, "%c,", 'I');
-		fprintf(fp, "%#016lx,", iip);
-		fprintf(fp, "%d,%d,", pid, tid);
-		fprintf(fp, "%lu,", time);
-		fprintf(fp, "%x,", 0); // has no ADDR
-		fprintf(fp, "%u,", cpu);
-		fprintf(fp, "%d,", 0); // Has no WEIGHT
-		fprintf(fp, "%lu,%lu,", time_enabled, time_running);
-		fprintf(fp, "%x,", 0); // has no DSRC
-		for(int i=nr-1;i>=0;i--) // Right now we have just INST and REQ_DR. SSE_D, SSE_S could be added
-			fprintf(fp, "%lu,", values[i]);
-		fprintf(fp, "%d", 0); // Has no MEM_OPS
+	if(mem_sample){
+		for(int i=0;i<max_nr;i++) // No inst subevents
+			fprintf(fp, ",0");
+		#ifndef SIMPL_PRINT
+		fprintf(fp, ",%lu",values[0]); // Mem ops
+		#endif
+	} else {
+		for(int i=nr-1;i>=0;i--) // Inst subevents
+			fprintf(fp, ",%lu", values[i]);
+		#ifndef SIMPL_PRINT
+		fprintf(fp, ",%d", 0); // No MEM_OPS
+		#endif
 	}
 
 	#ifdef JUST_PROFILE_ENERGY
@@ -73,13 +54,30 @@ void my_pebs_sample_t::add_energy_data() {
 }
 #endif
 
+void my_pebs_sample_t::add_subevent_name(char* name) {
+	inst_subevent_names.push_back(strdup(name));
+}
+
 void my_pebs_sample_t::print_header(FILE *fp) {
-	#ifndef JUST_PROFILE_ENERGY
-	fprintf(fp, "TYPE,IIP,PID,TID,TIME,SAMPLE_ADDR,CPU,WEIGHT,TIME_E,TIME_R,DSRC,INST,REQ_DR,MEM_OPS\n");
+	#ifdef SIMPL_PRINT
+	fprintf(fp, "TYPE,PID,TID,CPU,TIME,SAMPLE_ADDR,WEIGHT");
 	#else
-	fprintf(fp, "TYPE,IIP,PID,TID,TIME,SAMPLE_ADDR,CPU,WEIGHT,TIME_E,TIME_R,DSRC,INST,REQ_DR,MEM_OPS");
+	fprintf(fp, "TYPE,IIP,PID,TID,CPU,TIME,SAMPLE_ADDR,WEIGHT,TIME_E,TIME_R,DSRC");
+	#endif
+
+	for(char* const & e_name : inst_subevent_names)
+		fprintf(fp, ",%s", e_name);
+
+	#ifndef SIMPL_PRINT
+	fprintf(fp, ",MEM_OPS");
+	#endif
+
+	#ifndef JUST_PROFILE_ENERGY
+	fprintf(fp, "\n");
+	#else
 	for(char* const & d_name : energy_data_t::rapl_domain_names)
 		fprintf(fp, ",%s", d_name);
 	fprintf(fp, "\n");
 	#endif	
 }
+#endif

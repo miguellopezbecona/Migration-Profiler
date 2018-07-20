@@ -71,6 +71,7 @@ void get_formatted_current_time(char *output){
 	sprintf(output, "%02d-%02d-%d_%02d-%02d-%02d",timeinfo->tm_mday, timeinfo->tm_mon + 1, timeinfo->tm_year + 1900, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
 }
 
+#ifdef JUST_PROFILE
 /*** For getting children processes and writting them into a JSON file ***/
 vector<pid_t> get_tids(pid_t pid){
 	vector<pid_t> tids;
@@ -180,7 +181,7 @@ void print_samples(vector<my_pebs_sample_t> samples, const char* base){
 
 	my_pebs_sample_t::print_header(fp);
 	for(my_pebs_sample_t const & s : samples)
-		s.print_for_3DyRM(fp);
+		s.print(fp);
 
 	fclose(fp);
 }
@@ -190,5 +191,9 @@ void print_everything(vector<my_pebs_sample_t> samples, map<pid_t, vector<pid_t>
 	get_formatted_current_time(base);
 
 	print_samples(samples, base);
+
+	#ifdef PRINT_JSON
 	print_map_to_json(m, base);
+	#endif
 }
+#endif

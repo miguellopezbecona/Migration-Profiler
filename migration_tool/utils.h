@@ -14,6 +14,9 @@ using namespace std;
 
 #include "sample_data.h"
 
+// For JUST_PROFILE_MODE
+//#define PRINT_JSON
+
 int get_median_from_list(vector<int> l);
 bool is_migratable(pid_t my_uid, pid_t pid);
 bool is_pid_alive(pid_t pid);

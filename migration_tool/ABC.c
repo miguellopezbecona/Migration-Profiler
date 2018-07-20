@@ -22,7 +22,7 @@
 
 int max_cpus; // Detected by the system
 
-typedef float data_type; // For changing data type easily
+typedef double data_type; // For changing data type easily
 
 // Main data
 data_type *A, *B, *C;

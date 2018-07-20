@@ -1,21 +1,21 @@
 #include "migration_facade.h"
 
+#ifdef JUST_PROFILE // For dumping every sample in a mixed way
+vector<my_pebs_sample_t> samples;
+map<pid_t, vector<pid_t>> pmap;
+#else // For building migration strategy
 memory_data_list_t memory_list;
 inst_data_list_t inst_list;
 set<pid_t> pids;
 
 map<pid_t, page_table_t> page_tables; // Keeps everything
 map<pid_t, page_table_t> temp_page_tables; // Maintains data from current iteration
-
-#ifdef JUST_PROFILE
-vector<my_pebs_sample_t> samples;
-map<pid_t, vector<pid_t>> pmap;
 #endif
 
 unsigned int step = 0;
 
 void add_data_to_list(my_pebs_sample_t sample){
-	#ifdef JUST_PROFILE
+	#ifdef JUST_PROFILE // Just adds samples to list
 	samples.push_back(sample);
 
 	// Gets children processes por sample's PID
@@ -30,7 +30,7 @@ void add_data_to_list(my_pebs_sample_t sample){
 		samples.clear();
 		pmap.clear();
 	}
-	#else
+	#else // Separates memory and inst samples
 	if(sample.is_mem_sample()){ // [TOTHINK]: Before, we discarded samples with DSRC == 0, why?
 		memory_list.add_cell(sample.cpu,sample.pid,sample.tid,sample.sample_addr,sample.weight,sample.dsrc,sample.time);
 		//memory_list.list.back().print_dsrc(); printf("\n"); // Temporal, for testing dsrc printing
@@ -41,6 +41,13 @@ void add_data_to_list(my_pebs_sample_t sample){
 }
 
 void clean_migration_structures(){
+	#ifdef JUST_PROFILE
+	// Prints remaining samples
+	print_everything(samples, pmap);
+
+	samples.clear();
+	pmap.clear();
+	#else
 	memory_list.clear();
 	inst_list.clear();
 	pids.clear();
@@ -68,16 +75,10 @@ void clean_migration_structures(){
 	#endif
 
 	page_tables.clear();
-
-	#ifdef JUST_PROFILE
-	// Prints remaining samples
-	print_everything(samples, pmap);
-
-	samples.clear();
-	pmap.clear();
 	#endif
 }
 
+#ifdef FAKE_DATA
 // For testing purposes, specially on a non-native Linux system
 void work_with_fake_data(){
 	// Fake data from samples to be inserted into tables and etc
@@ -126,7 +127,9 @@ void work_with_fake_data(){
 	clean_migration_structures();
 	system_struct_t::clean();
 }
+#endif
 
+#ifndef JUST_PROFILE
 int begin_migration_process(){
 	if(memory_list.is_empty()){
 		//printf("Memory list is empty. Skipping iteration...\n");
@@ -188,13 +191,14 @@ int begin_migration_process(){
 			perform_migration_strategy(table);
 		#endif
 	}
+
 	#ifdef DO_MIGRATIONS
 	//printf("Going to perform the global strategy.\n");
 	//perform_migration_strategy(&page_tables);
 	perform_migration_strategy(&temp_page_tables); // Over tables from current iteration instead
-	#endif
 
 	step++;
+	#endif
 
 	//printf("Mem list size: %lu, inst list size: %lu\n", memory_list.list.size(), inst_list.list.size());
 	memory_list.clear();
@@ -205,3 +209,4 @@ int begin_migration_process(){
 
 	return 0;
 }
+#endif

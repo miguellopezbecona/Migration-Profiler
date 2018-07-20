@@ -74,7 +74,10 @@ time_t last_migr_time;
 static const char *events[2] = {
 	//"RAPL_ENERGY_PKG:period=1000",
 	"MEM_TRANS_RETIRED:LATENCY_ABOVE_THRESHOLD:period=1000"
-	,"INST_RETIRED:period=1000000,OFFCORE_REQUESTS:ALL_DATA_RD"
+	//,"INST_RETIRED:period=1000000,OFFCORE_REQUESTS:ALL_DATA_RD" // Inst, REQ_DR
+	//,"INSTRUCTIONS:period=10000000,FP_COMP_OPS_EXE:SSE_SCALAR_DOUBLE,LAST_LEVEL_CACHE_MISSES,OFFCORE_REQUESTS:ALL_DATA_READ" // Inst, double FLOPS, LLC fails, REQ_DR
+	,"INSTRUCTIONS:period=10000000,FP_COMP_OPS_EXE:SSE_SCALAR_DOUBLE,FP_COMP_OPS_EXE:SSE_FP_SCALAR_SINGLE,FP_COMP_OPS_EXE:SSE_FP_PACKED_DOUBLE,OFFCORE_REQUESTS:ALL_DATA_READ" // Inst, some kinds of FLOPS, REQ_DR
+	//,"INSTRUCTIONS:period=10000000,FP_COMP_OPS_EXE:SSE_SCALAR_DOUBLE,FP_COMP_OPS_EXE:SSE_FP_SCALAR_SINGLE,FP_COMP_OPS_EXE:SSE_FP_PACKED_DOUBLE,FP_COMP_OPS_EXE:SSE_PACKED_SINGLE" // Inst, all kind of FLOPS
 };
 
 static void clean_end(int n);
@@ -213,7 +216,7 @@ int setup_cpu(int cpu, int fd, int group) {
 		}
 
 		fds[i].hw.exclude_guest = 1;
-		fds[i].hw.exclude_kernel = 1; // Let's exlcude kernel
+		fds[i].hw.exclude_kernel = 1;
 
 		fds[i].fd = perf_event_open(&fds[i].hw, -1, cpu, fds[0].fd, flags); // Profile every PID for a given CPU
 		if (fds[i].fd == -1) {
@@ -267,7 +270,24 @@ int setup_cpu(int cpu, int fd, int group) {
 			#ifdef EVENT_OUTPUT
 			printf("%lu  %s\n", fds[i].id, fds[i].name);
 			#endif
+
+			#ifdef JUST_PROFILE
+			if(cpu != 0)
+				continue;
+
+			char* e_name = strtok(fds[i].name, ":"); // To remove ":period=X" stuff
+			if(e_name != NULL){
+				if(strcmp("FP_COMP_OPS_EXE", e_name) == 0) // Incomplete FLOPS event name, let's get the next part
+					e_name = strtok(NULL, ":");
+				my_pebs_sample_t::add_subevent_name(e_name); // Dynamic column names
+			}
+			#endif
 		}
+
+		#ifdef JUST_PROFILE
+		// We are assuming just a group of memory events (nr always 1) and another one of instructions (nr always > 1). Maybe it should be adapted for another kind of group events
+		my_pebs_sample_t::max_nr = num_fds[group];
+		#endif
 	}
 	return 0;
 }
@@ -299,7 +319,7 @@ static void clean_end(int n) {
 	//printf("%d,%d,%lu\n", options.periods[0], options.minimum_latency,processed_samples_group[0]);
 	clean_migration_structures();
 
-	#if defined(USE_ENER_ST) || defined(JUST_PROFILE_ENERGY)
+	#if defined(JUST_PROFILE_ENERGY) || ( !defined(JUST_PROFILE) && defined(USE_ENER_ST) ) 
 	ed.close_buffers();
 	#endif
 
@@ -336,7 +356,9 @@ int mainloop(char **arg) {
 	pgsz = sysconf(_SC_PAGESIZE);
 	map_size = (options.mmap_pages+1)*pgsz;
 
+	#ifndef JUST_PROFILE
 	tid_cpu_table.coln = system_struct_t::NUM_OF_CPUS; // Badly done because NUM_OF_CPUS is gotten in execution time
+	#endif
 
 	#ifdef FAKE_DATA
 	work_with_fake_data();
@@ -368,9 +390,9 @@ int mainloop(char **arg) {
 		errx(1, "libpfm initialization failed\n");
 
 	// Sets up counter configuration
-	for(int i=0;i<NUM_GROUPS;i++){
-		for(int j=0;j<system_struct_t::NUM_OF_CPUS;j++)
-			setup_cpu(j, fd, i);
+	for(int g=0;g<NUM_GROUPS;g++){
+		for(int c=0;c<system_struct_t::NUM_OF_CPUS;c++)
+			setup_cpu(c, fd, g);
 	}
 
 	// Sets up handler for some signals for a clean end
@@ -408,7 +430,6 @@ int mainloop(char **arg) {
 	for(;;) {
 
 		#ifdef JUST_PROFILE_ENERGY
-		//sleep(1);
 		usleep(options.sbm * 1000); // Not the best way, but using polling may give issues to read energy buffers
 
 		// Time is got and energy buffers are read
@@ -433,7 +454,7 @@ int mainloop(char **arg) {
 		}
 
 		#ifndef JUST_PROFILE
-		perform_migration(secs); // We have the data, so we can begin the migration process
+		perform_migration(); // We have the data, so we can begin the migration process
 		#endif
 	}
 

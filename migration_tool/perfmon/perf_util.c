@@ -312,6 +312,137 @@ int transfer_data_from_buffer_to_structure(perf_event_desc_t *fds, int num_fds, 
 	type = hw->hw.sample_type;
 	fmt  = hw->hw.read_format;
 
+	ret = perf_read_buffer_64(hw, &val64); // IIP
+	sample->iip = val64;
+	sz -= sizeof(val64);
+
+	ret = perf_read_buffer(hw, &pid, sizeof(pid)); // TID, PID
+	sample->tid = pid.tid;
+	sample->pid = pid.pid;
+	sz -= sizeof(pid);
+
+	// If we are just profiling, we don't filter by PID
+	#ifndef JUST_PROFILE
+	if(!is_migratable(uid, pid.pid)){ // Important step: we skip the data if PID is about a process we can't migrate
+		perf_skip_buffer(hw, sz);
+		return -1;
+	}
+	#endif
+
+	ret = perf_read_buffer_64(hw, &val64); // TIME
+	sample->time = val64;
+	sz -= sizeof(val64);
+
+	ret = perf_read_buffer_64(hw, &val64); // ADDR
+	sample->sample_addr = val64;
+	sz -= sizeof(val64);
+
+	ret = perf_read_buffer_64(hw, &val64); // STREAM_ID
+	sz -= sizeof(val64);
+
+	struct { uint32_t cpu, reserved; } cpu; // CPU
+	ret = perf_read_buffer(hw, &cpu, sizeof(cpu));
+	sample->cpu = cpu.cpu;
+	sz -= sizeof(cpu);
+
+	ret = perf_read_buffer_64(hw, &val64); // PERIOD
+	sz -= sizeof(val64);
+
+	uint64_t values[3];
+	uint64_t nr;
+
+	if (fmt & PERF_FORMAT_GROUP) { // Inst samples
+		ret = perf_read_buffer_64(hw, &nr);
+		sz -= sizeof(nr);
+		time_enabled = time_running = 1;
+
+		ret = perf_read_buffer_64(hw, &time_enabled); // TIME_ENABLED
+		sz -= sizeof(time_enabled);
+	
+		ret = perf_read_buffer_64(hw, &time_running); // TIME_RUNNING
+		sz -= sizeof(time_running);
+		
+
+		sample->time_enabled = time_enabled;
+		sample->time_running = time_running;
+		sample->nr = nr;
+
+		values[1] = time_enabled;
+		values[2] = time_running;
+		while(nr--) {
+			grp.id = -1;
+			ret = perf_read_buffer_64(hw, &grp.value);
+			sz -= sizeof(grp.value);
+
+			ret = perf_read_buffer_64(hw, &grp.id); // Group ID
+			sz -= sizeof(grp.id);
+
+			values[0] = grp.value;
+			grp.value = perf_scale(values);
+		
+			sample->values[nr] = grp.value;
+			
+
+		}
+	} else { // Memory samples
+		ret = perf_read_buffer_64(hw, &val64);
+		sz -= sizeof(val64);
+
+		ret = perf_read_buffer_64(hw, &time_enabled); // TIME_ENABLED
+		sz -= sizeof(time_enabled);
+
+		ret = perf_read_buffer_64(hw, &time_running); // TIME_RUNNING
+		sz -= sizeof(time_running);
+
+		sample->time_enabled = time_enabled;
+		sample->time_running = time_running;
+		sample->nr = 1;
+
+		values[0] = val64;
+		values[1] = time_enabled;
+		values[2] = time_running;
+		val64 = perf_scale(values);
+		
+		sample->values[0] = val64;
+	}
+
+	ret = perf_read_buffer_64(hw, &val64); // WEIGHT
+	sample->weight = val64;
+	sz -= sizeof(val64);
+
+	ret = perf_read_buffer_64(hw, &val64); // DSRC
+	sample->dsrc = val64;
+	sz -= sizeof(val64);
+
+	if (sz) {
+		warnx("did not correctly parse sample leftover=%zu", sz);
+		perf_skip_buffer(hw, sz);
+	}
+
+	return 0;
+}
+
+// Version with sanity-checking ifs
+int transfer_data_from_buffer_to_structure_allifs(perf_event_desc_t *fds, int num_fds, int idx, struct perf_event_header *ehdr, my_pebs_sample_t *sample, int uid) {
+	perf_event_desc_t *hw;
+	struct { uint32_t pid, tid; } pid;
+	struct { uint64_t value, id; } grp;
+	uint64_t time_enabled, time_running;
+	size_t sz;
+	uint64_t type, fmt;
+	uint64_t val64;
+	int ret;
+
+	if (!fds || !ehdr  || num_fds < 0 || idx < 0 ||  idx >= num_fds)
+		return -1;
+
+	sz = ehdr->size - sizeof(*ehdr);
+
+	hw = fds+idx;
+
+	type = hw->hw.sample_type;
+	fmt  = hw->hw.read_format;
+
 	/*
 	 * the sample_type information is laid down
 	 * based on the PERF_RECORD_SAMPLE format specified
