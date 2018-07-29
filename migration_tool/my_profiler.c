@@ -74,9 +74,9 @@ time_t last_migr_time;
 static const char *events[2] = {
 	//"RAPL_ENERGY_PKG:period=1000",
 	"MEM_TRANS_RETIRED:LATENCY_ABOVE_THRESHOLD:period=1000"
-	//,"INST_RETIRED:period=1000000,OFFCORE_REQUESTS:ALL_DATA_RD" // Inst, REQ_DR
+	,"INST_RETIRED:period=1000000,OFFCORE_REQUESTS:ALL_DATA_RD" // Inst, REQ_DR
 	//,"INSTRUCTIONS:period=10000000,FP_COMP_OPS_EXE:SSE_SCALAR_DOUBLE,LAST_LEVEL_CACHE_MISSES,OFFCORE_REQUESTS:ALL_DATA_READ" // Inst, double FLOPS, LLC fails, REQ_DR
-	,"INSTRUCTIONS:period=10000000,FP_COMP_OPS_EXE:SSE_SCALAR_DOUBLE,FP_COMP_OPS_EXE:SSE_FP_SCALAR_SINGLE,FP_COMP_OPS_EXE:SSE_FP_PACKED_DOUBLE,OFFCORE_REQUESTS:ALL_DATA_READ" // Inst, some kinds of FLOPS, REQ_DR
+	//,"INSTRUCTIONS:period=10000000,FP_COMP_OPS_EXE:SSE_SCALAR_DOUBLE,FP_COMP_OPS_EXE:SSE_FP_SCALAR_SINGLE,FP_COMP_OPS_EXE:SSE_FP_PACKED_DOUBLE,OFFCORE_REQUESTS:ALL_DATA_READ" // Inst, some kinds of FLOPS, REQ_DR
 	//,"INSTRUCTIONS:period=10000000,FP_COMP_OPS_EXE:SSE_SCALAR_DOUBLE,FP_COMP_OPS_EXE:SSE_FP_SCALAR_SINGLE,FP_COMP_OPS_EXE:SSE_FP_PACKED_DOUBLE,FP_COMP_OPS_EXE:SSE_PACKED_SINGLE" // Inst, all kind of FLOPS
 };
 
@@ -108,7 +108,6 @@ static void process_smpl_buf(perf_event_desc_t *hw, int cpu, perf_event_desc_t *
 	perf_event_desc_t *fds = NULL;
 
 	fds = all_fds_p[cpu];
-	my_sample.values = (uint64_t*)malloc(sizeof(uint64_t)*num_fds_p);	
 
 	for(;;) {
 		int ret = perf_read_buffer(hw, &ehdr, sizeof(ehdr));
@@ -117,6 +116,8 @@ static void process_smpl_buf(perf_event_desc_t *hw, int cpu, perf_event_desc_t *
 
 		switch(ehdr.type) {
 			case PERF_RECORD_SAMPLE:
+				my_sample.values = (uint64_t*)malloc(sizeof(uint64_t)*num_fds_p);
+
 				ret = transfer_data_from_buffer_to_structure(fds, num_fds_p, hw - fds, &ehdr, &my_sample, uid);
 				processed_samples_group[name]++;
 
@@ -440,16 +441,23 @@ int mainloop(char **arg) {
 		last_ener_time = current_time;
 		#else
 		// Core call under normal conditions: polling to counter buffers
-		int ret = poll(pollfds, TOTAL_BUFFS, options.sbm);
+		int ret = poll(pollfds, TOTAL_BUFFS, options.sbm);		
+
 		if (ret < 0 && errno == EINTR)
 			break;
 		#endif
 
-		// Reads buffers
-		for(int i=0;i<NUM_GROUPS;i++){
-			for(int j=0;j<system_struct_t::NUM_OF_CPUS;j++){
-				process_smpl_buf(all_fds[i][j], j, all_fds[i], num_fds[i], i);
-				buffer_reads[i]++;
+		// Reads (only ready) buffers
+		for(int g=0;g<NUM_GROUPS;g++){
+			for(int c=0;c<system_struct_t::NUM_OF_CPUS;c++){
+				#ifndef JUST_PROFILE_ENERGY
+				int i =  g * system_struct_t::NUM_OF_CPUS + c; // Poll index
+				if(pollfds[i].revents == 0) // Now new data
+					continue;
+				#endif
+
+				process_smpl_buf(all_fds[g][c], c, all_fds[g], num_fds[g], g);
+				buffer_reads[g]++;
 			}
 		}
 
@@ -477,7 +485,11 @@ int main(int argc, char **argv){
 	options.base_filename = (char*)malloc(32*sizeof(char));
 	strcpy(options.base_filename, "");
 	options.minimum_latency = 250;
+	#ifdef JUST_PROFILE_ENERGY
 	options.sbm = 1000;
+	#else
+	options.sbm = -1;
+	#endif
 	options.mmap_pages = 16;
 
 	static struct option the_options[]= {
