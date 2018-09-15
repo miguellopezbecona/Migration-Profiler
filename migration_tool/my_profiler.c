@@ -65,7 +65,7 @@ static options_t options;
 static size_t pgsz;
 static size_t map_size;
 
-#ifdef JUST_PROFILE_ENERGY
+#if defined(JUST_PROFILE_ENERGY) || defined(USE_ENER_ST)
 time_t last_ener_time;
 #endif
 
@@ -92,13 +92,9 @@ void perform_migration(){
 	if(secs > (get_time_value() * inv_1000)){
 		last_migr_time = current_time;
 		//printf("\n***********\nAt %s\n",ctime(&last_migr_time));
-		#ifdef USE_ENER_ST
-		ed.read_buffer(secs);
-		//ed.print_curr_vals(); // Just for testing we got the data
-		#endif
-
 		begin_migration_process();
 	}
+
 }
 #endif
 
@@ -300,7 +296,7 @@ static void clean_end(int n) {
 	printf("TERMINATING\n");
 	#endif
 
-	// Closes and frees resources	
+	// Closes and frees resources
 	for(int i=0;i<NUM_GROUPS;i++){
 		for(int j=0;j<system_struct_t::NUM_OF_CPUS;j++){
 			fds = all_fds[i][j];
@@ -320,18 +316,18 @@ static void clean_end(int n) {
 	//printf("%d,%d,%lu\n", options.periods[0], options.minimum_latency,processed_samples_group[0]);
 	clean_migration_structures();
 
-	#if defined(JUST_PROFILE_ENERGY) || ( !defined(JUST_PROFILE) && defined(USE_ENER_ST) ) 
+	#if defined(JUST_PROFILE_ENERGY) || ( !defined(JUST_PROFILE) && defined(USE_ENER_ST) )
 	ed.close_buffers();
 	#endif
 
 	system_struct_t::clean();
 
-	#ifdef EVENT_OUTPUT
+	//#ifdef EVENT_OUTPUT
 	const char* types[2] = {"memory", "instruction"};
 	for(int i=0;i<NUM_GROUPS;i++)
 		printf("%lu (%lu) %s samples collected (processed) in total %lu poll events and %lu lost samples\n", collected_samples_group[i],processed_samples_group[i], types[i], buffer_reads[i], lost_samples_group[i]);
 	printf("%lu unknown samples.\n", unknown_samples);
-	#endif
+	//#endif
 
 	#if !defined(JUST_PROFILE) && defined(DO_MIGRATIONS)
 	printf("%d thread migrations made.\n", migration_cell_t::total_thread_migrations);
@@ -422,26 +418,26 @@ int mainloop(char **arg) {
 		}
 	}
 
-	#ifdef JUST_PROFILE_ENERGY
+	#if defined(JUST_PROFILE_ENERGY) || defined(USE_ENER_ST)
 	last_ener_time = time(NULL); // Initial time
 	#endif
 	last_migr_time = time(NULL); // Initial time
 
 	// Core loop where the polling to the buffers is done, has some issues
 	for(;;) {
-
-		#ifdef JUST_PROFILE_ENERGY
+		#if defined(JUST_PROFILE_ENERGY) || defined(USE_ENER_ST)
 		usleep(options.sbm * 1000); // Not the best way, but using polling may give issues to read energy buffers
 
 		// Time is got and energy buffers are read
 		time_t current_time = time(NULL);
 		double secs = difftime(current_time, last_ener_time);
 		ed.read_buffer(secs);
+		//ed.print_curr_vals(); // Just for testing we got the data
 		//printf("Secs: %.3f. Pkg: %.3f\n", secs, ed.curr_vals[0][0]);
 		last_ener_time = current_time;
 		#else
 		// Core call under normal conditions: polling to counter buffers
-		int ret = poll(pollfds, TOTAL_BUFFS, options.sbm);		
+		int ret = poll(pollfds, TOTAL_BUFFS, options.sbm);
 
 		if (ret < 0 && errno == EINTR)
 			break;
@@ -450,7 +446,7 @@ int mainloop(char **arg) {
 		// Reads (only ready) buffers
 		for(int g=0;g<NUM_GROUPS;g++){
 			for(int c=0;c<system_struct_t::NUM_OF_CPUS;c++){
-				#ifndef JUST_PROFILE_ENERGY
+				#if ! (defined(JUST_PROFILE_ENERGY) || defined(USE_ENER_ST))
 				int i =  g * system_struct_t::NUM_OF_CPUS + c; // Poll index
 				if(pollfds[i].revents == 0) // Now new data
 					continue;
@@ -527,5 +523,5 @@ int main(int argc, char **argv){
 	if (options.mmap_pages > 1 && ((options.mmap_pages) & 0x1))
 		errx(1, "number of pages must be power of 2\n");
 	
-	return mainloop(argv+optind); 
+	return mainloop(argv+optind);
 }

@@ -149,12 +149,12 @@ int begin_migration_process(){
 	#endif
 
 	// Builds page tables for each PID
-	pages(pids, memory_list, inst_list, &page_tables);
-	pages(pids, memory_list, inst_list, &temp_page_tables); // Somewhat inefficient
+	//pages(pids, memory_list, inst_list, &page_tables); // For historic data
+	pages(pids, memory_list, inst_list, &temp_page_tables);
 
 	// For each existent table, checks if its associated process and/or threads are alive, to clean useless data
 	// It also applies a single-PID migration strategy for active PIDs (i.e: we got at least a memory sample from it in this iteration)
-	for(auto t_it = page_tables.begin(); t_it != page_tables.end(); ) {
+	for(auto t_it = temp_page_tables.begin(); t_it != temp_page_tables.end(); ) {
 		pid_t pid = t_it->first;
 		page_table_t* table = &t_it->second;
 		//printf("Working over table associated to PID: %d\n", pid);
@@ -168,7 +168,7 @@ int begin_migration_process(){
 				system_struct_t::remove_tid(tid, false);
 			}
 
-			t_it = page_tables.erase(t_it); // We erase entry from table map
+			t_it = temp_page_tables.erase(t_it); // We erase entry from table map
 			continue;
 		}
 		t_it++; // For erasing correctly

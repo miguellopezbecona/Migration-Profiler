@@ -307,7 +307,7 @@ void system_struct_t::print_node_distance_matrix(){
 		for(int j=0;j<NUM_OF_MEMORIES;j++)
 			printf("%d ", node_distances[i][j]);
 		printf("\n");
-	}	
+	}
 }
 
 /*** Other functions ***/
@@ -316,5 +316,8 @@ void system_struct_t::set_pid_to_tid(pid_t pid, pid_t tid){
 }
 
 pid_t system_struct_t::get_pid_from_tid(pid_t tid){
-	return tid_pid_map[tid];
+	if(tid_pid_map.count(tid) > 0)
+		return tid_pid_map[tid];
+	else
+		return -1;
 }

@@ -10,6 +10,7 @@ vector<migration_cell_t> energy_str_t::get_pages_to_migrate(map<pid_t, page_tabl
 	// Regarding pages
 	vector<double> rams = ed.get_curr_vals_from_domain("ram");
 	#ifdef ENER_OUTPUT
+	printf("ram values (minus base) for each node from last iteration: ");
 	for(double const & c : rams)
 		printf("%.2f ", c);
 	printf("\n");
@@ -29,7 +30,7 @@ vector<migration_cell_t> energy_str_t::get_pages_to_migrate(map<pid_t, page_tabl
 	// No enough memory consumption increase -> no page migrations
 	if(mx < MAX_THRES){
 		#ifdef ENER_OUTPUT
-		printf("no page migrations.\n");
+		printf("no page migrations.\n\n");
 		#endif
 
 		return v;
@@ -48,7 +49,7 @@ vector<migration_cell_t> energy_str_t::get_pages_to_migrate(map<pid_t, page_tabl
 	// If all nodes are quite memory loaded -> no page migrations
 	if( (mx-mn) < DIFF_THRES){
 		#ifdef ENER_OUTPUT
-		printf("no page migrations.\n");
+		printf("no page migrations.\n\n");
 		#endif
 
 		return v;
@@ -94,21 +95,23 @@ vector<migration_cell_t> energy_str_t::get_pages_to_migrate(map<pid_t, page_tabl
 	}
 
 	#ifdef ENER_OUTPUT
-	printf("\n");
+	printf("\n\n");
 	#endif
 
 	return v;
 }
 
 vector<migration_cell_t> energy_str_t::get_threads_to_migrate(map<pid_t, page_table_t> *page_ts){
-	const double MAX_PERC_THRES = 0.3; // Threshold maximum increase ratio against base to do migrations
-	const double DIFF_PERC_THRES = 0.4; // Minimum ratio difference between lowest and highest to do migrations
-	const size_t MAX_THREADS_TO_MIGRATE = system_struct_t::CPUS_PER_MEMORY / 4;
+	const double MAX_PERC_THRES = 0.2; // Threshold maximum increase ratio against base to do migrations
+	const double DIFF_PERC_THRES = 0.3; // Minimum ratio difference between lowest and highest to do migrations
+	const size_t MAX_THREADS_TO_MIGRATE = 1;
+	//const size_t MAX_THREADS_TO_MIGRATE = system_struct_t::CPUS_PER_MEMORY / 4;
 	vector<migration_cell_t> v;
 
 	// Regarding threads
 	vector<double> pkgs = ed.get_curr_vals_from_domain("pkg");
 	#ifdef ENER_OUTPUT
+	printf("pkg values (minus base) for each node from last iteration: ");
 	for(double const & c : pkgs)
 		printf("%.2f ", c);
 	printf("\n");
@@ -121,12 +124,12 @@ vector<migration_cell_t> energy_str_t::get_threads_to_migrate(map<pid_t, page_ta
 	// If no enough pkg consumption increase -> no thread migrations
 	double ratio = ed.get_ratio_against_base(mx, from, "pkg");
 	#ifdef ENER_OUTPUT
-	printf("Maximum PKG ratio increase: %.2f (raw: %.2f/%.2f). Threshold: %.2f -> ", ratio, mx, ed.base_vals[from][0], MAX_PERC_THRES);
+	printf("Maximum PKG ratio increase: %.2f (raw: %.2f/%.2f). Threshold: %.2f -> ", ratio, mx, ed.base_vals[from][ed.get_domain_pos("pkg")], MAX_PERC_THRES);
 	#endif
 
 	if(ratio < MAX_PERC_THRES){
 		#ifdef ENER_OUTPUT
-		printf("no thread migrations.\n");
+		printf("no thread migrations.\n\n");
 		#endif
 
 		return v;
@@ -145,7 +148,7 @@ vector<migration_cell_t> energy_str_t::get_threads_to_migrate(map<pid_t, page_ta
 	// If all nodes are quite memory loaded -> no thread migrations
 	if( ((mx-mn)/mx) < DIFF_PERC_THRES){
 		#ifdef ENER_OUTPUT
-		printf("no thread migrations.\n");
+		printf("no thread migrations.\n\n");
 		#endif
 
 		return v;
@@ -180,15 +183,19 @@ vector<migration_cell_t> energy_str_t::get_threads_to_migrate(map<pid_t, page_ta
 	}
 
 	#ifdef ENER_OUTPUT
-	printf("\n");
+	printf("\n\n");
 	#endif
 
 	return v;
 }
 
 vector<migration_cell_t> energy_str_t::get_migrations(map<pid_t, page_table_t> *page_ts){
-	vector<migration_cell_t> v1 = get_pages_to_migrate(page_ts);
-	vector<migration_cell_t> v2 = get_threads_to_migrate(page_ts);
+	vector<migration_cell_t> v1 = get_threads_to_migrate(page_ts);
+	vector<migration_cell_t> v2 = get_pages_to_migrate(page_ts);
+
+	#ifdef ENER_OUTPUT
+	printf("\n");
+	#endif
 
 	v1.insert(v1.end(), v2.begin(), v2.end());
 	return v1;

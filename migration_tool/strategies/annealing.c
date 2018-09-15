@@ -2,7 +2,6 @@
 
 //// Heavily based on what Óscar implemented in his PhD
 
-double current_performance;
 double last_performance = -1;
 labeled_migr_t last_migration; // Always with 1 or 2 elements
 
@@ -36,9 +35,11 @@ void labeled_migr_t::prepare_for_undo() {
 
 void labeled_migr_t::print() const {
 	const char* const choices[] = {" simple migration", "n interchange"};
-	printf("It is a%s. %d tickets.\n", choices[is_interchange()], tickets);
-	for(migration_cell const & mc : potential_migr)
+	printf("It is a%s. %d tickets:\n", choices[is_interchange()], tickets);
+	for(migration_cell const & mc : potential_migr){
+		printf("\t");
 		mc.print();
+	}
 }
 
 /*** Rest of functions ***/
@@ -176,7 +177,7 @@ vector<migration_cell_t> get_iteration_migration(page_table_t *page_t){
 vector<migration_cell_t> annealing_t::get_threads_to_migrate(page_table_t *page_t){
 	vector<migration_cell_t> ret;
 
-	current_performance = page_t->get_total_performance();
+	double current_performance = page_t->get_total_performance();
 	double diff = current_performance / last_performance;
 
 	#ifdef TH_MIGR_OUTPUT
@@ -219,7 +220,7 @@ vector<labeled_migr_t> get_candidate_list(pid_t worst_tid, map<pid_t, page_table
 	pid_t current_pid = system_struct_t::get_pid_from_tid(worst_tid);
 	vector<double> current_perfs = page_ts->operator[](current_pid).get_perf_data(worst_tid);
 
-	// Search potential core destinations from different memory nodes 
+	// Search potential core destinations from different memory nodes
 	for(int n=0; n<system_struct_t::NUM_OF_MEMORIES; n++){
 		if(n == current_cell)
 			continue;
@@ -279,6 +280,10 @@ vector<migration_cell_t> get_iteration_migration(map<pid_t, page_table_t> *page_
 		page_table_t *t = &t_it.second;
 		pid_t local_worst_t = t->normalize_perf_and_get_worst_thread();
 
+		// No active threads for that PID
+		if(local_worst_t == -1)
+			continue;
+
 		rm3d_data_t pd = t->perf_per_tid[local_worst_t];
 		double local_worst_p = pd.v_perfs[pd.index_last_node_calc];
 
@@ -288,8 +293,17 @@ vector<migration_cell_t> get_iteration_migration(map<pid_t, page_table_t> *page_
 		}
 	}
 
+	// No active threads
+	if(worst_tid == -1){
+		#ifdef ANNEALING_PRINT
+		printf("NO SUITABLE THREADS, NO MIGRATIONS\n");
+		#endif
+		vector<migration_cell_t> emp;
+		return emp;
+	}
+
 	#ifdef ANNEALING_PRINT
-	printf("\n*\nWORST THREAD IS: %d\n", worst_tid);
+	printf("WORST THREAD IS: %d, WITH PERF: %.2f\n", worst_tid, min_p);
 	#endif
 
 	//for(auto& t_it : page_ts) // Perfs after normalization
@@ -299,9 +313,14 @@ vector<migration_cell_t> get_iteration_migration(map<pid_t, page_table_t> *page_
 	vector<labeled_migr_t> migration_list = get_candidate_list(worst_tid, page_ts);
 
 	#ifdef ANNEALING_PRINT
-	printf("\n*\nMIGRATION LIST CONTENT:");
-	for(labeled_migr_t const & lm : migration_list)
+	/*
+	// Commented due to its high amount of printing in manycores
+	printf("MIGRATION LIST CONTENT:");
+	for(labeled_migr_t const & lm : migration_list){
+		printf("\t");
 		lm.print();
+	}
+	*/
 	#endif
 
 	// I think this will only happen in no-NUMA systems, for testing
@@ -316,7 +335,7 @@ vector<migration_cell_t> get_iteration_migration(map<pid_t, page_table_t> *page_
 	labeled_migr_t target_cell = get_random_labeled_cell(migration_list);
 
 	#ifdef ANNEALING_PRINT
-	printf("\n*\nTARGET MIGRATION: ");
+	printf("TARGET MIGRATION: ");
 	target_cell.print();
 	#endif
 
@@ -331,14 +350,19 @@ vector<migration_cell_t> get_iteration_migration(map<pid_t, page_table_t> *page_
 vector<migration_cell_t> annealing_t::get_threads_to_migrate(map<pid_t, page_table_t> *page_ts){
 	vector<migration_cell_t> ret;
 
-	current_performance = 0.0;
+	double current_performance = 0.0;
 
 	for(auto& t_it : *page_ts)
 		current_performance += t_it.second.get_total_performance();
+
+	// No performance obtained, so no suitable threads
+	if(current_performance < 1e-6)
+		return ret;
+
 	double diff = current_performance / last_performance;
 
 	#ifdef TH_MIGR_OUTPUT
-	printf("\nCurrent Perf: %g. Last Perf: %g. Ratio: %g. SBM: %d\n",current_performance,last_performance,diff,get_time_value());
+	printf("\n*\nCurrent Perf: %g. Last Perf: %g. Ratio: %g. SBM: %d\n",current_performance,last_performance,diff,get_time_value());
 	#endif
 
 	last_performance = current_performance;
@@ -352,13 +376,13 @@ vector<migration_cell_t> annealing_t::get_threads_to_migrate(map<pid_t, page_tab
 			t_it.second.reset_performance();
 		
 		return undo_last_migration();
-	} else if(diff < 1.0) // We are doing better or equal
+	} else if(diff < 1.0) // We are doing a bit worse, let's migrate more often
 		time_go_up();
-	else // We are doing better or equal
+	else // We are doing better or equal, let's migrate less often
 		time_go_down();
 
 	#ifdef ANNEALING_PRINT
-	printf("\n*\nPERFORMING MIGRATION ALGORITHM\n");
+	printf("PERFORMING MIGRATION ALGORITHM\n");
 	#endif
 
 	ret = get_iteration_migration(page_ts);

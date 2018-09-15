@@ -7,7 +7,7 @@ const int TICKETS_MEM_CELL_NO_DATA[] = {2, 2};
 const int TICKETS_MEM_CELL_BETTER[] = {4, 4};
 const int TICKETS_FREE_CORE = 3;
 
-//#define ANNEALING_PRINT
+#define ANNEALING_PRINT
 
 // Special structure which takes into account that each possible choice is a simple migration or an interchange, and has tickets associated to it
 typedef struct labeled_migr {

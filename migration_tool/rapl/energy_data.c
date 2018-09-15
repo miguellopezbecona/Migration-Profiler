@@ -125,9 +125,6 @@ int energy_data_t::prepare_energy_data(char* base_filename){
 	int type;
 	char filename[BUFSIZ];
 
-	// Fixed domains in this case
-	//rapl_domain_names.push_back((char *) "pkg");
-	//rapl_domain_names.push_back((char *) "ram");
 	detect_domains();
 
 	NUM_RAPL_DOMAINS = rapl_domain_names.size();

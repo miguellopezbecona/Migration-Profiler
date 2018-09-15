@@ -60,7 +60,7 @@ int migration_cell_t::perform_thread_migration() const {
 	int ret = system_struct_t::set_tid_cpu((pid_t) elem, dest, true);
 
 	#ifdef TH_MIGR_OUTPUT
-	printf("Migrated thread %d to CPU %d\n", (pid_t) elem, dest);
+	printf("Migrated thread %d to CPU %d\n", (pid_t) elem, dest+1); // +1 only for demo!
 	#endif
 
 	total_thread_migrations++;
@@ -88,9 +88,11 @@ void migration_cell_t::print() const {
 
 	bool is_thread = is_thread_cell();
 
-	printf("%s migration cell. %s %lu to be migrated to %s %d. PID: %d.", types[is_thread], elems[is_thread], elem, to_migrates[is_thread], dest, pid);
-	
+	printf("%s migration cell. %s %lu to be migrated to %s %d.", types[is_thread], elems[is_thread], elem, to_migrates[is_thread], dest); // dest+1 for demo only!
+
+	if(pid > 0)
+		printf(" PID: %d.", pid);
 	if(prev_dest > -1)
-		printf(" It was in %s %d.", to_migrates[is_thread], prev_dest);
+		printf(" It was in %s %d.", to_migrates[is_thread], prev_dest); // prev_dest+1 for demo only!
 	printf("\n");
 }

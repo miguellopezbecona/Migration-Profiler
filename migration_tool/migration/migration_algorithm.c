@@ -35,6 +35,7 @@ int perform_migration_strategy(page_table_t *page_t){
 	#endif
 
 	// Annealing strategy for threads, should be better as global strategy, but it didn't seem so...
+/*
 	#ifdef USE_ANNEA_ST
 	annealing_t a_st;
 	ths_migr = a_st.get_threads_to_migrate(page_t);
@@ -42,6 +43,7 @@ int perform_migration_strategy(page_table_t *page_t){
 		thm.perform_thread_migration();
 	#endif
 
+*/
 	return 0;
 }
 
@@ -90,14 +92,13 @@ int perform_migration_strategy(map<pid_t, page_table_t> *page_ts){
 	#endif
 
 	// Annealing strategy for threads. Does not work very well in this global version
-/*
+
 	#ifdef USE_ANNEA_ST
 	annealing_t a_st;
-	vector<migration_cell_t> ths_migr = a_st.get_threads_to_migrate(page_ts);
+	ths_migr = a_st.get_threads_to_migrate(page_ts);
 	for(migration_cell_t const & thm : ths_migr)
 		thm.perform_thread_migration();
 	#endif
-*/
 
 	#ifdef USE_ENER_ST
 	energy_str_t e_st;
@@ -105,11 +106,13 @@ int perform_migration_strategy(map<pid_t, page_table_t> *page_ts){
 	for(migration_cell_t const & thm : ths_migr)
 		thm.perform_thread_migration();
 
+/*
 	pgs_migr = e_st.get_pages_to_migrate(page_ts);
 	for(migration_cell_t const & pgm : pgs_migr){
 		pgm.perform_page_migration();
 		page_ts->operator[](pgm.pid).update_page_location(pgm);
 	}
+*/
 	#endif
 
 	return final_ret;
