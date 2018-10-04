@@ -223,14 +223,20 @@ void energy_data_t::read_buffer(double secs) {
 				//return;
 			*/
 			double raw_value_scaled = ((double)value*scale[d]);
+			#ifdef JUST_PROFILE_ENERGY
+			curr_vals[n][d] = (raw_value_scaled - prev_vals[n][d]) / secs;
+			#else
 			curr_vals[n][d] = (raw_value_scaled - prev_vals[n][d]) / secs - base_vals[n][d]; // Normal and base increments
+			#endif
 			prev_vals[n][d] = raw_value_scaled;
 
+			#ifndef JUST_PROFILE_ENERGY
 			// If a negative value is raised due to varying base value, this is updated and the current is nullified
 			if(curr_vals[n][d] < 0.0){
 				base_vals[n][d] += curr_vals[n][d];
 				curr_vals[n][d] = 0.0;
 			}
+			#endif
 		}
 	}
 }

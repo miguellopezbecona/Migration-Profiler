@@ -65,10 +65,6 @@ static options_t options;
 static size_t pgsz;
 static size_t map_size;
 
-#if defined(JUST_PROFILE_ENERGY) || defined(USE_ENER_ST)
-time_t last_ener_time;
-#endif
-
 time_t last_migr_time;
 
 static const char *events[2] = {
@@ -421,9 +417,6 @@ int mainloop(char **arg) {
 		}
 	}
 
-	#if defined(JUST_PROFILE_ENERGY) || defined(USE_ENER_ST)
-	last_ener_time = time(NULL); // Initial time
-	#endif
 	last_migr_time = time(NULL); // Initial time
 
 	// Core loop where the polling to the buffers is done, has some issues
@@ -433,11 +426,10 @@ int mainloop(char **arg) {
 
 		// Time is got and energy buffers are read
 		time_t current_time = time(NULL);
-		double secs = difftime(current_time, last_ener_time);
+		double secs = options.sbm * 1e-3;
 		ed.read_buffer(secs);
 		//ed.print_curr_vals(); // Just for testing we got the data
 		//printf("Secs: %.3f. Pkg: %.3f\n", secs, ed.curr_vals[0][0]);
-		last_ener_time = current_time;
 		#else
 		// Core call under normal conditions: polling to counter buffers
 		int ret = poll(pollfds, TOTAL_BUFFS, options.sbm);
