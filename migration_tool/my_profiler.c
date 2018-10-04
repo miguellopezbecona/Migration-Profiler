@@ -99,19 +99,26 @@ void perform_migration(){
 #endif
 
 static void process_smpl_buf(perf_event_desc_t *hw, int cpu, perf_event_desc_t **all_fds_p, int num_fds_p, int name) {
-	my_pebs_sample_t my_sample;
+
 	struct perf_event_header ehdr;
 	perf_event_desc_t *fds = NULL;
 
 	fds = all_fds_p[cpu];
 
-	for(;;) {
+	for(int i=0;;i++) {
 		int ret = perf_read_buffer(hw, &ehdr, sizeof(ehdr));
-		if (ret) // Nothing to read
+		if (ret) { // Nothing left to read
+			#ifdef JUST_PROFILE_ENERGY
+			if(i!=0) // // Adds energy data to last sample, if applicable (at least a sample (i!=0) was read)
+				add_energy_data_to_last_sample();
+			#endif
+
 			return;
+		}
 
 		switch(ehdr.type) {
-			case PERF_RECORD_SAMPLE:
+			case PERF_RECORD_SAMPLE: {
+				my_pebs_sample_t my_sample;
 				my_sample.values = (uint64_t*)malloc(sizeof(uint64_t)*num_fds_p);
 
 				ret = transfer_data_from_buffer_to_structure(fds, num_fds_p, hw - fds, &ehdr, &my_sample, uid);
@@ -120,17 +127,13 @@ static void process_smpl_buf(perf_event_desc_t *hw, int cpu, perf_event_desc_t *
 				if(ret < 0) // PID from process we can't migrate so it will be skipped
 					break;
 
-				// Adds energy data to sample, if applicable
-				#ifdef JUST_PROFILE_ENERGY
-				my_sample.add_energy_data();
-				#endif
-
 				add_data_to_list(my_sample);
 				
 				if (ret)
 					errx(1, "cannot parse sample");
 
 				collected_samples_group[name]++;
+			}
 				break;
 			case PERF_RECORD_EXIT:
 				//display_exit(hw, options.output_file);

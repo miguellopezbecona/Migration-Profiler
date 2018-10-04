@@ -19,5 +19,9 @@ void add_data_to_list(my_pebs_sample_t sample);
 int begin_migration_process();
 void clean_migration_structures();
 
+#ifdef JUST_PROFILE_ENERGY
+void add_energy_data_to_last_sample();
+#endif
+
 void work_with_fake_data();
 

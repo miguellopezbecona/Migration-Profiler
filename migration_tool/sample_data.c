@@ -1,5 +1,14 @@
 #include "sample_data.h"
 
+my_pebs_sample_t::my_pebs_sample() {
+	#ifdef JUST_PROFILE_ENERGY
+	energies = (double*)malloc(energy_data_t::NUM_RAPL_DOMAINS*sizeof(double));
+
+	for(int i=0;i<energy_data_t::NUM_RAPL_DOMAINS;i++)
+		energies[i] = -1.0;
+	#endif
+}
+
 bool my_pebs_sample_t::is_mem_sample() const {
 	return nr == 1; //sample_addr != 0
 }
@@ -46,8 +55,6 @@ void my_pebs_sample_t::print(FILE *fp) const {
 void my_pebs_sample_t::add_energy_data() {
 	int node = system_struct_t::cpu_node_map[cpu];
 	double** vals = ed.get_curr_vals(); // Energy values
-
-	energies = (double*)malloc(energy_data_t::NUM_RAPL_DOMAINS*sizeof(double));
 
 	// Copies energy values from the associated node to CPU sample
 	memcpy(energies, vals[node], energy_data_t::NUM_RAPL_DOMAINS*sizeof(double));

@@ -41,6 +41,7 @@ typedef struct my_pebs_sample {
 	static void add_subevent_name(char* name);
 	#endif
 
+	my_pebs_sample();
 	bool is_mem_sample() const;
 	void print(FILE *fp) const;
 	static void print_header(FILE *fp);

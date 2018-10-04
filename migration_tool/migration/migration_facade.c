@@ -40,6 +40,13 @@ void add_data_to_list(my_pebs_sample_t sample){
 	#endif
 }
 
+#ifdef JUST_PROFILE_ENERGY
+void add_energy_data_to_last_sample(){
+	//if(!samples.empty()) // Not necessary, but maybe one could want sanity checking
+	samples.back().add_energy_data();
+}
+#endif
+
 void clean_migration_structures(){
 	#ifdef JUST_PROFILE
 	// Prints remaining samples
