@@ -577,7 +577,7 @@ extern pfm_err_t pfm_get_event_encoding(const char *str, int dfl_plm, char **fst
 /*
  * error codes
  */
-#define PFM_SUCCESS		0	/* success */
+#define PFM_SUCCESS			0	/* success */
 #define PFM_ERR_NOTSUPP		-1	/* function not supported */
 #define PFM_ERR_INVAL		-2	/* invalid parameters */
 #define PFM_ERR_NOINIT		-3	/* library was not initialized */

@@ -1,0 +1,35 @@
+#pragma once
+#ifndef __FIRST_TOUCH_STRATEGY__
+#define __FIRST_TOUCH_STRATEGY__
+
+#include "strategy.hpp"
+
+class first_touch_t : public strategy {
+public:
+	// Only valid for pages
+
+	// Migrates pages if they were accessed by a thread residing in a different memory node
+	std::vector<migration_cell_t> get_pages_to_migrate (page_table_t & page_t) {
+		std::vector<migration_cell_t> ret;
+
+		// Loops over all the pages
+		for (auto const & t_it : page_t.page_node_map) {
+			long int addr = t_it.first;
+			pg_perf_data_t pd = t_it.second;
+
+			// Gets memory node of last CPU access
+			int cpu_node = system_struct_t::get_cpu_memory_node(pd.last_cpu_access);
+
+			// Compares to page location and adds to migration list if different
+			int page_node = pd.current_node;
+			if(cpu_node != page_node){
+				migration_cell_t mc(addr, cpu_node, page_t.pid, false);
+				ret.push_back(mc);
+			}
+		}
+
+		return ret;
+	}
+};
+
+#endif
