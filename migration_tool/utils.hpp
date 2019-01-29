@@ -196,7 +196,7 @@ void print_map_to_json (const std::map<pid_t, std::vector<pid_t>> & m, char cons
 	file.close();
 }
 
-void print_samples (const std::vector<my_pebs_sample_t> & samples, const char * base){
+void print_samples (const std::vector<my_pebs_sample_t> & samples, const char * base) {
 	// No data to dump
 	if (samples.empty())
 		return;
@@ -219,7 +219,7 @@ void print_samples (const std::vector<my_pebs_sample_t> & samples, const char * 
 	file.close();
 }
 
-void print_everything (const std::vector<my_pebs_sample_t> & samples, const std::map<pid_t, std::vector<pid_t>> & m){
+void print_everything (const std::vector<my_pebs_sample_t> & samples, const std::map<pid_t, std::vector<pid_t>> & m) {
 	char base[32];
 	get_formatted_current_time(base);
 

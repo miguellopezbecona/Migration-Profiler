@@ -10,14 +10,16 @@ class population {
 public:
 	std::vector<individual_t> v;
 
-	population () {};
+	population () {
+		v.reserve(MAX_SIZE);
+	};
 
 	void add (const individual_t idv) {
 		// If the population is full, we will replace the first idv with lots of dead TIDs or the one with the worst fitness
 		if (v.size() == MAX_SIZE) {
 			size_t index = 0;
 			for (size_t i = 0; i < v.size(); i++) {
-				if(v[i].is_too_old()){
+				if (v[i].is_too_old()) {
 					#ifdef GENETIC_OUTPUT
 					std::cout << "Individual " << i << " is too old, so... ";
 					#endif
@@ -44,30 +46,22 @@ public:
 		v.push_back(idv); // And then, we add the new idv
 	}
 
-	inline void set (const int idx, individual_t & idv) {
+	inline void set (const int idx, const individual_t idv) {
 	    v[idx] = idv;
 	}
 
 	inline void update_fitness (const double fitness) { // A posteriori performance update the latest-1_th state
 		// Only one individual will have NO_FITNESS as fitness, which is the one to modify
 
-		// SInce we always replace only one element and we insert at the end, the element to modify is the last one. If not, uncomment the next block
+		// Since we always replace only one element and we insert at the end, the element to modify is the last one. If not, uncomment the next block
 		size_t sz = v.size();
 		v[sz-1].fitness = fitness;
-
-		/*
-		for(individual & i : v){
-			if(i.get_fitness() == NO_FITNESS){
-				i.fitness = f;
-				break;
-			}
-		}
-		*/
 	}
 
 	inline individual_t get_best_ind () const {
 		size_t index = 0;
-		for (size_t i = 1; i < v.size(); i++){
+
+		for (size_t i = 1; i < v.size(); i++) {
 			#ifdef MAXIMIZATION
 			if (v[i].get_fitness() > v[index].get_fitness())
 			#elif defined(MINIMIZATION)
@@ -79,18 +73,12 @@ public:
 		return v[index];
 	}
 
-	inline bool is_first_iteration () {
+	inline bool is_first_iteration () const {
 		return v.empty();
 	}
 
-	inline void print () {
-		std::cout << "Printing population content:" << '\n';
-		size_t c = 0;
-
-		for (individual_t const & i : v) {
-			std::cout << "Indiv. " << c << " = " << i;
-			c++;
-		}
+	inline void print () const {
+		std::cout << *this;
 	}
 
 	friend std::ostream & operator << (std::ostream & os, const population & p) {
@@ -98,7 +86,7 @@ public:
 		size_t c = 0;
 
 		for (individual_t const & i : p.v) {
-			std::cout << "Indiv. " << c << " = " << i;
+			os << "Indiv. " << c << " = " << i;
 			c++;
 		}
 	}

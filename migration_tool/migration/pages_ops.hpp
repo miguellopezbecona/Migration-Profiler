@@ -47,7 +47,7 @@ inline int get_page_current_node (const pid_t pid, const long int pageAddr) {
 	return status;
 }
 
-void build_page_tables (memory_data_list_t m_list, inst_data_list_t i_list, std::map<pid_t, page_table_t> & page_ts) {
+void build_page_tables (const memory_data_list_t & m_list, const inst_data_list_t & i_list, std::map<pid_t, page_table_t> & page_ts) {
 	// Builds data from m_list, but first we calculate page address, page node, and then it is added to the table cell
 	for (memory_data_cell_t const & m_cell : m_list.list) {
 
@@ -80,7 +80,7 @@ void build_page_tables (memory_data_list_t m_list, inst_data_list_t i_list, std:
 
 	#ifdef USE_ANNEA_ST	// Unnecessary processing if we don't use annealing strategy
 	// Adds inst data from i_list for better performance calculation
-	for(inst_data_cell_t const & i_cell : i_list.list){
+	for (inst_data_cell_t const & i_cell : i_list.list) {
 
 		// If there is no table associated (no mem sample) to the pid, the data will be discarded
 		if(!page_ts.count(i_cell.pid)) // = !contains(pid)
@@ -90,7 +90,7 @@ void build_page_tables (memory_data_list_t m_list, inst_data_list_t i_list, std:
 	}
 
 	// After all the sums from insts are done, the perf is calculated
-	for(auto const & it : page_ts)
+	for (auto const & it : page_ts)
 		page_ts[it.first].calc_perf();
 	#endif
 
@@ -104,7 +104,7 @@ void build_page_tables (memory_data_list_t m_list, inst_data_list_t i_list, std:
 	#endif
 }
 
-int pages (std::set<pid_t> pids, memory_data_list_t m_list, inst_data_list_t i_list, std::map<pid_t, page_table_t> & page_ts) {
+int pages (const std::set<pid_t> & pids, const memory_data_list_t & m_list, const inst_data_list_t & i_list, std::map<pid_t, page_table_t> & page_ts) {
 	// Builds tables
 	build_page_tables(m_list, i_list, page_ts);
 

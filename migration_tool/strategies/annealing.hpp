@@ -48,7 +48,7 @@ public:
 	}
 
 	void prepare_for_undo () {
-		if(!is_interchange())
+		if (!is_interchange())
 			potential_migr[0].interchange_dest();
 		else {
 			potential_migr[0].prev_dest = potential_migr[0].dest;
@@ -67,11 +67,7 @@ public:
 	}
 
 	void print () const {
-		const char* const choices[] = {" simple migration", "n interchange"};
-		std::cout << "It is a" << choices[is_interchange()] << ". " << tickets << " tickets:" << '\n';
-		for (migration_cell_t const & mc : potential_migr) {
-			std::cout << "\t" << mc << '\n';
-		}
+		std::cout << *this;
 	}
 
 	friend std::ostream & operator << (std::ostream & os, const labeled_migr_t & m) {
@@ -89,7 +85,7 @@ labeled_migr_t labeled_migr_t::last_migration;
 class annealing_t : public strategy {
 private:
 	// Gets a different number of tickets depending on perf values and if we are comparing a external thread for interchange or not (mod)
-	inline int get_tickets_from_perfs (const int mem_cell, const int current_cell, const std::vector<double> perfs, const bool mod) {
+	inline int get_tickets_from_perfs (const int mem_cell, const int current_cell, const std::vector<double> perfs, const bool mod) const {
 		if (perfs[mem_cell] == PERFORMANCE_INVALID_VALUE)
 			return TICKETS_MEM_CELL_NO_DATA[mod];
 		else if (perfs[current_cell] > perfs[mem_cell])
@@ -98,12 +94,12 @@ private:
 			return TICKETS_MEM_CELL_BETTER[mod];
 	}
 
-	std::vector<labeled_migr_t> get_candidate_list (const pid_t worst_tid, page_table_t & page_t){
+	std::vector<labeled_migr_t> get_candidate_list (const pid_t worst_tid, const page_table_t & page_t) const {
 		std::vector<labeled_migr_t> migration_list;
 
-		int current_cpu = system_struct_t::get_cpu_from_tid(worst_tid);
-		int current_cell = system_struct_t::get_cpu_memory_node(current_cpu);
-		std::vector<double> current_perfs = page_t.get_perf_data(worst_tid);
+		const int current_cpu = system_struct_t::get_cpu_from_tid(worst_tid);
+		const int current_cell = system_struct_t::get_cpu_memory_node(current_cpu);
+		const std::vector<double> & current_perfs = page_t.get_perf_data(worst_tid);
 
 		// Search potential core destinations from different memory nodes
 		for (int n = 0; n < system_struct_t::NUM_OF_MEMORIES; n++) {
@@ -111,11 +107,11 @@ private:
 				continue;
 
 			for (int i = 0; i < system_struct_t::CPUS_PER_MEMORY; i++) {
-				int actual_cpu = system_struct_t::node_cpu_map[n][i];
+				const int actual_cpu = system_struct_t::node_cpu_map[n][i];
 
 				int tickets = get_tickets_from_perfs(n, current_cell, current_perfs, false);
 
-				migration_cell_t mc(worst_tid, actual_cpu, current_cpu, page_t.pid, true); // Migration associated to this iteration (CPU)
+				const migration_cell_t mc(worst_tid, actual_cpu, current_cpu, page_t.pid, true); // Migration associated to this iteration (CPU)
 
 				// Free core: posible simple migration with a determined score
 				if (system_struct_t::is_cpu_free(actual_cpu)) {
@@ -127,7 +123,7 @@ private:
 				}
 
 				// We will choose the TID with generates the higher number of tickets
-				std::vector<pid_t> tids = system_struct_t::get_tids_from_cpu(actual_cpu);
+				const std::vector<pid_t> & tids = system_struct_t::get_tids_from_cpu(actual_cpu);
 				pid_t other_tid = -1;
 				int aux_tickets = -1;
 
@@ -144,8 +140,8 @@ private:
 
 				tickets += aux_tickets;
 
-				migration_cell_t mc2(other_tid, current_cpu, actual_cpu, page_t.pid, true);
-				labeled_migr_t lm(mc, mc2, tickets);
+				const migration_cell_t mc2(other_tid, current_cpu, actual_cpu, page_t.pid, true);
+				const labeled_migr_t lm(mc, mc2, tickets);
 				migration_list.push_back(lm);
 			}
 		}
@@ -154,15 +150,15 @@ private:
 	}
 
 	// Picks migration or interchange from candidate list
-	labeled_migr_t get_random_labeled_cell(const std::vector<labeled_migr_t> & lm_list){
+	labeled_migr_t get_random_labeled_cell(const std::vector<labeled_migr_t> & lm_list) const {
 		int total_tickets = 0;
-		for(labeled_migr_t const & lm : lm_list)
+		for (labeled_migr_t const & lm : lm_list)
 			total_tickets += lm.tickets;
 		int result = rand() % total_tickets; // Gets random number up to total tickets
 
-		for(labeled_migr_t const & lm : lm_list) {
+		for (labeled_migr_t const & lm : lm_list) {
 			result -= lm.tickets; // Subtracts until lower than zero
-			if(result < 0)
+			if (result < 0)
 				return lm;
 		}
 
@@ -170,7 +166,7 @@ private:
 		return lm_list[0];
 	}
 
-	std::vector<migration_cell_t> get_iteration_migration (page_table_t & page_t) {
+	std::vector<migration_cell_t> get_iteration_migration (page_table_t page_t) const {
 		pid_t worst_tid = page_t.normalize_perf_and_get_worst_thread();
 
 		#ifdef ANNEALING_PRINT
@@ -180,12 +176,12 @@ private:
 		//page_t->print_performance(); // Perfs after normalization
 
 		// Selects migration targets for lottery (this is where the algoritm really is)
-		std::vector<labeled_migr_t> migration_list = get_candidate_list(worst_tid, page_t);
+		const std::vector<labeled_migr_t> migration_list = get_candidate_list(worst_tid, page_t);
 
 		#ifdef ANNEALING_PRINT
 		std::cout << "\n*\nMIGRATION LIST CONTENT:" << '\n';
 		for (labeled_migr_t const & lm : migration_list)
-			lm.print();
+			std::cout << lm;
 		#endif
 
 		// I think this will only happen in no-NUMA systems, for testing
@@ -197,7 +193,7 @@ private:
 			return emp;
 		}
 
-		labeled_migr_t target_cell = get_random_labeled_cell(migration_list);
+		const labeled_migr_t & target_cell = get_random_labeled_cell(migration_list);
 
 		#ifdef ANNEALING_PRINT
 		std::cout << "\n*\nTARGET MIGRATION: " << target_cell;
@@ -206,12 +202,10 @@ private:
 		// Saving for possible undo, prepared latter
 		labeled_migr_t::last_migration = target_cell;
 
-		migration_list.clear();
-
 		return target_cell.potential_migr;
 	}
 
-	std::vector<migration_cell_t> get_iteration_migration (std::map<pid_t, page_table_t> page_ts) {
+	std::vector<migration_cell_t> get_iteration_migration (std::map<pid_t, page_table_t> page_ts) const {
 		pid_t worst_tid = -1;
 		double min_p = 1e15;
 
@@ -284,20 +278,18 @@ private:
 		// Saving for possible undo, prepared latter
 		labeled_migr_t::last_migration = target_cell;
 
-		migration_list.clear();
-
 		return target_cell.potential_migr;
 	}
 
 	/*** Functions for global version ***/
-	std::vector<labeled_migr_t> get_candidate_list(const pid_t worst_tid, std::map<pid_t, page_table_t> & page_ts){
+	std::vector<labeled_migr_t> get_candidate_list (const pid_t worst_tid, const std::map<pid_t, page_table_t> & page_ts) const {
 		std::vector<labeled_migr_t> migration_list;
 
 		int current_cpu = system_struct_t::get_cpu_from_tid(worst_tid);
 		int current_cell = system_struct_t::get_cpu_memory_node(current_cpu);
 
 		pid_t current_pid = system_struct_t::get_pid_from_tid(worst_tid);
-		std::vector<double> current_perfs = page_ts[current_pid].get_perf_data(worst_tid);
+		std::vector<double> current_perfs = page_ts.at(current_pid).get_perf_data(worst_tid);
 
 		// Search potential core destinations from different memory nodes
 		for (int n = 0; n < system_struct_t::NUM_OF_MEMORIES; n++) {
@@ -328,7 +320,7 @@ private:
 
 				for (pid_t const & aux_tid : tids) {
 					pid_t other_pid = system_struct_t::get_pid_from_tid(aux_tid);
-					std::vector<double> other_perfs = page_ts[other_pid].get_perf_data(aux_tid);
+					std::vector<double> other_perfs = page_ts.at(other_pid).get_perf_data(aux_tid);
 					int tid_tickets = get_tickets_from_perfs(current_cell, n, other_perfs, true);
 
 					// Better TID to pick
@@ -352,7 +344,7 @@ private:
 public:
 	// Only valid for threads
 	// One PID version
-	std::vector<migration_cell_t> get_threads_to_migrate(page_table_t & page_t) {
+	std::vector<migration_cell_t> get_threads_to_migrate (page_table_t & page_t) const {
 		std::vector<migration_cell_t> ret;
 
 		double current_performance = page_t.get_total_performance();
@@ -388,7 +380,7 @@ public:
 		return ret;
 	}
 
-	std::vector<migration_cell_t> get_threads_to_migrate(std::map<pid_t, page_table_t> & page_ts) {
+	std::vector<migration_cell_t> get_threads_to_migrate (std::map<pid_t, page_table_t> & page_ts) const {
 		std::vector<migration_cell_t> ret;
 
 		double current_performance = 0.0;
@@ -430,7 +422,7 @@ public:
 		ret = get_iteration_migration(page_ts);
 
 		// Cleans performance data and finishes iteration
-		for(auto & t_it : page_ts)
+		for (auto & t_it : page_ts)
 			t_it.second.reset_performance();
 
 		return ret;

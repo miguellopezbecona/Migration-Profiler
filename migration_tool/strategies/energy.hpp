@@ -15,7 +15,7 @@
 
 class energy_str_t : public strategy {
 public:
-	inline std::vector<migration_cell_t> get_migrations (std::map<pid_t, page_table_t> & page_ts) {
+	inline std::vector<migration_cell_t> get_migrations (const std::map<pid_t, page_table_t> & page_ts) {
 		std::vector<migration_cell_t> v1 = get_threads_to_migrate(page_ts);
 		std::vector<migration_cell_t> v2 = get_pages_to_migrate(page_ts);
 
@@ -27,7 +27,7 @@ public:
 		return v1;
 	}
 
-	std::vector<migration_cell_t> get_threads_to_migrate (std::map<pid_t, page_table_t> & page_ts) {
+	std::vector<migration_cell_t> get_threads_to_migrate (const std::map<pid_t, page_table_t> & page_ts) {
 		const double MAX_PERC_THRES = 0.2; // Threshold maximum increase ratio against base to do migrations
 		const double DIFF_PERC_THRES = 0.3; // Minimum ratio difference between lowest and highest to do migrations
 		const size_t MAX_THREADS_TO_MIGRATE = 1;
@@ -131,7 +131,7 @@ public:
 		return v;
 	}
 
-	std::vector<migration_cell_t> get_pages_to_migrate (std::map<pid_t, page_table_t> & page_ts) {
+	std::vector<migration_cell_t> get_pages_to_migrate (const std::map<pid_t, page_table_t> & page_ts) {
 		const double MAX_THRES = 1.0; // Threshold maximum raw increase against base to do migrations
 		const double DIFF_THRES = 0.75; // Threshold raw difference between highest and lowest to do migrations
 		const size_t MAX_PAGES_TO_MIGRATE = 15;
@@ -140,7 +140,6 @@ public:
 		// Regarding pages
 		std::vector<double> rams = ed.get_curr_vals_from_domain("ram");
 		#ifdef ENER_OUTPUT
-		printf("ram values (minus base) for each node from last iteration: ");
 		std::cout << "ram values (minus base) for each node from last iteration: ";
 		{
 			const auto precision = std::cout.precision();
@@ -153,7 +152,7 @@ public:
 		#endif
 
 		// "ram" domain not supported, let's focus on threads
-		if(rams.empty())
+		if (rams.empty())
 			return v;
 
 		auto it_max = max_element(rams.begin(), rams.end());
@@ -169,7 +168,7 @@ public:
 		#endif
 
 		// No enough memory consumption increase -> no page migrations
-		if(mx < MAX_THRES){
+		if (mx < MAX_THRES) {
 			#ifdef ENER_OUTPUT
 			std::cout << "no page migrations." << "\n\n";
 			#endif
@@ -212,29 +211,29 @@ public:
 		#endif
 
 		// We search memory pages from "from" node to migrate
-		for(auto const & t_it : page_ts) { // Looping over PIDs
-			if(v.size() == MAX_PAGES_TO_MIGRATE)
+		for (auto const & t_it : page_ts) { // Looping over PIDs
+			if (v.size() == MAX_PAGES_TO_MIGRATE)
 				break;
 
-			pid_t pid = t_it.first;
-			page_table_t table = t_it.second;
+			const pid_t pid = t_it.first;
+			const page_table_t table = t_it.second;
 
-			for(auto const & p_it : table.page_node_map){ // Looping over pages
-				if(v.size() == MAX_PAGES_TO_MIGRATE)
+			for (auto const & p_it : table.page_node_map) { // Looping over pages
+				if (v.size() == MAX_PAGES_TO_MIGRATE)
 					break;
 
 				long int addr = p_it.first;
 				pg_perf_data_t perf = p_it.second;
 
 				// Not from the desired node, to the next!
-				if(perf.current_node != from)
+				if (perf.current_node != from)
 					continue;
 
 				// We won't migrate pages with "high" locality
-				if(perf.acs_per_node[from] > 1)
+				if (perf.acs_per_node[from] > 1)
 					continue;
 
-				migration_cell_t mc(addr, to, pid, false);
+				const migration_cell_t mc(addr, to, pid, false);
 				v.push_back(mc);
 			}
 		}

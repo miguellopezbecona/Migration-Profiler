@@ -55,11 +55,11 @@ public:
 		thread_cell(thread_cell)
 	{};
 
-	inline bool is_thread_cell() const {
+	inline bool is_thread_cell () const {
 		return thread_cell;
 	}
 
-	int perform_page_migration() const {
+	int perform_page_migration () const {
 		void **page = (void **)calloc(1,sizeof(long int *));
 		page[0] = (void*) elem;
 		int dest_int = dest, status;
@@ -102,9 +102,7 @@ public:
 	}
 
 	inline void interchange_dest () {
-		short aux = dest;
-		dest = prev_dest;
-		prev_dest = aux;
+		std::swap(dest, prev_dest);
 	}
 
 	void print () const {

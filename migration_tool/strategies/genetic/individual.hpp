@@ -25,7 +25,7 @@ public:
 		fitness(NO_FITNESS)
 	{}
 
-	individual_t (std::map<pid_t, page_table_t> & ts) :
+	individual_t (const std::map<pid_t, page_table_t> & ts) :
 		v(system_struct_t::NUM_OF_CPUS)
 	{
 		// Builds list from system_struct data
@@ -34,15 +34,15 @@ public:
 				continue;
 
 			// Correct index of CPU in ordered_cpus
-			int index = find(system_struct_t::ordered_cpus.begin(), system_struct_t::ordered_cpus.end(), i) - system_struct_t::ordered_cpus.begin();
+			const auto index = find(system_struct_t::ordered_cpus.begin(), system_struct_t::ordered_cpus.end(), i) - system_struct_t::ordered_cpus.begin();
 
 			// Assigns list
 			v[index] = system_struct_t::get_tids_from_cpu(i);
 		}
 
 		// Calculates fitness (in this case, mean latency), using only data from last iteration
-		std::vector<int> all_ls;
-		for (auto & it : ts) { // For each table (PID), gets all its latencies
+		std::vector<int> all_ls(ts.size());
+		for (const auto & it : ts) { // For each table (PID), gets all its latencies
 			std::vector<int> l = it.second.get_all_lats();
 			all_ls.insert(end(all_ls), begin(l), end(l));
 		}
@@ -68,7 +68,7 @@ public:
 		v[index] = value;
 	}
 
-	inline bool is_too_old () {
+	inline bool is_too_old () const {
 		const double PERC_THRES = 0.5;
 
 		unsigned short num_tids = 0;
@@ -89,22 +89,22 @@ public:
 		return perc >= PERC_THRES;
 	}
 
-	inline migration_cell_t mutate(const size_t index) {  // Changes location directly
+	inline migration_cell_t mutate (const size_t index) {  // Changes location directly
 		// TODO: no implementation yet
 	}
 
-	inline void mutate(const size_t idx1, const size_t idx2) { // Interchange
+	inline void mutate (const size_t idx1, const size_t idx2) { // Interchange
 		std::swap(v[idx1], v[idx2]);
 	}
 
-	individual_t cross(const individual_t & other, const int idx1, const int idx2) { // Using order crossover
+	individual_t cross (const individual_t & other, const int idx1, const int idx2) const { // Using order crossover
 		const size_t sz = v.size();
 		int cut1, cut2, copy_idx;
 
 		gene num;
 
 		// Gets which one is the first cut and which is the second
-		if(idx1 > idx2){
+		if (idx1 > idx2) {
 			cut1 = idx2;
 			cut2 = idx1;
 		} else {
@@ -170,33 +170,7 @@ public:
 	}
 
 	void print() const {
-		std::cout << "{fitness: ";
-		if(fitness == NO_FITNESS)
-			std::cout << "???";
-		else {
-			const auto precision = std::cout.precision();
-			std::cout.precision(3);
-			std::cout << fitness;
-			std::cout.precision(precision);
-		}
-		std::cout << ", content: ";
-
-		for (gene const & tids : v) {
-			if (tids.empty()) {
-				std::cout << "F "; // Free CPU
-				continue;
-			}
-
-			auto & last = *(--tids.end()); // To know when stop printing underscores
-			for (pid_t const & tid : tids) {
-				printf("%d", tid);
-				std::cout << tid;
-				if (&tid != &last)
-					std::cout << "_";
-			}
-			std::cout << " ";
-		}
-		std::cout << "}" << '\n';
+		std::cout << *this;
 	}
 
 	// For easing readibility

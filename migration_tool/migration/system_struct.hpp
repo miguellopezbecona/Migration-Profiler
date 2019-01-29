@@ -82,7 +82,7 @@ private:
 		file.close();
 	}
 
-	static bool are_all_nodes_processed (const std::vector<bool> processed) {
+	static bool are_all_nodes_processed (const std::vector<bool> & processed) {
 		for (int i = 0; i < system_struct_t::NUM_OF_MEMORIES; i++) {
 			if (!processed[i])
 				return false;
@@ -187,34 +187,14 @@ public:
 		return 0;
 	}
 
-	static void clean () {
-		// free(cpu_node_map);
-		// for (int i = 0; i < NUM_OF_MEMORIES; i++) {
-		// 	free(node_cpu_map[i]);
-		// 	free(node_distances[i]);
-		// }
-		// free(node_distances);
-		// free(node_cpu_map);
-		// for (auto & v : node_cpu_map) {
-		// 	v->clear();
-		// }
-		// TODO: necessary
-		node_cpu_map.clear();
-		tid_cpu_map.clear();
-		for(int i = 0; i < NUM_OF_CPUS; i++) {
-			cpu_tid_map[i].clear();
-		}
-		cpu_tid_map.clear();
-		tid_pid_map.clear();
-		ordered_cpus.clear();
-	}
+	static void clean () {}
 
 	// Node-CPU methods
 	static inline int get_cpu_memory_node (const int cpu) {
 		return cpu_node_map[cpu];
 	}
 
-	static inline bool is_in_same_memory_node(int cpu1, int cpu2) {
+	static inline bool is_in_same_memory_node(const int cpu1, const int cpu2) {
 		return cpu_node_map[cpu1] == cpu_node_map[cpu2];
 	}
 
@@ -293,7 +273,7 @@ public:
 		return cpu_tid_map[cpu].empty();
 	}
 
-	static inline int get_free_cpu_from_node(const int node, const std::set<int> nopes) {
+	static inline int get_free_cpu_from_node(const int node, const std::set<int> & nopes) {
 		for (int c = 0; c < CPUS_PER_MEMORY; c++) {
 			int cpu = node_cpu_map[node][c];
 			if (is_cpu_free(cpu) && !nopes.count(cpu))

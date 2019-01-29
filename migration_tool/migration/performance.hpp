@@ -215,14 +215,7 @@ public:
 		coln(n)
 	{}
 
-	~perf_table_t () {
-		// TODO: necessary???
-		// Frees list for each row
-		for(auto & it : table)
-			it.second.clear();
-
-		table.clear();
-	}
+	~perf_table_t () {}
 
 	inline bool has_row (const long int key) const {
 		return table.count(key) > 0;

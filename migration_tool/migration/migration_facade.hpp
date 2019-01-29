@@ -37,7 +37,7 @@ std::map<pid_t, page_table_t> temp_page_tables; // Maintains data from current i
 
 unsigned int step = 0;
 
-void add_data_to_list (my_pebs_sample_t sample) {
+void add_data_to_list (const my_pebs_sample_t & sample) {
 	#ifdef JUST_PROFILE // Just adds samples to list
 	samples.push_back(sample);
 
@@ -64,7 +64,7 @@ void add_data_to_list (my_pebs_sample_t sample) {
 }
 
 #ifdef JUST_PROFILE_ENERGY
-void add_energy_data_to_last_sample(){
+void add_energy_data_to_last_sample () {
 	//if(!samples.empty()) // Not necessary, but maybe one could want sanity checking
 	samples.back().add_energy_data();
 }
@@ -194,10 +194,10 @@ int begin_migration_process () {
 		//printf("Working over table associated to PID: %d\n", pid);
 
 		// Is PID alive?
-		if(!is_pid_alive(pid)){
+		if (!is_pid_alive(pid)) {
 
 			// We get TIDs from the dead PID so we can remove those rows from tid_cpu_table and system_struct
-			for(pid_t const & tid : table.get_tids()){
+			for (pid_t const & tid : table.get_tids()) {
 				tid_cpu_table.remove_row(tid);
 				system_struct_t::remove_tid(tid, false);
 			}

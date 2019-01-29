@@ -32,7 +32,7 @@ public:
 	{};
 
 	inline bool is_cache_miss () const {
-		union perf_mem_data_src *mdsrc = (perf_mem_data_src*) &dsrc;
+		union perf_mem_data_src * mdsrc = (perf_mem_data_src *) &dsrc;
 
 		// PERF_MEM_LVL_MISS or PERF_MEM_LVL_UNC?
 		//printf("%d %u, ", mdsrc->mem_lvl & PERF_MEM_LVL_MISS, mdsrc->mem_lvl & PERF_MEM_LVL_UNC);
@@ -110,7 +110,7 @@ public:
 		list.push_back(cell);
 	}
 
-	inline bool is_empty () {
+	inline bool is_empty () const {
 		return list.empty();
 	}
 
@@ -118,7 +118,7 @@ public:
 		list.clear();
 	}
 
-	void print () {
+	void print () const {
 		std::cout << *this;
 	}
 

@@ -17,9 +17,10 @@
 class gen_utils {
 	public:
 	static inline int get_rand_int (const int max, const int no_repeat) {
-		int ret = no_repeat;
-		while (ret == no_repeat)
+		auto ret = no_repeat;
+		do {
 			ret = rand() % max;
+		} while (ret == no_repeat);
 		return ret;
 	}
 
@@ -27,7 +28,7 @@ class gen_utils {
 		return (double) rand() / (double) RAND_MAX;
 	}
 
-	static inline bool contains(const std::vector<int> & v, const int e) {
+	static inline bool contains (const std::vector<int> & v, const int e) {
 		return find(v.begin(), v.end(), e) != v.end();
 	}
 };

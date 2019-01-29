@@ -414,7 +414,7 @@ int mainloop (char ** arg) {
 	signal(SIGINT, clean_end);
 
 	// This is for polling the buffers of system_struct_t::NUM_OF_CPUS cpus for the available groups
-	for (size_t i = 0; i < TOTAL_BUFFS; i++){
+	for (size_t i = 0; i < TOTAL_BUFFS; i++) {
 		auto gr  = i / system_struct_t::NUM_OF_CPUS;
 		auto cpu = i % system_struct_t::NUM_OF_CPUS;
 		fds = all_fds[gr][cpu];

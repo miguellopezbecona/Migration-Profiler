@@ -358,7 +358,7 @@ public:
 		}
 	}
 
-	double get_total_performance () {
+	double get_total_performance () const {
 		double val = 0.0;
 
 		// We loop over TIDs
@@ -366,21 +366,21 @@ public:
 			pid_t tid = t_it.first;
 
 			// And we sum them all if active
-			rm3d_data_t pd = perf_per_tid[tid];
-			if(!pd.active)
+			rm3d_data_t pd = perf_per_tid.at(tid);
+			if (!pd.active)
 				continue;
 
-			val += pd.v_perfs[pd.index_last_node_calc];
+			val += pd.v_perfs.at(pd.index_last_node_calc);
 		}
 
 		return val;
 	}
 
-	inline std::vector<double> get_perf_data(const pid_t tid) {
-		return perf_per_tid[tid].v_perfs;
+	inline std::vector<double> get_perf_data(const pid_t tid) const {
+		return perf_per_tid.at(tid).v_perfs;
 	}
 
-	std::vector<int> get_all_lats () {
+	std::vector<int> get_all_lats () const {
 		std::vector<int> v;
 		v.reserve(2 * uniq_addrs.size());
 
@@ -393,12 +393,12 @@ public:
 		return v;
 	}
 
-	std::vector<int> get_lats_for_tid (const pid_t tid) {
+	std::vector<int> get_lats_for_tid (const pid_t tid) const {
 		std::vector<int> v;
 
-		int pos = tid_index[tid];
+		const auto pos = tid_index.at(tid);
 		for (auto const & it : table[pos]){
-			const std::vector<int> ls = it.second.latencies;
+			const std::vector<int> & ls = it.second.latencies;
 			v.insert(v.end(), ls.begin(), ls.end()); // Appends latencies to main list
 		}
 

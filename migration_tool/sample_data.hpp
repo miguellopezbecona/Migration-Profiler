@@ -48,7 +48,7 @@ public:
 	my_pebs_sample_t () {
 		#ifdef JUST_PROFILE_ENERGY
 		// energies = (double*) malloc(energy_data_t::NUM_RAPL_DOMAINS * sizeof(double));
-
+		energies.reserve(energy_data_t::NUM_RAPL_DOMAINS);
 		for (int i = 0; i < energy_data_t::NUM_RAPL_DOMAINS; i++) {
 			// energies[i] = -1.0;
 			energies.push_back(-1.0);
@@ -144,7 +144,7 @@ public:
 		const char type = mem_sample ? 'M' : 'I';
 
 		#ifdef SIMPL_PRINT
-			os << type << "," << s.pid << "," << s.cpu << "," << s.time << "," << s.sample_addr << "," << s.weight;
+			os << type << "," << s.pid << "," << s.tid << "," << s.cpu << "," << s.time << "," << s.sample_addr << "," << s.weight;
 		#else
 			os << type << "," << s.iip << "," << s.pid << "," << s.tid << "," << s.cpu << "," << s.time << "," <<
 				s.sample_addr << "," << s.weight << "," << s.time_enabled << "," << s.time_running << "," << s.dsrc;

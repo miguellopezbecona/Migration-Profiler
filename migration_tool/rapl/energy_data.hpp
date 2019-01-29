@@ -26,12 +26,13 @@ public:
 	double* scale;
 
 private:
-	static bool comparison_func(const char *c1, const char *c2){
+	static bool comparison_func (const char *c1, const char *c2) {
 		return strcmp(c1, c2) < 0;
 	}
 
 public:
 	energy_data_t () {}
+
 	~energy_data_t () {
 		// Nothing was initialized
 		if(curr_vals == NULL)
@@ -46,7 +47,6 @@ public:
 
 		for(int i=0; i<NUM_RAPL_DOMAINS; i++)
 			free(units[i]);
-		rapl_domain_names.clear();
 
 		free(base_vals);
 		free(prev_vals);
