@@ -30,11 +30,11 @@ public:
 	{};
 
 	void print() const {
-		std::cout << *this;
+		std::cout << *this << '\n';
 	}
 
 	inline friend std::ostream & operator << (std::ostream & os, const inst_data_cell_t & i) {
-		os << "CPU: " << i.cpu << ", PID: " << i.pid << ", TID: " << i.tid << ", INST: " << i.inst << ", REQ_DR: " << i.req_dr << ", TIME: " << i.time << '\n';
+		os << "CPU: " << i.cpu << ", PID: " << i.pid << ", TID: " << i.tid << ", INST: " << i.inst << ", REQ_DR: " << i.req_dr << ", TIME: " << i.time;
 		return os;
 	}
 };
@@ -62,7 +62,7 @@ public:
 
 	friend std::ostream & operator << (std::ostream & os, const inst_data_list_t & i) {
 		for (const auto & l : i.list) {
-			os << l;
+			os << l << '\n';
 		}
 		return os;
 	}

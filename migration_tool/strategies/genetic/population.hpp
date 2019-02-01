@@ -10,7 +10,9 @@ class population {
 public:
 	std::vector<individual_t> v;
 
-	population () {
+	population () :
+		v()
+	{
 		v.reserve(MAX_SIZE);
 	};
 
@@ -54,8 +56,7 @@ public:
 		// Only one individual will have NO_FITNESS as fitness, which is the one to modify
 
 		// Since we always replace only one element and we insert at the end, the element to modify is the last one. If not, uncomment the next block
-		size_t sz = v.size();
-		v[sz-1].fitness = fitness;
+		v.back().fitness = fitness;
 	}
 
 	inline individual_t get_best_ind () const {
@@ -86,9 +87,11 @@ public:
 		size_t c = 0;
 
 		for (individual_t const & i : p.v) {
-			os << "Indiv. " << c << " = " << i;
+			os << "Indiv. " << c << " = " << i << '\n';
 			c++;
 		}
+
+		return os;
 	}
 };
 

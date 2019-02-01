@@ -55,11 +55,11 @@ void add_data_to_list (const my_pebs_sample_t & sample) {
 	}
 	#else // Separates memory and inst samples
 	if (sample.is_mem_sample()) { // [TOTHINK]: Before, we discarded samples with DSRC == 0, why?
-		memory_list.add_cell(sample.cpu,sample.pid,sample.tid,sample.sample_addr,sample.weight,sample.dsrc,sample.time);
+		memory_list.add_cell(sample.cpu, sample.pid, sample.tid, sample.sample_addr, sample.weight, sample.dsrc, sample.time);
 		//memory_list.list.back().print_dsrc(); printf("\n"); // Temporal, for testing dsrc printing
 		pids.insert(sample.pid); // We will consider a process is active if we get a memory sample from it
 	} else
-		inst_list.add_cell(sample.cpu,sample.pid,sample.tid,sample.values[1],sample.values[0],sample.time);
+		inst_list.add_cell(sample.cpu, sample.pid, sample.tid, sample.values[1], sample.values[0], sample.time);
 	#endif
 }
 
@@ -85,8 +85,7 @@ void clean_migration_structures () {
 	// Final print for a specific analysis: PID, mean accesses and amount of pages
 	#ifdef MEAN_ACS_ANALY
 	std::cout << "pid,mean_acs,page_count" << '\n';
-	const auto precision << std::cout.precision();
-	std::cout.precision(3);
+	std::cout.precision(2); std::cout << std::fixed;
 	for (auto const & it : page_tables) {
 		page_table_t t = it.second;
 		size_t sz = t.uniq_addrs.size();
@@ -94,17 +93,19 @@ void clean_migration_structures () {
 		//if(sz > 10 && mean > 1.25) // Trying to print only wanted PID
 		std::cout << it.first << "," << mean << "," << sz << '\n';
 	}
+	std::cout::defaultfloat;
 	std::cout << '\n';
 	#endif
 
 	// Final print for a specific analysis: PID, mean latency
 	#ifdef MEAN_LAT_ANALY
 	std::cout << "pid,mean_lat" << '\n';
+	std:cout.precision(2); std::cout << std::fixed;
 	for(auto const & it : page_tables){
 		page_table_t t = it.second;
 		std::cout << it.first << "," << t.get_mean_lat_to_pages() << '\n';
 	}
-	std::cout.precision(precision);
+	std::cout::defaultfloat;
 	#endif
 
 	page_tables.clear();
@@ -139,7 +140,7 @@ void work_with_fake_data () {
 	page_tables[500] = t1;
 	page_tables[1000] = t2;
 */
-	pages(pids, memory_list, inst_list, &page_tables);
+	pages(pids, memory_list, inst_list, page_tables);
 
 	// Creates/updates TID -> PID associations
 	for (auto const & it : page_tables) {
@@ -153,7 +154,7 @@ void work_with_fake_data () {
 
 	// For testing some iterations of genetic
 	for (int i = 0; i < 5; i++) {
-		perform_migration_strategy(&page_tables);
+		perform_migration_strategy(page_tables);
 	}
 
 	//perform_migration_strategy(&page_tables[500]);
@@ -195,7 +196,6 @@ int begin_migration_process () {
 
 		// Is PID alive?
 		if (!is_pid_alive(pid)) {
-
 			// We get TIDs from the dead PID so we can remove those rows from tid_cpu_table and system_struct
 			for (pid_t const & tid : table.get_tids()) {
 				tid_cpu_table.remove_row(tid);
@@ -228,7 +228,7 @@ int begin_migration_process () {
 
 	#ifdef DO_MIGRATIONS
 	//printf("Going to perform the global strategy.\n");
-	//perform_migration_strategy(&page_tables);
+	//perform_migration_strategy(page_tables);
 	perform_migration_strategy(temp_page_tables); // Over tables from current iteration instead
 
 	step++;

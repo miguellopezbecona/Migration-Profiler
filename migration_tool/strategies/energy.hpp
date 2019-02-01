@@ -39,12 +39,11 @@ public:
 		#ifdef ENER_OUTPUT
 		std::cout << "pkg values (minus base) for each node from last iteration: ";
 		{
-			const auto precision = std::cout.precision();
-			std::cout.precision(3);
+			std::cout.precision(2); std::cout << std::fixed;
 			for (double const & c : pkgs) {
 				std::cout << c << " ";
 			}
-			std::cout.precision(precision);
+			std::cout << std::defaultfloat;
 		}
 		std::cout << '\n';
 		#endif
@@ -57,10 +56,9 @@ public:
 		double ratio = ed.get_ratio_against_base(mx, from, "pkg");
 		#ifdef ENER_OUTPUT
 		{
-			const auto precision = std::cout.precision();
-			std::cout.precision(3);
+			std::cout.precision(2); std::cout << std::fixed;
 			std::cout << "Maximum PKG ratio increase: " << ratio << " (raw: " << mx << "/" << ed.base_vals[from][ed.get_domain_pos("pkg")] << "). Threshold: " << MAX_PERC_THRES << " -> ";
-			std::cout.precision(precision);
+			std::cout << std::defaultfloat;
 		}
 		#endif
 
@@ -80,10 +78,9 @@ public:
 
 		#ifdef ENER_OUTPUT
 		{
-			const auto precision = std::cout.precision();
-			std::cout.precision(3);
+			std::cout.precision(2); std::cout << std::fixed;
 			std::cout << "Minimum PKG increase: " << mn << ". Diff relation with maximum: " << (mx-mn)/mx << ". Threshold: " << DIFF_PERC_THRES << " -> ";
-			std::cout.precision(precision);
+			std::cout << std::defaultfloat;
 		}
 		#endif
 
@@ -142,11 +139,10 @@ public:
 		#ifdef ENER_OUTPUT
 		std::cout << "ram values (minus base) for each node from last iteration: ";
 		{
-			const auto precision = std::cout.precision();
-			std::cout.precision(3);
+			std::cout.precision(2); std::cout << std::fixed;
 			for (double const & c : rams)
 				std::cout << c << ' ';
-			std::cout.precision(precision);
+			std::cout << std::defaultfloat;
 			std::cout << '\n';
 		}
 		#endif
@@ -160,10 +156,9 @@ public:
 
 		#ifdef ENER_OUTPUT
 		{
-			const auto precision = std::cout.precision();
-			std::cout.precision(3);
+			std::cout.precision(2); std::cout << std::fixed;
 			std::cout << "Maximum MEMORY increase: " << mx << ". Threshold: " << MAX_THRES << " -> ";
-			std::cout.precision(precision);
+			std::cout << std::defaultfloat;
 		}
 		#endif
 
@@ -184,9 +179,9 @@ public:
 
 		#ifdef ENER_OUTPUT
 		{
-			const auto precision = std::cout.precision();
-			std::cout.precision(3);
+			std::cout.precision(2); std::cout << std::fixed;
 			std::cout << "Minimum MEMORY increase: " << mn << ". Diff with maximum: " << mx - mn << ". Threshold: " << DIFF_THRES << " -> ";
+			std::cout << std::defaultfloat;
 		}
 		#endif
 

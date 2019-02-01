@@ -87,12 +87,12 @@ public:
 	}
 
 	void print () const {
-		std::cout << *this;
+		std::cout << *this << '\n';
 	}
 
 	friend std::ostream & operator << (std::ostream & os, const memory_data_cell_t & m) {
 		os << "CPU: " << m.cpu << ", PID: " << m.pid << ", TID: " << m.tid <<
-			"ADDR: " << m.addr << ", LATENCY: " << m.latency << ", DSRC: " << m.dsrc << ", TIME: " << m.time << '\n';
+			"ADDR: " << m.addr << ", LATENCY: " << m.latency << ", DSRC: " << m.dsrc << ", TIME: " << m.time;
 		return os;
 	}
 };

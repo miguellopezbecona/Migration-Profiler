@@ -22,9 +22,10 @@ public:
 	individual_t best_sol;
 
 	genetic_t () :
-		best_sol(),
+		p(),
 		it(0),
-		best_it(0)
+		best_it(0),
+		best_sol()
 	{};
 
 	std::vector<migration_cell_t> do_genetic (const individual_t & ind) {
@@ -34,7 +35,7 @@ public:
 
 		#ifdef GENETIC_OUTPUT
 		std::cout << "Beginning of iteration " << it << " of genetic process." << '\n';
-		std::cout << "Current idv is: " << ind;
+		std::cout << "Current idv is: " << ind << '\n';
 		#endif
 
 		/** Tournament, cross, mutation, and replacement **/
@@ -51,8 +52,8 @@ public:
 		p.add(child); // Final result is appended to population with replacement
 
 		#ifdef GENETIC_OUTPUT
-		std::cout << "End of iteration" << it << ". ";
-		std::cout << p; // Prints poblation content
+		std::cout << "End of iteration " << it << ". ";
+		std::cout << p << '\n'; // Prints poblation content
 		#endif
 
 		const individual_t & best = p.get_best_ind();
@@ -76,7 +77,7 @@ public:
 	}
 
 	individual_t tournament () const {
-		const individual_t & ind = p.get_best_ind();
+		const individual_t ind = p.get_best_ind();
 
 		#ifdef GENETIC_OUTPUT
 		std::cout << "Winner idv. from selection: " << ind << '\n';
@@ -92,9 +93,9 @@ public:
 		double prob = gen_utils::get_rand_double();
 
 		#ifdef GENETIC_OUTPUT
-		const auto precision = std::cout.precision();
-		std::cout << "Cross: (rand num: " << std::cout.precision(3) << prob << ") -> ";
-		std::cout.precision(precision);
+		std::cout.precision(2); std::cout << std::fixed;
+		std::cout << "Cross: (rand num: " << prob << ") -> ";
+		std::cout << std::defaultfloat;
 		#endif
 
 		if (prob > CROSS_PROB) {
@@ -130,7 +131,7 @@ public:
 			}
 
 			#ifdef GENETIC_OUTPUT
-			std::cout << chosen_child;
+			std::cout << chosen_child << '\n';
 			#endif
 
 			// We generate migration cells seeing the differences between the idvs from the iteration and the selected son
@@ -159,10 +160,9 @@ public:
 			const double prob = gen_utils::get_rand_double();
 
 			#ifdef GENETIC_OUTPUT
-			// printf("\tIndex: %lu (rand rum %.2f) -> ", pos1, prob);
-			const auto precision = std::cout.precision();
-			std::cout << "\tIndex: " << pos1 << " (rand rum " << std::cout.precision(3) << prob << ") -> ";
-			std::cout.precision(precision);
+			std::cout.precision(2); std::cout << std::fixed;
+			std::cout << "\tIndex: " << pos1 << " (rand rum " << prob << ") -> ";
+			std::cout << std::defaultfloat;
 			#endif
 
 			if (prob > MUT_PROB) {
@@ -182,9 +182,8 @@ public:
 			// Migration cells concerning to those TIDs may already exist from cross process. If this is the case, we just have to change their destination
 			bool first_exists = false, sec_exists = false;
 			for (migration_cell_t & mc : v) {
-				// migration_cell_t * mc = & mc_;
 				for (pid_t const & tid : ind.v[pos1]) {
-					if (mc.elem == tid){ // Cell already exists: changes its destination
+					if (mc.elem == tid) { // Cell already exists: changes its destination
 						mc.dest = dest1;
 						first_exists = true;
 					}
@@ -216,7 +215,7 @@ public:
 			ind.mutate(pos1, pos2);
 
 			#ifdef GENETIC_OUTPUT
-			std::cout << "interchanges with position" << pos2 << '\n';
+			std::cout << "interchanges with position " << pos2 << '\n';
 			#endif
 		}
 	}

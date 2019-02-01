@@ -83,7 +83,7 @@ void handle_error (const int errn, const migration_cell_t mc, std::map<pid_t, pa
 		default: // More possible error handling
 			std::cerr << "Error code while migrating: " << errn << '\n';
 			std::cerr << "Failed migration cell's data:" << '\n';
-			mc.print();
+			std::cerr << mc << '\n';
 	}
 }
 

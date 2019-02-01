@@ -22,14 +22,16 @@ public:
 	double fitness; // Currently defined as the mean latency of all the system. The lower the better
 
 	individual_t () :
+		v(),
 		fitness(NO_FITNESS)
 	{}
 
 	individual_t (const std::map<pid_t, page_table_t> & ts) :
-		v(system_struct_t::NUM_OF_CPUS)
+		v(system_struct_t::NUM_OF_CPUS),
+		fitness(NO_FITNESS)
 	{
 		// Builds list from system_struct data
-		for (size_t i = 0; i < system_struct_t::NUM_OF_CPUS; i++){
+		for (int i = 0; i < system_struct_t::NUM_OF_CPUS; i++){
 			if (system_struct_t::is_cpu_free(i))
 				continue;
 
@@ -41,17 +43,17 @@ public:
 		}
 
 		// Calculates fitness (in this case, mean latency), using only data from last iteration
-		std::vector<int> all_ls(ts.size());
+		std::vector<int> all_ls;
 		for (const auto & it : ts) { // For each table (PID), gets all its latencies
-			std::vector<int> l = it.second.get_all_lats();
+			const std::vector<int> l = it.second.get_all_lats();
 			all_ls.insert(end(all_ls), begin(l), end(l));
 		}
 
 		// After all_ls is filled, the mean is calculated:
-		this->fitness = accumulate(all_ls.begin(), all_ls.end(), 0.0) / all_ls.size();
+		this->fitness = std::accumulate(all_ls.begin(), all_ls.end(), 0.0) / all_ls.size();
 	}
 
-	individual_t (const std::vector<gene> vec) :
+	individual_t (const std::vector<gene> & vec) :
 		v(vec),
 		fitness(NO_FITNESS)
 	{}
@@ -87,10 +89,6 @@ public:
 
 		double perc = dead_tids / num_tids;
 		return perc >= PERC_THRES;
-	}
-
-	inline migration_cell_t mutate (const size_t index) {  // Changes location directly
-		// TODO: no implementation yet
 	}
 
 	inline void mutate (const size_t idx1, const size_t idx2) { // Interchange
@@ -146,7 +144,7 @@ public:
 		}
 
 		// Copies from start to second cut
-		for (size_t i = 0; i < cut1; i++) {
+		for (int i = 0; i < cut1; i++) {
 			do {
 				num = other[copy_idx];
 				copy_idx++;
@@ -188,28 +186,28 @@ public:
 		if(i.fitness == NO_FITNESS)
 			os << "???";
 		else {
-			const auto precision = os.precision();
-			os << os.precision(4) << i.fitness;
-			os.precision(precision);
+			os.precision(2); os << std::fixed;
+			os << i.fitness;
+			os << std::defaultfloat;
 		}
 
-		os << ", content: " << '\n';
+		os << ", content: ";
 
-		for(gene const & tids : i.v){
-			if(tids.empty()){
+		for (gene const & tids : i.v) {
+			if (tids.empty()) {
 				os << "F ";  // Free CPU
 				continue;
 			}
 
 			auto & last = *(--tids.end()); // To know when stop printing underscores
-			for(pid_t const & tid : tids){
+			for (pid_t const & tid : tids) {
 				os << tid;
 				if (&tid != &last)
 					os << "_";
 			}
 			os << " ";
 		}
-		os << "}" << '\n';
+		os << "}";
 		return os;
 	}
 

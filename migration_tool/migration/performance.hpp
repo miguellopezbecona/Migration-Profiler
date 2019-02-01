@@ -28,12 +28,12 @@ public:
 	base_perf_data_t () {}
 
 	void print () const {
-		std::cout << *this;
+		std::cout << *this << '\n';
 	}
 
 	friend std::ostream & operator << (std::ostream & os, const base_perf_data_t & b) {
 		if (b.num_acs_thres > 0)
-			os << "UNIQ_ACS: " << b.num_uniq_accesses << ", ACS_THRES: " << b.num_acs_thres << ", MIN_LAT: " << b.min_latency << ", MEDIAN_LAT: " << b.median_latency << ", MAX_LAT: " << b.max_latency << '\n';
+			os << "UNIQ_ACS: " << b.num_uniq_accesses << ", ACS_THRES: " << b.num_acs_thres << ", MIN_LAT: " << b.min_latency << ", MEDIAN_LAT: " << b.median_latency << ", MAX_LAT: " << b.max_latency;
 		return os;
 	}
 };
@@ -45,15 +45,14 @@ public:
 
 	std::vector<unsigned short> acs_per_node; // Number of accesses from threads per memory node
 
-	pg_perf_data_t () {
+	pg_perf_data_t () :
+		acs_per_node(system_struct_t::NUM_OF_MEMORIES, 0)
+	{
 		num_acs_thres = 0;
-
-		std::vector<unsigned short> v(system_struct_t::NUM_OF_MEMORIES, 0);
-		acs_per_node = v;
 	}
 
 	void print () const {
-		std::cout << *this;
+		std::cout << *this << '\n';
 	}
 
 	friend std::ostream & operator << (std::ostream & os, const pg_perf_data_t & pg) {
@@ -62,8 +61,8 @@ public:
 		}
 
 		os << "MEM_NODE: " << pg.current_node << ", ACS_PER_NODE: {";
-		for (int i = 0; i < system_struct_t::NUM_OF_MEMORIES; i++) {
-			os << " " << pg.acs_per_node[i] ;
+		for (const auto & elem : pg.acs_per_node) {
+			os << " " << elem;
 		}
 		os << " }" << '\n';
 		return os;
@@ -87,13 +86,14 @@ public:
 	std::vector<double> v_perfs; // 3DyRM performance per memory node
 	unsigned char index_last_node_calc; // Used to get last_3DyRM_perf from Óscar's code
 
-	rm3d_data_t () {
-		insts.resize(system_struct_t::NUM_OF_CPUS);
-		reqs.resize(system_struct_t::NUM_OF_CPUS);
-		times.resize(system_struct_t::NUM_OF_CPUS);
-		v_perfs.resize(system_struct_t::NUM_OF_MEMORIES);
-
-		reset();
+	rm3d_data_t () :
+		active(false),
+		insts(system_struct_t::NUM_OF_CPUS, 0),
+		reqs(system_struct_t::NUM_OF_CPUS, 0),
+		times(system_struct_t::NUM_OF_CPUS, 0),
+		v_perfs(system_struct_t::NUM_OF_MEMORIES, PERFORMANCE_INVALID_VALUE)
+	{
+		// reset();
 	}
 
 	void inline add_data (const int cpu, const long int inst, const long int req, const long int time) {
@@ -135,20 +135,19 @@ public:
 	}
 
 	void inline print () const {
-		std::cout << *this;
+		std::cout << *this << '\n';
 	}
 
 	friend std::ostream & operator << (std::ostream & os, const rm3d_data_t & d) {
 		for (int cpu = 0; cpu < system_struct_t::NUM_OF_CPUS; cpu++) {
-			os << "\tCPU: " << cpu << ", INSTS = " << d.insts[cpu] << ", REQS = " << d.reqs[cpu] << ", TIMES = " << d.times[cpu] << '\n';
+			os << "\tCPU: " << cpu << ", INSTS = " << d.insts[cpu] << ", REQS = " << d.reqs[cpu] << ", TIMES = " << d.times[cpu];
 		}
 
-		const auto precision = os.precision();
-		os.precision(3);
+		os.precision(2); os << std::fixed;
 		for (int node = 0; node < system_struct_t::NUM_OF_MEMORIES; node++) {
 			os << "\tNODE: " << node << ", PERF = " << d.v_perfs[node] << '\n';
 		}
-		os.precision(precision);
+		os << std::defaultfloat;
 		return os;
 	}
 };
@@ -187,12 +186,11 @@ public:
 
 	friend std::ostream & operator << (std::ostream & os, const perf_cell_t & p) {
 		if(!p.is_filled())
-			os << "Not filled." << '\n';
+			os << "Not filled.";
 		else {
-			const auto precision = os.precision();
-			os.precision(3);
-			std::cout << "NUM_ACS: " << p.num_acs << ", MEAN_LAT: " << p.mean_lat << '\n';
-			os.precision(precision);
+			os.precision(2); os << std::fixed;
+			os << "NUM_ACS: " << p.num_acs << ", MEAN_LAT: " << p.mean_lat << '\n';
+			os << std::defaultfloat;
 		}
 		return os;
 	}
@@ -208,11 +206,13 @@ public:
 	std::map<long int, perf_col> table; // Dimensions: TID/page addr and CPU/node
 
 	perf_table_t () :
-		coln(1)
+		coln(1),
+		table()
 	{}
 
 	perf_table_t (const unsigned short n) :
-		coln(n)
+		coln(n),
+		table()
 	{}
 
 	~perf_table_t () {}
@@ -270,7 +270,6 @@ public:
 				os << "\t" << colns[is_page_table] << " " << i << " " << pv[i];
 			}
 		}
-		os << '\n';
 		return os;
 	}
 

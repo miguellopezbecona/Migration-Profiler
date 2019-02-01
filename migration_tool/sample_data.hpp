@@ -45,14 +45,16 @@ public:
 	}
 	#endif
 
-	my_pebs_sample_t () {
+	my_pebs_sample_t () :
+		energies(energy_data_t::NUM_RAPL_DOMAINS)
+	{
 		#ifdef JUST_PROFILE_ENERGY
-		// energies = (double*) malloc(energy_data_t::NUM_RAPL_DOMAINS * sizeof(double));
-		energies.reserve(energy_data_t::NUM_RAPL_DOMAINS);
 		for (int i = 0; i < energy_data_t::NUM_RAPL_DOMAINS; i++) {
-			// energies[i] = -1.0;
-			energies.push_back(-1.0);
+			energies[i] = -1.0;
 		}
+		#endif
+		#ifdef JUST_PROFILE
+		inst_subevent_names = std::vector<char*>();
 		#endif
 	}
 
@@ -89,12 +91,11 @@ public:
 		}
 
 		#ifdef JUST_PROFILE_ENERGY
-		const auto precision = os.precision();
-		os.precision(4);
+		os.precision(3); os << std::fixed;
 		for (int i = 0; i < energy_data_t::NUM_RAPL_DOMAINS; i++) {
 			os << "," << energies[i];
 		}
-		os.precision(precision);
+		os << std::defaultfloat;
 		#endif
 
 		os << '\n';
@@ -168,16 +169,13 @@ public:
 
 		#ifdef JUST_PROFILE_ENERGY
 
-		const auto precision = std::cout.precision();
-		std::cout.precision(4);
-		for(size_t i = 0; i < energy_data_t::NUM_RAPL_DOMAINS; i++) {
+		os.precision(2); os << std::fixed;
+		for (int i = 0; i < energy_data_t::NUM_RAPL_DOMAINS; i++) {
 			os << "," << s.energies[i];
 		}
-		std::cout.precision(precision);
+		os << std::defaultfloat;
 
 		#endif
-
-		os << '\n';
 
 	    return os;
 	}

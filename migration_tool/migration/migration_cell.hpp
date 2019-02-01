@@ -106,7 +106,7 @@ public:
 	}
 
 	void print () const {
-		std::cout << *this;
+		std::cout << *this << '\n';
 	}
 
 
@@ -117,14 +117,12 @@ public:
 
 		bool is_thread = mc.is_thread_cell();
 
-		os << types[is_thread] << " migration cell. " << elems[is_thread] << " " << mc.elem << "to be migrated to " << to_migrates[is_thread] << " " << mc.dest << '.';
+		os << types[is_thread] << " migration cell. " << elems[is_thread] << " " << mc.elem << " to be migrated to " << to_migrates[is_thread] << " " << mc.dest << '.';
 
 		if(mc.pid > 0)
 			os << " PID: " << mc.pid << ".";
 		if(mc.prev_dest > -1)
 			os << " It was in " << to_migrates[is_thread] << " " << mc.prev_dest << ".";
-
-		os << '\n';
 
 		return os;
 	}

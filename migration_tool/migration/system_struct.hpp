@@ -71,11 +71,10 @@ private:
 		if (!file.is_open())
 			return;
 
-		// for(int i=0;fscanf(file, "%d", &array[i]) == 1; i++);
-		while (!file.eof()) {
+		for(int i = 0; !file.eof(); i++) {
 			int element;
 			file >> element;
-			array.push_back(element);
+			array[i] = element;
 		}
 		array.shrink_to_fit();
 
@@ -101,12 +100,10 @@ public:
 
 		node_cpu_map = std::vector<std::vector<int>>(NUM_OF_MEMORIES);
 		for (int i = 0; i < NUM_OF_MEMORIES; i++) {
-			std::vector<int> v(CPUS_PER_MEMORY, 0);
-			node_cpu_map[i] = v;
+			node_cpu_map[i].reserve(CPUS_PER_MEMORY);
 		}
 
-		int counters[CPUS_PER_MEMORY]; // For keeping indexes to build node_cpu_map
-		memset(counters, 0, sizeof(counters));
+		std::vector<int> counters(CPUS_PER_MEMORY, 0); // For keeping indexes to build node_cpu_map
 
 		cpu_node_map.reserve(NUM_OF_CPUS);
 		cpu_tid_map.resize(NUM_OF_CPUS);
@@ -134,8 +131,7 @@ public:
 		// Initializes and builds node distance matrix
 		node_distances = std::vector<std::vector<int>>(NUM_OF_MEMORIES);
 		for (int i = 0; i < NUM_OF_MEMORIES; i++) {
-			std::vector<int> v(NUM_OF_MEMORIES);
-			node_distances[i] = v;
+			node_distances[i] = std::vector<int>(NUM_OF_MEMORIES);
 			read_line_from_file(i, node_distances[i]);
 		}
 
@@ -148,15 +144,12 @@ public:
 		ordered_cpus.reserve(NUM_OF_CPUS);
 
 		std::vector<bool> processed(NUM_OF_MEMORIES, false);
-		// processed.reserve(NUM_OF_MEMORIES);
-		// memset(processed, false, NUM_OF_MEMORIES*sizeof(bool));
 
 		// We begin with node 0
 		int ref_node = 0;
 		ordered_cpus.insert(ordered_cpus.end(), node_cpu_map[0].begin(), node_cpu_map[0].begin() + CPUS_PER_MEMORY);
 		processed[0] = true;
 		while (!are_all_nodes_processed(processed)) {
-
 			// We get the nearest not processed node to the current one
 			int min_index = -1;
 			int min_distance = 1e3;

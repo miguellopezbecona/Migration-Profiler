@@ -28,15 +28,20 @@ public:
 	static labeled_migr_t last_migration; // Always with 1 or 2 elements
 
 public:
-	labeled_migr_t () {};
+	labeled_migr_t () :
+		potential_migr(),
+		tickets(0)
+	{};
 
 	labeled_migr_t (const migration_cell_t mc, const int t) :
+		potential_migr(),
 		tickets(t)
 	{
 		potential_migr.push_back(mc);
 	};
 
 	labeled_migr_t (const migration_cell_t mc1, const migration_cell_t mc2, const int t) :
+		potential_migr(),
 		tickets(t)
 	{
 		potential_migr.push_back(mc1);
@@ -85,7 +90,7 @@ labeled_migr_t labeled_migr_t::last_migration;
 class annealing_t : public strategy {
 private:
 	// Gets a different number of tickets depending on perf values and if we are comparing a external thread for interchange or not (mod)
-	inline int get_tickets_from_perfs (const int mem_cell, const int current_cell, const std::vector<double> perfs, const bool mod) const {
+	inline int get_tickets_from_perfs (const int mem_cell, const int current_cell, const std::vector<double> & perfs, const bool mod) const {
 		if (perfs[mem_cell] == PERFORMANCE_INVALID_VALUE)
 			return TICKETS_MEM_CELL_NO_DATA[mod];
 		else if (perfs[current_cell] > perfs[mem_cell])
@@ -99,7 +104,7 @@ private:
 
 		const int current_cpu = system_struct_t::get_cpu_from_tid(worst_tid);
 		const int current_cell = system_struct_t::get_cpu_memory_node(current_cpu);
-		const std::vector<double> & current_perfs = page_t.get_perf_data(worst_tid);
+		const std::vector<double> current_perfs = page_t.get_perf_data(worst_tid);
 
 		// Search potential core destinations from different memory nodes
 		for (int n = 0; n < system_struct_t::NUM_OF_MEMORIES; n++) {
@@ -166,14 +171,14 @@ private:
 		return lm_list[0];
 	}
 
-	std::vector<migration_cell_t> get_iteration_migration (page_table_t page_t) const {
+	std::vector<migration_cell_t> get_iteration_migration (page_table_t & page_t) const {
 		pid_t worst_tid = page_t.normalize_perf_and_get_worst_thread();
 
 		#ifdef ANNEALING_PRINT
 		std::cout << "\n*\nWORST THREAD IS: " << worst_tid << '\n';
 		#endif
 
-		//page_t->print_performance(); // Perfs after normalization
+		//page_t.print_performance(); // Perfs after normalization
 
 		// Selects migration targets for lottery (this is where the algoritm really is)
 		const std::vector<labeled_migr_t> migration_list = get_candidate_list(worst_tid, page_t);
@@ -205,7 +210,7 @@ private:
 		return target_cell.potential_migr;
 	}
 
-	std::vector<migration_cell_t> get_iteration_migration (std::map<pid_t, page_table_t> page_ts) const {
+	std::vector<migration_cell_t> get_iteration_migration (std::map<pid_t, page_table_t> & page_ts) const {
 		pid_t worst_tid = -1;
 		double min_p = 1e15;
 
@@ -237,10 +242,9 @@ private:
 		}
 
 		#ifdef ANNEALING_PRINT
-		const auto precision = std::cout.precision();
-		std::cout.precision(3);
+		std::cout.precision(2); std::cout << std::fixed;
 		std::cout << "WORST THREAD IS: " << worst_tid << ", WITH PERF: " << min_p << '\n';
-		std::cout.precision(precision);
+		std::cout << std::defaultfloat;
 		#endif
 
 		//for (auto & t_it : page_ts) // Perfs after normalization
@@ -250,14 +254,11 @@ private:
 		std::vector<labeled_migr_t> migration_list = get_candidate_list(worst_tid, page_ts);
 
 		#ifdef ANNEALING_PRINT
-		/*
 		// Commented due to its high amount of printing in manycores
-		printf("MIGRATION LIST CONTENT:");
-		for(labeled_migr_t const & lm : migration_list){
-			printf("\t");
-			lm.print();
-		}
-		*/
+		// std::cout << "MIGRATION LIST CONTENT:";
+		// for(labeled_migr_t const & lm : migration_list){
+		// 	std::cout << "\t" << lm;
+		// }
 		#endif
 
 		// I think this will only happen in no-NUMA systems, for testing
@@ -289,7 +290,7 @@ private:
 		int current_cell = system_struct_t::get_cpu_memory_node(current_cpu);
 
 		pid_t current_pid = system_struct_t::get_pid_from_tid(worst_tid);
-		std::vector<double> current_perfs = page_ts.at(current_pid).get_perf_data(worst_tid);
+		const std::vector<double> current_perfs = page_ts.at(current_pid).get_perf_data(worst_tid);
 
 		// Search potential core destinations from different memory nodes
 		for (int n = 0; n < system_struct_t::NUM_OF_MEMORIES; n++) {
@@ -320,7 +321,7 @@ private:
 
 				for (pid_t const & aux_tid : tids) {
 					pid_t other_pid = system_struct_t::get_pid_from_tid(aux_tid);
-					std::vector<double> other_perfs = page_ts.at(other_pid).get_perf_data(aux_tid);
+					const std::vector<double> other_perfs = page_ts.at(other_pid).get_perf_data(aux_tid);
 					int tid_tickets = get_tickets_from_perfs(current_cell, n, other_perfs, true);
 
 					// Better TID to pick
@@ -385,7 +386,7 @@ public:
 
 		double current_performance = 0.0;
 
-		for (auto& t_it : page_ts)
+		for (const auto & t_it : page_ts)
 			current_performance += t_it.second.get_total_performance();
 
 		// No performance obtained, so no suitable threads
