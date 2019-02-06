@@ -47,10 +47,7 @@ public:
 
 	my_pebs_sample_t () {
 		#ifdef JUST_PROFILE_ENERGY
-		energies = std::vector<double>(energy_data_t::NUM_RAPL_DOMAINS);
-		for (int i = 0; i < energy_data_t::NUM_RAPL_DOMAINS; i++) {
-			energies[i] = -1.0;
-		}
+		energies = std::vector<double>(energy_data_t::NUM_RAPL_DOMAINS, -1.0);
 		#endif
 		#ifdef JUST_PROFILE
 		inst_subevent_names = std::vector<char*>();

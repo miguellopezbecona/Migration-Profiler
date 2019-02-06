@@ -33,8 +33,7 @@ const long pagesize = sysconf(_SC_PAGESIZE);
 const int expn = log2(pagesize);
 
 inline int get_page_current_node (const pid_t pid, const long int pageAddr) {
-	void **pages = (void **)calloc(1,sizeof(long int *));
-	pages[0] = (void *) pageAddr;
+	void * pages[] = {(void *) pageAddr};
 	int status;
 
 	//printf("Getting page current node for page addr 0x%016lx for PID %d. It is: ", pageAddr, pid);
@@ -68,8 +67,7 @@ void build_page_tables (const memory_data_list_t & m_list, const inst_data_list_
 		system_struct_t::add_tid(m_cell.tid, m_cell.cpu);
 
 		if (!page_ts.count(m_cell.pid)) { // = !contains(pid). We init the entry if it doesn't exist
-			page_table_t t(m_cell.pid);
-			page_ts[m_cell.pid] = t;
+			page_ts[m_cell.pid] = page_table_t(m_cell.pid);
 		}
 
 		page_ts[m_cell.pid].add_cell(page_addr, page_node, m_cell.tid, m_cell.latency, m_cell.cpu, cpu_node, m_cell.is_cache_miss());

@@ -35,7 +35,7 @@ std::map<pid_t, page_table_t> page_tables; // Keeps everything
 std::map<pid_t, page_table_t> temp_page_tables; // Maintains data from current iteration
 #endif
 
-unsigned int step = 0;
+size_t step = 0;
 
 void add_data_to_list (const my_pebs_sample_t & sample) {
 	#ifdef JUST_PROFILE // Just adds samples to list
@@ -101,7 +101,7 @@ void clean_migration_structures () {
 	#ifdef MEAN_LAT_ANALY
 	std::cout << "pid,mean_lat" << '\n';
 	std:cout.precision(2); std::cout << std::fixed;
-	for(auto const & it : page_tables){
+	for (auto const & it : page_tables) {
 		page_table_t t = it.second;
 		std::cout << it.first << "," << t.get_mean_lat_to_pages() << '\n';
 	}

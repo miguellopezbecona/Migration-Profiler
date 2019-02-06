@@ -167,8 +167,8 @@ public:
 		return i;
 	}
 
-	void print() const {
-		std::cout << *this;
+	inline void print () const {
+		std::cout << *this << '\n';
 	}
 
 	// For easing readibility

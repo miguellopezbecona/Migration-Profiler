@@ -7,11 +7,6 @@
 // Uses page table
 #include "page_table.hpp"
 
-//#define USE_RAND_ST
-//#define USE_FIRST_ST
-//#define USE_ANNEA_ST
-//#define USE_GEN_ST
-//#define USE_ENER_ST
 #if defined(USE_ANNEA_ST)
 #include "strategies/annealing.hpp"
 #elif defined(USE_RAND_ST)
@@ -24,7 +19,7 @@
 #include "strategies/energy.hpp"
 #endif
 
-extern unsigned int step; // Iteration number
+extern size_t step; // Iteration number
 
 int perform_migration_strategy (page_table_t & page_t) { // For a one process-only strategy
 	// You can mix strategies at your wish

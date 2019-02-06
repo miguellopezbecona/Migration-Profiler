@@ -86,7 +86,7 @@ public:
 		if (mdsrc->mem_dtlb&PERF_MEM_TLB_OS)		std::cout << "\tOS fault handler\n";
 	}
 
-	void print () const {
+	inline void print () const {
 		std::cout << *this << '\n';
 	}
 
@@ -101,7 +101,9 @@ class memory_data_list_t {
 public:
 	std::vector<memory_data_cell_t> list;
 
-	memory_data_list_t () {
+	memory_data_list_t () :
+		list()
+	{
 		list.reserve(1000); // Speeds up doing preallocation
 	}
 
@@ -118,8 +120,8 @@ public:
 		list.clear();
 	}
 
-	void print () const {
-		std::cout << *this;
+	inline void print () const {
+		std::cout << *this << '\n';
 	}
 
 	friend std::ostream & operator << (std::ostream & os, const memory_data_list_t & m) {

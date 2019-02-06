@@ -168,7 +168,7 @@ static void process_smpl_buf (perf_event_desc_t * hw, const size_t cpu, perf_eve
 }
 
 int setup_cpu (int cpu, int fd, int group) {
-	perf_event_desc_t *fds = NULL;
+	perf_event_desc_t * fds = NULL;
 	int ret, flags;
 
 	// Allocate fds
@@ -269,7 +269,7 @@ int setup_cpu (int cpu, int fd, int group) {
 			err(1, "cannot read id %zu", sizeof(val));
 		}
 
-		for (int i=0; i < num_fds[group]; i++) {
+		for (int i = 0; i < num_fds[group]; i++) {
 			fds[i].id = val[2 * i + 1 + 3];
 			#ifdef EVENT_OUTPUT
 			std::cout << fds[i].id << " " << fds[i].name << '\n';

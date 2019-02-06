@@ -71,8 +71,8 @@ public:
 		return last_migration.potential_migr;
 	}
 
-	void print () const {
-		std::cout << *this;
+	inline void print () const {
+		std::cout << *this << '\n';
 	}
 
 	friend std::ostream & operator << (std::ostream & os, const labeled_migr_t & m) {
@@ -286,10 +286,10 @@ private:
 	std::vector<labeled_migr_t> get_candidate_list (const pid_t worst_tid, const std::map<pid_t, page_table_t> & page_ts) const {
 		std::vector<labeled_migr_t> migration_list;
 
-		int current_cpu = system_struct_t::get_cpu_from_tid(worst_tid);
-		int current_cell = system_struct_t::get_cpu_memory_node(current_cpu);
+		const int current_cpu = system_struct_t::get_cpu_from_tid(worst_tid);
+		const int current_cell = system_struct_t::get_cpu_memory_node(current_cpu);
 
-		pid_t current_pid = system_struct_t::get_pid_from_tid(worst_tid);
+		const pid_t current_pid = system_struct_t::get_pid_from_tid(worst_tid);
 		const std::vector<double> current_perfs = page_ts.at(current_pid).get_perf_data(worst_tid);
 
 		// Search potential core destinations from different memory nodes
@@ -315,14 +315,15 @@ private:
 				// Not a free core: get its TIDs info so a possible interchange can be planned
 
 				// We will choose the TID with generates the higher number of tickets
-				std::vector<pid_t> tids = system_struct_t::get_tids_from_cpu(actual_cpu);
+				const auto tids = system_struct_t::get_tids_from_cpu(actual_cpu);
 				pid_t other_tid = -1;
 				int aux_tickets = -1;
 
 				for (pid_t const & aux_tid : tids) {
-					pid_t other_pid = system_struct_t::get_pid_from_tid(aux_tid);
-					const std::vector<double> other_perfs = page_ts.at(other_pid).get_perf_data(aux_tid);
-					int tid_tickets = get_tickets_from_perfs(current_cell, n, other_perfs, true);
+					const auto other_pid = system_struct_t::get_pid_from_tid(aux_tid);
+					const auto other_perfs = (page_ts.find(other_pid) != page_ts.end()) ?
+						page_ts.at(other_pid).get_perf_data(aux_tid) : std::vector<double>(1, 1.0);
+					const auto tid_tickets = get_tickets_from_perfs(current_cell, n, other_perfs, true);
 
 					// Better TID to pick
 					if (tid_tickets > aux_tickets) {
@@ -348,11 +349,13 @@ public:
 	std::vector<migration_cell_t> get_threads_to_migrate (page_table_t & page_t) const {
 		std::vector<migration_cell_t> ret;
 
-		double current_performance = page_t.get_total_performance();
-		double diff = current_performance / last_performance;
+		const double current_performance = page_t.get_total_performance();
+		const double diff = current_performance / last_performance;
 
 		#ifdef TH_MIGR_OUTPUT
+		std::cout.precision(2); std::cout << std::fixed;
 		std::cout << "\nCurrent Perf: " << current_performance << ". Last Perf: " << last_performance << ". Ratio: " << diff << ". SBM: " << get_time_value() << '\n';
+		std::cout << std::defaultfloat;
 		#endif
 
 		last_performance = current_performance;
@@ -396,7 +399,9 @@ public:
 		double diff = current_performance / last_performance;
 
 		#ifdef TH_MIGR_OUTPUT
+		std::cout.precision(2); std::cout << std::fixed;
 		std::cout << "\n*\nCurrent Perf: " << current_performance << ". Last Perf: " << last_performance << ". Ratio: " << diff << ". SBM: " << get_time_value() << '\n';
+		std::cout << std::defaultfloat;
 		#endif
 
 		last_performance = current_performance;

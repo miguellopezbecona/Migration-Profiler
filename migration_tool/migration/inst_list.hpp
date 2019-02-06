@@ -29,7 +29,7 @@ public:
 		time(time)
 	{};
 
-	void print() const {
+	inline void print () const {
 		std::cout << *this << '\n';
 	}
 
@@ -47,17 +47,17 @@ public:
 		list.reserve(1000); // Speeds up doing preallocation
 	}
 
-	void inline add_cell (const uint32_t cpu, const int pid, const int tid, const uint64_t inst, const uint64_t req_dr, const uint64_t time) {
+	inline void add_cell (const uint32_t cpu, const int pid, const int tid, const uint64_t inst, const uint64_t req_dr, const uint64_t time) {
 		inst_data_cell_t cell(cpu, pid, tid, inst, req_dr, time);
 		list.push_back(cell);
 	}
 
-	void inline clear () {
+	inline void clear () {
 		list.clear();
 	}
 
-	void print() const {
-		std::cout << *this;
+	inline void print() const {
+		std::cout << *this << '\n';
 	}
 
 	friend std::ostream & operator << (std::ostream & os, const inst_data_list_t & i) {

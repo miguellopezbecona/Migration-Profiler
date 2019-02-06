@@ -91,7 +91,7 @@ private:
 
 public:
 	static int detect_system () {
-		char filename[BUFSIZ];
+		char filename[BUFSIZ]; // BUFSIZ is a system macro.
 		int package;
 
 		NUM_OF_CPUS = sysconf(_SC_NPROCESSORS_ONLN);

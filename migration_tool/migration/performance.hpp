@@ -27,7 +27,7 @@ public:
 
 	base_perf_data_t () {}
 
-	void print () const {
+	inline void print () const {
 		std::cout << *this << '\n';
 	}
 
@@ -51,7 +51,7 @@ public:
 		num_acs_thres = 0;
 	}
 
-	void print () const {
+	inline void print () const {
 		std::cout << *this << '\n';
 	}
 
@@ -105,17 +105,17 @@ public:
 	}
 
 	void calc_perf (const double mean_lat) {
-		double inv_mean_lat = 1 / mean_lat;
+		const double inv_mean_lat = 1.0 / mean_lat;
 
 		for (int cpu = 0; cpu < system_struct_t::NUM_OF_CPUS; cpu++) {
 			if (reqs[cpu] == 0) // No data, bye
 				continue;
 
 			// Divide by zeros check should be made. It's assumed it won't happen if the thread is inactive
-			double inst_per_s = (double) insts[cpu] * 1000 / times[cpu]; // Óscar used inst/ms, so * 10^3
-			double inst_per_b = (double) insts[cpu] / (reqs[cpu] * CACHE_LINE_SIZE);
+			const double inst_per_s = (double) insts[cpu] * 1000.0 / times[cpu]; // Óscar used inst/ms, so * 10^3
+			const double inst_per_b = (double) insts[cpu] / (reqs[cpu] * CACHE_LINE_SIZE);
 
-			int cpu_node = system_struct_t::get_cpu_memory_node(cpu);
+			const auto cpu_node = system_struct_t::get_cpu_memory_node(cpu);
 			v_perfs[cpu_node] = inv_mean_lat * inst_per_s * inst_per_b;
 
 			// Debug
@@ -176,16 +176,16 @@ public:
 		num_acs++;
 	}
 
-	inline bool is_filled() const {
+	inline bool is_filled () const {
 		return num_acs > 0;
 	}
 
-	void print() const {
-		std::cout << *this;
+	inline void print () const {
+		std::cout << *this << '\n';
 	}
 
 	friend std::ostream & operator << (std::ostream & os, const perf_cell_t & p) {
-		if(!p.is_filled())
+		if (!p.is_filled())
 			os << "Not filled.";
 		else {
 			os.precision(2); os << std::fixed;
@@ -243,8 +243,8 @@ public:
 		table[key][col_num].update_mlat(lat); // In any case, we update the mean
 	}
 
-	void print() const {
-		std::cout << *this;
+	inline void print () const {
+		std::cout << *this << '\n';
 	}
 
 	friend std::ostream & operator << (std::ostream & os, const perf_table_t & p) {
