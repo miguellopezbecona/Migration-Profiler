@@ -71,11 +71,10 @@ public:
 		tid_index(),
 		page_node_map(),
 		perf_per_tid(),
-		page_node_table(),
+		page_node_table(system_struct_t::NUM_OF_MEMORIES),
 		pid()
 	{
 		table.reserve(system_struct_t::NUM_OF_CPUS);
-		page_node_table.reserve(system_struct_t::NUM_OF_MEMORIES);
 	};
 
 	page_table_t (const pid_t p) :
@@ -84,12 +83,9 @@ public:
 		tid_index(),
 		page_node_map(),
 		perf_per_tid(),
-		page_node_table(),
+		page_node_table(system_struct_t::NUM_OF_MEMORIES),
 		pid(p)
-	{
-		table.reserve(system_struct_t::NUM_OF_CPUS);
-		page_node_table.reserve(system_struct_t::NUM_OF_MEMORIES);
-	};
+	{};
 
 	~page_table_t () {}
 
