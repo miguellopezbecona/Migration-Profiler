@@ -31,7 +31,7 @@ public:
 		fitness(NO_FITNESS)
 	{
 		// Builds list from system_struct data
-		for (int i = 0; i < system_struct_t::NUM_OF_CPUS; i++){
+		for (size_t i = 0; i < system_struct_t::NUM_OF_CPUS; i++){
 			if (system_struct_t::is_cpu_free(i))
 				continue;
 
@@ -66,7 +66,7 @@ public:
 		return v.size();
 	}
 
-	inline void set (const int index, const gene value) {
+	inline void set (const size_t index, const gene value) {
 		v[index] = value;
 	}
 
@@ -95,9 +95,9 @@ public:
 		std::swap(v[idx1], v[idx2]);
 	}
 
-	individual_t cross (const individual_t & other, const int idx1, const int idx2) const { // Using order crossover
-		const size_t sz = v.size();
-		int cut1, cut2, copy_idx;
+	individual_t cross (const individual_t & other, const size_t idx1, const size_t idx2) const { // Using order crossover
+		const auto sz = v.size();
+		size_t cut1, cut2, copy_idx;
 
 		gene num;
 
@@ -112,8 +112,8 @@ public:
 
 		// We will only allow a maximum of free CPUs (repeated values)
 		gene empty; // Empty list -> free CPU
-		short free_cpus = count(v.begin(), v.end(), empty);
-		short free_cpus_other = count(other.v.begin(), other.v.end(), empty);
+		auto free_cpus = count(v.begin(), v.end(), empty);
+		const auto free_cpus_other = count(other.v.begin(), other.v.end(), empty);
 		if (free_cpus_other > free_cpus)
 			free_cpus = free_cpus_other;
 
@@ -134,7 +134,7 @@ public:
 				copy_idx = (copy_idx + 1) % sz;
 
 				// We will only allow a maximum of free CPUs (repeated values)
-				if(num.empty() && free_cpus){
+				if (num.empty() && free_cpus) {
 					free_cpus--;
 					break;
 				}
@@ -144,13 +144,13 @@ public:
 		}
 
 		// Copies from start to second cut
-		for (int i = 0; i < cut1; i++) {
+		for (size_t i = 0; i < cut1; i++) {
 			do {
 				num = other[copy_idx];
 				copy_idx++;
 
 				// We will only allow a maximum of free CPUs (repeated values)
-				if(num.empty() && free_cpus){
+				if (num.empty() && free_cpus) {
 					free_cpus--;
 					break;
 				}
@@ -172,18 +172,18 @@ public:
 	}
 
 	// For easing readibility
-	inline gene operator[] (int i) const {
+	inline gene operator[] (size_t i) const {
 		return v[i];
 	}
 
-	inline gene & operator[] (int i) {
+	inline gene & operator[] (size_t i) {
 		return v[i];
 	}
 
 	friend std::ostream & operator << (std::ostream & os, const individual_t & i) {
 		os << "{fitness: ";
 
-		if(i.fitness == NO_FITNESS)
+		if (i.fitness == NO_FITNESS)
 			os << "???";
 		else {
 			os.precision(2); os << std::fixed;

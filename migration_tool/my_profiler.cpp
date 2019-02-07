@@ -90,7 +90,7 @@ void perform_migration () {
 	// We profile every 1, 2 or 4 seconds depending on get_time_value()
 	if (secs > (get_time_value() * inv_1000)) {
 		last_migr_time = current_time;
-		//printf("\n***********\nAt %s\n",ctime(&last_migr_time));
+		// printf("\n***********\nAt %s\n", ctime(&last_migr_time));
 		begin_migration_process();
 	}
 }
@@ -115,8 +115,7 @@ static void process_smpl_buf (perf_event_desc_t * hw, const size_t cpu, perf_eve
 
 		switch(ehdr.type) {
 			case PERF_RECORD_SAMPLE: {
-				my_pebs_sample_t my_sample;
-				my_sample.values = (uint64_t*) malloc(sizeof(uint64_t) * num_fds_p);
+				my_pebs_sample_t my_sample(num_fds_p);
 
 				ret = transfer_data_from_buffer_to_structure(fds, num_fds_p, hw - fds, &ehdr, &my_sample, uid);
 				processed_samples_group[name]++;
@@ -192,7 +191,7 @@ int setup_cpu (int cpu, int fd, int group) {
 	}
 
 	fds[0].fd = -1;
-	for (int i=0; i < num_fds[group]; i++) {
+	for (int i = 0; i < num_fds[group]; i++) {
 		fds[i].hw.disabled = !i; // start immediately
 
 		flags = 0;
@@ -281,8 +280,8 @@ int setup_cpu (int cpu, int fd, int group) {
 			}
 
 			char * e_name = strtok(fds[i].name, ":"); // To remove ":period=X" stuff
-			if(e_name != NULL){
-				if(strcmp("FP_COMP_OPS_EXE", e_name) == 0) { // Incomplete FLOPS event name, let's get the next part
+			if (e_name != NULL) {
+				if (strcmp("FP_COMP_OPS_EXE", e_name) == 0) { // Incomplete FLOPS event name, let's get the next part
 					e_name = strtok(NULL, ":");
 				}
 				my_pebs_sample_t::add_subevent_name(e_name); // Dynamic column names
@@ -307,7 +306,7 @@ static void clean_end (const int n) {
 
 	// Closes and frees resources
 	for (size_t i = 0; i < NUM_GROUPS; i++) {
-		for (int j = 0; j < system_struct_t::NUM_OF_CPUS; j++) {
+		for (size_t j = 0; j < system_struct_t::NUM_OF_CPUS; j++) {
 			fds = all_fds[i][j];
 			for (int k = 0; k < num_fds[i]; k++) {
 				close(fds[k].fd);
@@ -318,7 +317,7 @@ static void clean_end (const int n) {
 	}
 
 	for (size_t i = 0; i < NUM_GROUPS; i++) {
-		free(all_fds[i]);
+		delete[] all_fds[i];
 	}
 	pfm_terminate();
 
@@ -365,7 +364,7 @@ int mainloop (char ** arg) {
 
 	uid = getuid();
 	pgsz = sysconf(_SC_PAGESIZE);
-	map_size = (options.mmap_pages+1)*pgsz;
+	map_size = (options.mmap_pages + 1) * pgsz;
 
 	#ifndef JUST_PROFILE
 	tid_cpu_table.coln = system_struct_t::NUM_OF_CPUS; // Badly done because NUM_OF_CPUS is gotten in execution time
@@ -379,7 +378,7 @@ int mainloop (char ** arg) {
 	const unsigned short TOTAL_BUFFS = system_struct_t::NUM_OF_CPUS * NUM_GROUPS;
 
 	// This is the struct for polling the buffers of system_struct_t::NUM_OF_CPUS for different groups of events
-	struct pollfd pollfds[TOTAL_BUFFS];
+	struct pollfd * pollfds = new struct pollfd[TOTAL_BUFFS];
 	int fd = -1;
 	perf_event_desc_t * fds = NULL;
 
@@ -391,7 +390,7 @@ int mainloop (char ** arg) {
 
 	// Allocates memory for all_fds
 	for (size_t i = 0; i < NUM_GROUPS; i++) {
-		all_fds[i] = (perf_event_desc_t**) malloc(system_struct_t::NUM_OF_CPUS * sizeof(perf_event_desc_t *));
+		all_fds[i] = new perf_event_desc_t*[system_struct_t::NUM_OF_CPUS];
 		if (!all_fds[i]) {
 			err(1, "cannot allocate memory for all_fds[%lu]", i);
 		}
@@ -404,7 +403,7 @@ int mainloop (char ** arg) {
 
 	// Sets up counter configuration
 	for (size_t g = 0; g < NUM_GROUPS; g++) {
-		for (int c = 0; c < system_struct_t::NUM_OF_CPUS; c++) {
+		for (size_t c = 0; c < system_struct_t::NUM_OF_CPUS; c++) {
 			setup_cpu(c, fd, g);
 		}
 	}
@@ -415,22 +414,22 @@ int mainloop (char ** arg) {
 
 	// This is for polling the buffers of system_struct_t::NUM_OF_CPUS cpus for the available groups
 	for (size_t i = 0; i < TOTAL_BUFFS; i++) {
-		auto gr  = i / system_struct_t::NUM_OF_CPUS;
-		auto cpu = i % system_struct_t::NUM_OF_CPUS;
+		const auto gr  = i / system_struct_t::NUM_OF_CPUS;
+		const auto cpu = i % system_struct_t::NUM_OF_CPUS;
 		fds = all_fds[gr][cpu];
 		pollfds[i].fd = fds[0].fd;
 		pollfds[i].events = POLLIN;
 	}
 
 	// Starts counters
-	for (int i = 0; i < system_struct_t::NUM_OF_CPUS; i++) {
+	for (size_t i = 0; i < system_struct_t::NUM_OF_CPUS; i++) {
 		for (size_t j = 0; j < NUM_GROUPS; j++) {
 			fds = all_fds[j][i];
 
 			if (fds[0].fd == -1) {
 				continue;
 			}
-			auto ret = ioctl(fds[0].fd, PERF_EVENT_IOC_ENABLE, 0);
+			const auto ret = ioctl(fds[0].fd, PERF_EVENT_IOC_ENABLE, 0);
 			if (ret) {
 				err(1, "cannot start counter");
 			}
@@ -460,9 +459,9 @@ int mainloop (char ** arg) {
 
 		// Reads (only ready) buffers
 		for (size_t g = 0; g < NUM_GROUPS; g++) {
-			for (int c = 0; c < system_struct_t::NUM_OF_CPUS; c++) {
+			for (size_t c = 0; c < system_struct_t::NUM_OF_CPUS; c++) {
 				#if ! (defined(JUST_PROFILE_ENERGY) || defined(USE_ENER_ST))
-				int i =  g * system_struct_t::NUM_OF_CPUS + c; // Poll index
+				const auto i =  g * system_struct_t::NUM_OF_CPUS + c; // Poll index
 				if (pollfds[i].revents == 0) { // Now new data
 					continue;
 				}
@@ -477,6 +476,8 @@ int mainloop (char ** arg) {
 		perform_migration(); // We have the data, so we can begin the migration process
 		#endif
 	}
+
+	delete[] pollfds;
 
 	return 0;
 }

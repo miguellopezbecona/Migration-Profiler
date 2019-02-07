@@ -167,7 +167,7 @@ void work_with_fake_data () {
 #ifndef JUST_PROFILE
 int begin_migration_process () {
 	if (memory_list.is_empty()) {
-		//printf("Memory list is empty. Skipping iteration...\n");
+		// std::cerr << "Memory list is empty. Skipping iteration..." << '\n';
 		return -1;
 	}
 

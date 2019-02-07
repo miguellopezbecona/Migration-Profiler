@@ -56,8 +56,8 @@ void build_page_tables (const memory_data_list_t & m_list, const inst_data_list_
 		// This gets page number
 		//long int page_num = m_cell.addr >> expn;
 
-		int page_node = get_page_current_node(m_cell.tid, page_addr);
-		int cpu_node = system_struct_t::get_cpu_memory_node(m_cell.cpu);
+		const auto page_node = get_page_current_node(m_cell.tid, page_addr);
+		const auto cpu_node = system_struct_t::get_cpu_memory_node(m_cell.cpu);
 
 		// We filter pages that give problems
 		if (page_node < 0)
@@ -81,7 +81,7 @@ void build_page_tables (const memory_data_list_t & m_list, const inst_data_list_
 	for (inst_data_cell_t const & i_cell : i_list.list) {
 
 		// If there is no table associated (no mem sample) to the pid, the data will be discarded
-		if(!page_ts.count(i_cell.pid)) // = !contains(pid)
+		if (!page_ts.count(i_cell.pid)) // = !contains(pid)
 			continue;
 
 		page_ts[i_cell.pid].add_inst_data_for_tid(i_cell.tid, i_cell.cpu, i_cell.inst, i_cell.req_dr, i_cell.time);

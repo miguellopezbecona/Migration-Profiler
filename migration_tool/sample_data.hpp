@@ -54,6 +54,21 @@ public:
 		#endif
 	}
 
+	my_pebs_sample_t (const size_t num_fds_p) :
+		values(new uint64_t[num_fds_p])
+	{
+		#ifdef JUST_PROFILE_ENERGY
+		energies = std::vector<double>(energy_data_t::NUM_RAPL_DOMAINS, -1.0);
+		#endif
+		#ifdef JUST_PROFILE
+		inst_subevent_names = std::vector<char*>();
+		#endif
+	}
+
+	~my_pebs_sample_t () {
+		delete[] values;
+	}
+
 	inline bool is_mem_sample () const {
 		return nr == 1; // sample_addr != 0
 	}
@@ -88,7 +103,7 @@ public:
 
 		#ifdef JUST_PROFILE_ENERGY
 		os.precision(3); os << std::fixed;
-		for (int i = 0; i < energy_data_t::NUM_RAPL_DOMAINS; i++) {
+		for (size_t i = 0; i < energy_data_t::NUM_RAPL_DOMAINS; i++) {
 			os << "," << energies[i];
 		}
 		os << std::defaultfloat;
@@ -166,7 +181,7 @@ public:
 		#ifdef JUST_PROFILE_ENERGY
 
 		os.precision(2); os << std::fixed;
-		for (int i = 0; i < energy_data_t::NUM_RAPL_DOMAINS; i++) {
+		for (size_t i = 0; i < energy_data_t::NUM_RAPL_DOMAINS; i++) {
 			os << "," << s.energies[i];
 		}
 		os << std::defaultfloat;

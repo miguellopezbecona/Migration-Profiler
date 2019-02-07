@@ -14,17 +14,16 @@ public:
 
 		// Loops over all the pages
 		for (auto const & t_it : page_t.page_node_map) {
-			const pg_perf_data_t & pd = t_it.second;
+			const auto & pd = t_it.second;
 
 			// Gets memory node of last CPU access
-			const int cpu_node = system_struct_t::get_cpu_memory_node(pd.last_cpu_access);
+			const auto cpu_node = system_struct_t::get_cpu_memory_node(pd.last_cpu_access);
 
 			// Compares to page location and adds to migration list if different
-			const int page_node = pd.current_node;
-			if (cpu_node != page_node) {
-				const long int addr = t_it.first;
-				const migration_cell_t mc(addr, cpu_node, page_t.pid, false);
-				ret.push_back(mc);
+			const auto page_node = pd.current_node;
+			if (cpu_node != size_t(page_node)) {
+				const auto addr = t_it.first;
+				ret.push_back(migration_cell_t(addr, cpu_node, page_t.pid, false));
 			}
 		}
 

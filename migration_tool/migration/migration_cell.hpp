@@ -20,8 +20,8 @@
 // We need to know what to migrate and where
 class migration_cell_t {
 public:
-	static int total_thread_migrations;
-	static int total_page_migrations;
+	static size_t total_thread_migrations;
+	static size_t total_page_migrations;
 
 	size_t elem; // Core or page address
 	short dest; // Mem node for pages or core for TIDs
@@ -65,8 +65,8 @@ public:
 		int status;
 
 		// Key system call: numa_move_pages
-		const int ret = numa_move_pages(pid, 1, page, &dest_int, &status, MPOL_MF_MOVE);
-		if (ret < 0){
+		const auto ret = numa_move_pages(pid, 1, page, &dest_int, &status, MPOL_MF_MOVE);
+		if (ret < 0) {
 			std::cerr << "Move pages did not work: " << strerror(errno) << '\n';
 			return errno;
 		}
@@ -80,10 +80,12 @@ public:
 		}
 		std::cout << '\n'
 		#endif
+
+		return ret;
 	}
 
 	inline int perform_thread_migration () const {
-		const int ret = system_struct_t::set_tid_cpu((pid_t) elem, dest, true);
+		const auto ret = system_struct_t::set_tid_cpu((pid_t) elem, dest, true);
 
 		#ifdef TH_MIGR_OUTPUT
 		std::cout << "Migrated thread " << pid_t(elem) << " to CPU " << dest << '\n'; // +1 only for demo!
@@ -129,7 +131,7 @@ public:
 
 };
 
-int migration_cell_t::total_thread_migrations = 0;
-int migration_cell_t::total_page_migrations = 0;
+size_t migration_cell_t::total_thread_migrations = 0;
+size_t migration_cell_t::total_page_migrations = 0;
 
 #endif

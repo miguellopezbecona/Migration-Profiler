@@ -16,8 +16,8 @@
 class energy_str_t : public strategy {
 public:
 	inline std::vector<migration_cell_t> get_migrations (const std::map<pid_t, page_table_t> & page_ts) {
-		std::vector<migration_cell_t> v1 = get_threads_to_migrate(page_ts);
-		std::vector<migration_cell_t> v2 = get_pages_to_migrate(page_ts);
+		auto v1 = get_threads_to_migrate(page_ts);
+		const auto v2 = get_pages_to_migrate(page_ts);
 
 		#ifdef ENER_OUTPUT
 		std::cout << '\n';
@@ -35,7 +35,7 @@ public:
 		std::vector<migration_cell_t> v;
 
 		// Regarding threads
-		std::vector<double> pkgs = ed.get_curr_vals_from_domain("pkg");
+		auto pkgs = ed.get_curr_vals_from_domain("pkg");
 		#ifdef ENER_OUTPUT
 		std::cout << "pkg values (minus base) for each node from last iteration: ";
 		{
@@ -48,12 +48,12 @@ public:
 		std::cout << '\n';
 		#endif
 
-		auto it_max = std::max_element(pkgs.begin(), pkgs.end());
-		double mx = *(it_max);
-		size_t from = distance(pkgs.begin(), it_max);
+		const auto it_max = std::max_element(pkgs.begin(), pkgs.end());
+		const auto mx = *(it_max);
+		const auto from = distance(pkgs.begin(), it_max);
 
 		// If no enough pkg consumption increase -> no thread migrations
-		double ratio = ed.get_ratio_against_base(mx, from, "pkg");
+		const auto ratio = ed.get_ratio_against_base(mx, from, "pkg");
 		#ifdef ENER_OUTPUT
 		{
 			std::cout.precision(2); std::cout << std::fixed;
@@ -73,8 +73,8 @@ public:
 		std::cout << "ok." << '\n';
 		#endif
 
-		auto it_min = std::min_element(pkgs.begin(), pkgs.end());
-		double mn = *(it_min);
+		const auto it_min = std::min_element(pkgs.begin(), pkgs.end());
+		const auto mn = *(it_min);
 
 		#ifdef ENER_OUTPUT
 		{
@@ -97,7 +97,7 @@ public:
 		#endif
 
 		// If we meet the criteria, we will migrate from the most loaded node to the least one
-		size_t to = distance(pkgs.begin(), it_min);
+		const auto to = distance(pkgs.begin(), it_min);
 
 		#ifdef ENER_OUTPUT
 		std::cout << "We will migrate threads from node " << from << " to node " << to << '\n';
@@ -106,15 +106,15 @@ public:
 		// We search TIDs from CPUs from "from" node to be migrated
 		// [TODO]: use tid_cpu_table information to decide which threads to migrate
 		std::set<int> picked_cpus;
-		for (int c = 0; c < system_struct_t::CPUS_PER_MEMORY && v.size() < MAX_THREADS_TO_MIGRATE; c++) {
-			int from_cpu = system_struct_t::node_cpu_map[from][c];
+		for (size_t c = 0; c < system_struct_t::CPUS_PER_MEMORY && v.size() < MAX_THREADS_TO_MIGRATE; c++) {
+			const auto from_cpu = system_struct_t::node_cpu_map[from][c];
 
 			for (pid_t const & tid : system_struct_t::cpu_tid_map[from_cpu]) {
-				if(v.size() == MAX_THREADS_TO_MIGRATE)
+				if (v.size() == MAX_THREADS_TO_MIGRATE)
 					break;
 
 				// We search a, if possible, free CPU to migrate to
-				int to_cpu = system_struct_t::get_free_cpu_from_node(to, picked_cpus);
+				const auto to_cpu = system_struct_t::get_free_cpu_from_node(to, picked_cpus);
 				picked_cpus.insert(to_cpu);
 				migration_cell_t mc(tid, to_cpu);
 				v.push_back(mc);
@@ -135,7 +135,7 @@ public:
 		std::vector<migration_cell_t> v;
 
 		// Regarding pages
-		std::vector<double> rams = ed.get_curr_vals_from_domain("ram");
+		const auto rams = ed.get_curr_vals_from_domain("ram");
 		#ifdef ENER_OUTPUT
 		std::cout << "ram values (minus base) for each node from last iteration: ";
 		{
@@ -151,8 +151,8 @@ public:
 		if (rams.empty())
 			return v;
 
-		auto it_max = max_element(rams.begin(), rams.end());
-		double mx = *(it_max);
+		const auto it_max = max_element(rams.begin(), rams.end());
+		const auto mx = *(it_max);
 
 		#ifdef ENER_OUTPUT
 		{
@@ -174,8 +174,8 @@ public:
 		std::cout << "ok." << '\n';
 		#endif
 
-		auto it_min = min_element(rams.begin(), rams.end());
-		double mn = *(it_min);
+		const auto it_min = min_element(rams.begin(), rams.end());
+		const auto mn = *(it_min);
 
 		#ifdef ENER_OUTPUT
 		{
@@ -186,7 +186,7 @@ public:
 		#endif
 
 		// If all nodes are quite memory loaded -> no page migrations
-		if( (mx-mn) < DIFF_THRES){
+		if ( (mx-mn) < DIFF_THRES) {
 			#ifdef ENER_OUTPUT
 			std::cout << "no page migrations." << "\n\n";
 			#endif
@@ -198,8 +198,8 @@ public:
 		#endif
 
 		// If we meet the criteria, we will migrate from the most loaded node to the least one
-		int from = distance(rams.begin(), it_max);
-		int to = distance(rams.begin(), it_min);
+		const auto from = distance(rams.begin(), it_max);
+		const auto to = distance(rams.begin(), it_min);
 
 		#ifdef ENER_OUTPUT
 		std::cout << "We will migrate pages from node " << from << " to node " << to << '\n';
@@ -210,15 +210,15 @@ public:
 			if (v.size() == MAX_PAGES_TO_MIGRATE)
 				break;
 
-			const pid_t pid = t_it.first;
-			const page_table_t table = t_it.second;
+			const auto pid = t_it.first;
+			const auto table = t_it.second;
 
 			for (auto const & p_it : table.page_node_map) { // Looping over pages
 				if (v.size() == MAX_PAGES_TO_MIGRATE)
 					break;
 
-				long int addr = p_it.first;
-				pg_perf_data_t perf = p_it.second;
+				const auto addr = p_it.first;
+				const auto perf = p_it.second;
 
 				// Not from the desired node, to the next!
 				if (perf.current_node != from)

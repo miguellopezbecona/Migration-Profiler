@@ -90,8 +90,10 @@ labeled_migr_t labeled_migr_t::last_migration;
 class annealing_t : public strategy {
 private:
 	// Gets a different number of tickets depending on perf values and if we are comparing a external thread for interchange or not (mod)
-	inline int get_tickets_from_perfs (const int mem_cell, const int current_cell, const std::vector<double> & perfs, const bool mod) const {
-		if (perfs[mem_cell] == PERFORMANCE_INVALID_VALUE)
+	inline int get_tickets_from_perfs (const size_t mem_cell, const size_t current_cell, const std::vector<double> & perfs, const bool mod) const {
+		if (perfs.size() < mem_cell || perfs.size() < current_cell)
+			return TICKETS_MEM_CELL_NO_DATA[mod];
+		else if (perfs[mem_cell] == PERFORMANCE_INVALID_VALUE)
 			return TICKETS_MEM_CELL_NO_DATA[mod];
 		else if (perfs[current_cell] > perfs[mem_cell])
 			return TICKETS_MEM_CELL_WORSE[mod];
@@ -102,19 +104,19 @@ private:
 	std::vector<labeled_migr_t> get_candidate_list (const pid_t worst_tid, const page_table_t & page_t) const {
 		std::vector<labeled_migr_t> migration_list;
 
-		const int current_cpu = system_struct_t::get_cpu_from_tid(worst_tid);
-		const int current_cell = system_struct_t::get_cpu_memory_node(current_cpu);
-		const std::vector<double> current_perfs = page_t.get_perf_data(worst_tid);
+		const auto current_cpu = system_struct_t::get_cpu_from_tid(worst_tid);
+		const auto current_cell = system_struct_t::get_cpu_memory_node(current_cpu);
+		const auto current_perfs = page_t.get_perf_data(worst_tid);
 
 		// Search potential core destinations from different memory nodes
-		for (int n = 0; n < system_struct_t::NUM_OF_MEMORIES; n++) {
+		for (size_t n = 0; n < system_struct_t::NUM_OF_MEMORIES; n++) {
 			if (n == current_cell)
 				continue;
 
-			for (int i = 0; i < system_struct_t::CPUS_PER_MEMORY; i++) {
-				const int actual_cpu = system_struct_t::node_cpu_map[n][i];
+			for (size_t i = 0; i < system_struct_t::CPUS_PER_MEMORY; i++) {
+				const auto actual_cpu = system_struct_t::node_cpu_map[n][i];
 
-				int tickets = get_tickets_from_perfs(n, current_cell, current_perfs, false);
+				auto tickets = get_tickets_from_perfs(n, current_cell, current_perfs, false);
 
 				const migration_cell_t mc(worst_tid, actual_cpu, current_cpu, page_t.pid, true); // Migration associated to this iteration (CPU)
 
@@ -128,16 +130,16 @@ private:
 				}
 
 				// We will choose the TID with generates the higher number of tickets
-				const std::vector<pid_t> & tids = system_struct_t::get_tids_from_cpu(actual_cpu);
+				const auto tids = system_struct_t::get_tids_from_cpu(actual_cpu);
 				pid_t other_tid = -1;
 				int aux_tickets = -1;
 
 				for (pid_t const & aux_tid : tids) {
-					std::vector<double> other_perfs =  page_t.get_perf_data(aux_tid);
+					const auto other_perfs = page_t.get_perf_data(aux_tid);
 					int tid_tickets = get_tickets_from_perfs(current_cell, n, other_perfs, true);
 
 					// Better TID to pick
-					if(tid_tickets > aux_tickets){
+					if (tid_tickets > aux_tickets) {
 						aux_tickets = tid_tickets;
 						other_tid = aux_tid;
 					}
@@ -159,7 +161,7 @@ private:
 		int total_tickets = 0;
 		for (labeled_migr_t const & lm : lm_list)
 			total_tickets += lm.tickets;
-		int result = rand() % total_tickets; // Gets random number up to total tickets
+		auto result = rand() % total_tickets; // Gets random number up to total tickets
 
 		for (labeled_migr_t const & lm : lm_list) {
 			result -= lm.tickets; // Subtracts until lower than zero
@@ -181,7 +183,7 @@ private:
 		//page_t.print_performance(); // Perfs after normalization
 
 		// Selects migration targets for lottery (this is where the algoritm really is)
-		const std::vector<labeled_migr_t> migration_list = get_candidate_list(worst_tid, page_t);
+		const auto migration_list = get_candidate_list(worst_tid, page_t);
 
 		#ifdef ANNEALING_PRINT
 		std::cout << "\n*\nMIGRATION LIST CONTENT:" << '\n';
@@ -198,7 +200,7 @@ private:
 			return emp;
 		}
 
-		const labeled_migr_t & target_cell = get_random_labeled_cell(migration_list);
+		const auto target_cell = get_random_labeled_cell(migration_list);
 
 		#ifdef ANNEALING_PRINT
 		std::cout << "\n*\nTARGET MIGRATION: " << target_cell;
@@ -251,7 +253,7 @@ private:
 			//t_it.second.print_performance();
 
 		// Selects migration targets for lottery (this is where the algoritm really is)
-		std::vector<labeled_migr_t> migration_list = get_candidate_list(worst_tid, page_ts);
+		const auto migration_list = get_candidate_list(worst_tid, page_ts);
 
 		#ifdef ANNEALING_PRINT
 		// Commented due to its high amount of printing in manycores
@@ -266,8 +268,7 @@ private:
 			#ifdef ANNEALING_PRINT
 			std::cout << "TARGET LIST IS EMPTY, NO MIGRATIONS" << '\n';
 			#endif
-			std::vector<migration_cell_t> emp;
-			return emp;
+			return std::vector<migration_cell_t>();
 		}
 
 		labeled_migr_t target_cell = get_random_labeled_cell(migration_list);
@@ -286,20 +287,20 @@ private:
 	std::vector<labeled_migr_t> get_candidate_list (const pid_t worst_tid, const std::map<pid_t, page_table_t> & page_ts) const {
 		std::vector<labeled_migr_t> migration_list;
 
-		const int current_cpu = system_struct_t::get_cpu_from_tid(worst_tid);
-		const int current_cell = system_struct_t::get_cpu_memory_node(current_cpu);
+		const auto current_cpu = system_struct_t::get_cpu_from_tid(worst_tid);
+		const auto current_cell = system_struct_t::get_cpu_memory_node(current_cpu);
 
-		const pid_t current_pid = system_struct_t::get_pid_from_tid(worst_tid);
-		const std::vector<double> current_perfs = page_ts.at(current_pid).get_perf_data(worst_tid);
+		const auto current_pid = system_struct_t::get_pid_from_tid(worst_tid);
+		const auto current_perfs = page_ts.at(current_pid).get_perf_data(worst_tid);
 
 		// Search potential core destinations from different memory nodes
-		for (int n = 0; n < system_struct_t::NUM_OF_MEMORIES; n++) {
+		for (size_t n = 0; n < system_struct_t::NUM_OF_MEMORIES; n++) {
 			if (n == current_cell)
 				continue;
 
-			for (int i = 0; i < system_struct_t::CPUS_PER_MEMORY; i++) {
-				const int actual_cpu = system_struct_t::node_cpu_map[n][i];
-				int tickets = get_tickets_from_perfs(n, current_cell, current_perfs, false);
+			for (size_t i = 0; i < system_struct_t::CPUS_PER_MEMORY; i++) {
+				const auto actual_cpu = system_struct_t::node_cpu_map[n][i];
+				auto tickets = get_tickets_from_perfs(n, current_cell, current_perfs, false);
 
 				migration_cell_t mc(worst_tid, actual_cpu, current_cpu, current_pid, true); // Migration associated to this iteration (CPU)
 
@@ -322,7 +323,7 @@ private:
 				for (pid_t const & aux_tid : tids) {
 					const auto other_pid = system_struct_t::get_pid_from_tid(aux_tid);
 					const auto other_perfs = (page_ts.find(other_pid) != page_ts.end()) ?
-						page_ts.at(other_pid).get_perf_data(aux_tid) : std::vector<double>(1, 1.0);
+						page_ts.at(other_pid).get_perf_data(aux_tid) : std::vector<double>();
 					const auto tid_tickets = get_tickets_from_perfs(current_cell, n, other_perfs, true);
 
 					// Better TID to pick

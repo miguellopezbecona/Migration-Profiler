@@ -56,7 +56,7 @@ public:
 		std::cout << p << '\n'; // Prints poblation content
 		#endif
 
-		const individual_t & best = p.get_best_ind();
+		const individual_t best = p.get_best_ind();
 
 		// Updates best_sol if needed
 		#ifdef MAXIMIZATION
@@ -87,10 +87,10 @@ public:
 	}
 
 	individual_t cross (individual_t from_iter, individual_t from_selec, std::vector<migration_cell_t> & v) {
-		const size_t sz = from_iter.size();
+		const auto sz = from_iter.size();
 
 		// Cross probability
-		double prob = gen_utils::get_rand_double();
+		auto prob = gen_utils::get_rand_double();
 
 		#ifdef GENETIC_OUTPUT
 		std::cout.precision(2); std::cout << std::fixed;
@@ -104,8 +104,8 @@ public:
 			#endif
 			return from_iter;
 		} else {
-			const int idx1 = gen_utils::get_rand_int(sz, -1); // Any possible index
-			const int idx2 = gen_utils::get_rand_int(sz, idx1); // The second index can't be the first one...
+			const auto idx1 = gen_utils::get_rand_int(sz, -1); // Any possible index
+			const auto idx2 = gen_utils::get_rand_int(sz, idx1); // The second index can't be the first one...
 
 			#ifdef GENETIC_OUTPUT
 			std::cout << "index cuts: " << idx1 << " " << idx2 << '\n';
@@ -153,11 +153,11 @@ public:
 		std::cout << "Mutation process:" << '\n';
 		#endif
 
-		const size_t sz = ind.size();
+		const auto sz = ind.size();
 		for (size_t pos1 = 0; pos1 < sz; pos1++) {
 
 			// Obtains probability
-			const double prob = gen_utils::get_rand_double();
+			const auto prob = gen_utils::get_rand_double();
 
 			#ifdef GENETIC_OUTPUT
 			std::cout.precision(2); std::cout << std::fixed;
@@ -173,24 +173,24 @@ public:
 			}
 
 			// Mutation by interchange: selects second index
-			const int pos2 = gen_utils::get_rand_int(sz, pos1);
+			const auto pos2 = gen_utils::get_rand_int(sz, pos1);
 
 			// Generates two migration cells: ind[pos1] goes to ind[pos2] location and viceversa
-			const int dest1 = system_struct_t::ordered_cpus[pos2]; // CPU associated to pos2
-			const int dest2 = system_struct_t::ordered_cpus[pos1];
+			const auto dest1 = system_struct_t::ordered_cpus[pos2]; // CPU associated to pos2
+			const auto dest2 = system_struct_t::ordered_cpus[pos1];
 
 			// Migration cells concerning to those TIDs may already exist from cross process. If this is the case, we just have to change their destination
 			bool first_exists = false, sec_exists = false;
 			for (migration_cell_t & mc : v) {
-				for (pid_t const & tid : ind.v[pos1]) {
-					if (mc.elem == tid) { // Cell already exists: changes its destination
+				for (auto const & tid : ind.v[pos1]) {
+					if (mc.elem == size_t(tid)) { // Cell already exists: changes its destination
 						mc.dest = dest1;
 						first_exists = true;
 					}
 				}
 
-				for (pid_t const & tid : ind.v[pos2]) {
-					if (mc.elem == tid) { // Cell already exists: changes its destination
+				for (auto const & tid : ind.v[pos2]) {
+					if (mc.elem == size_t(tid)) { // Cell already exists: changes its destination
 						mc.dest = dest2;
 						sec_exists = true;
 					}
@@ -228,8 +228,7 @@ public:
 	// The following should not be written because it should inherit it from strategy
 	inline std::vector<migration_cell_t> get_pages_to_migrate (const std::map<pid_t, page_table_t> & page_ts) {
 		// Generates an individual for current state and calculates its performance
-		const individual_t ind(page_ts);
-		return do_genetic(ind);
+		return do_genetic(individual_t(page_ts));
 	}
 
 	inline std::vector<migration_cell_t> get_threads_to_migrate (const std::map<pid_t, page_table_t> & page_ts) {

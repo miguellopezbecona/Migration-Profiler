@@ -153,7 +153,7 @@ int perf_setup_argv_events(const char **argv, perf_event_desc_t **fds, int *num_
 	}
 	group_leader = num;
 
-	while(*argv) {
+	while (*argv) {
 		if (num == max_fds) {
 			if (max_fds == 0)
 				new_max = 2;
@@ -846,20 +846,15 @@ int transfer_data_from_buffer_to_structure_allifs(perf_event_desc_t *fds, int nu
 
 uint64_t display_lost(perf_event_desc_t *hw, perf_event_desc_t *fds, int num_fds, FILE *fp) {
 	struct { uint64_t id, lost; } lost;
-	const char *str;
-	int e, ret;
 
-	ret = perf_read_buffer(hw, &lost, sizeof(lost));
+	const int ret = perf_read_buffer(hw, &lost, sizeof(lost));
 	if (ret) {
 		warnx("cannot read lost info");
 		return 0;
 	}
 
-	e = perf_id2event(fds, num_fds, lost.id);
-	if (e == -1)
-		str = "unknown lost event";
-	else
-		str = fds[e].name;
+	const int e = perf_id2event(fds, num_fds, lost.id);
+	const char * str = (e == -1) ? "unknown lost event" : fds[e].name;
 
 	fprintf(fp, "<<<LOST %lu SAMPLES FOR EVENT %s>>>\n", lost.lost, str);
 

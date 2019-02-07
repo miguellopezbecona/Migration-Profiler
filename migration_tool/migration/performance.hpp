@@ -74,7 +74,7 @@ class th_perf_data_t : base_perf_data_t {};
 // Based on Óscar's work in his PhD. This would be associated to each thread from the PID associated to the table
 class rm3d_data_t {
 public:
-	const int CACHE_LINE_SIZE = 64;
+	const size_t CACHE_LINE_SIZE = 64;
 
 	bool active; // A TID is considered active if we received samples from it in the current iteration
 
@@ -96,7 +96,7 @@ public:
 		// reset();
 	}
 
-	void inline add_data (const int cpu, const long int inst, const long int req, const long int time) {
+	void inline add_data (const size_t cpu, const long int inst, const long int req, const long int time) {
 		active = true;
 
 		insts[cpu] += inst;
@@ -107,7 +107,7 @@ public:
 	void calc_perf (const double mean_lat) {
 		const double inv_mean_lat = 1.0 / mean_lat;
 
-		for (int cpu = 0; cpu < system_struct_t::NUM_OF_CPUS; cpu++) {
+		for (size_t cpu = 0; cpu < system_struct_t::NUM_OF_CPUS; cpu++) {
 			if (reqs[cpu] == 0) // No data, bye
 				continue;
 
@@ -139,12 +139,12 @@ public:
 	}
 
 	friend std::ostream & operator << (std::ostream & os, const rm3d_data_t & d) {
-		for (int cpu = 0; cpu < system_struct_t::NUM_OF_CPUS; cpu++) {
+		for (size_t cpu = 0; cpu < system_struct_t::NUM_OF_CPUS; cpu++) {
 			os << "\tCPU: " << cpu << ", INSTS = " << d.insts[cpu] << ", REQS = " << d.reqs[cpu] << ", TIMES = " << d.times[cpu];
 		}
 
 		os.precision(2); os << std::fixed;
-		for (int node = 0; node < system_struct_t::NUM_OF_MEMORIES; node++) {
+		for (size_t node = 0; node < system_struct_t::NUM_OF_MEMORIES; node++) {
 			os << "\tNODE: " << node << ", PERF = " << d.v_perfs[node] << '\n';
 		}
 		os << std::defaultfloat;
@@ -229,7 +229,7 @@ public:
 		table.erase(key);
 	}
 
-	void add_data (const long int key, const int col_num, const double lat) {
+	void add_data (const long int key, const size_t col_num, const double lat) {
 		if (!has_row(key)) { // No entry, so we create it
 			std::vector<perf_cell_t> pv(coln);
 			table[key] = pv;

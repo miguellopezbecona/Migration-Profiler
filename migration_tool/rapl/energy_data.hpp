@@ -15,7 +15,7 @@
 class energy_data_t {
 public:
 	static std::vector<char*> rapl_domain_names;
-	static int NUM_RAPL_DOMAINS;
+	static size_t NUM_RAPL_DOMAINS;
 
 	double** base_vals; // For base increments
 	double** prev_vals; // For increments
@@ -45,14 +45,14 @@ public:
 			return;
 		}
 
-		for (int i = 0; i < system_struct_t::NUM_OF_MEMORIES; i++) {
+		for (size_t i = 0; i < system_struct_t::NUM_OF_MEMORIES; i++) {
 			delete[] base_vals[i];
 			delete[] prev_vals[i];
 			delete[] curr_vals[i];
 			delete[] fd[i];
 		}
 
-		for (int i = 0; i < NUM_RAPL_DOMAINS; i++)
+		for (size_t i = 0; i < NUM_RAPL_DOMAINS; i++)
 			delete[] units[i];
 
 		delete[] base_vals;
@@ -71,14 +71,14 @@ public:
 		fd = new int* [system_struct_t::NUM_OF_MEMORIES];
 		scale = new double[NUM_RAPL_DOMAINS];
 
-		for (int i = 0; i < system_struct_t::NUM_OF_MEMORIES; i++) {
+		for (size_t i = 0; i < system_struct_t::NUM_OF_MEMORIES; i++) {
 			base_vals[i] = new double[NUM_RAPL_DOMAINS]{};
 			prev_vals[i] = new double[NUM_RAPL_DOMAINS]{};
 			curr_vals[i] = new double[NUM_RAPL_DOMAINS];
 			fd[i] = new int[NUM_RAPL_DOMAINS];
 		}
 
-		for (int i = 0; i < NUM_RAPL_DOMAINS; i++)
+		for (size_t i = 0; i < NUM_RAPL_DOMAINS; i++)
 			units[i] = new char[8];
 	}
 
@@ -182,7 +182,7 @@ public:
 		int * config = new int[NUM_RAPL_DOMAINS];
 
 		// Gets data to open counters
-		for (int i = 0; i < NUM_RAPL_DOMAINS; i++) {
+		for (size_t i = 0; i < NUM_RAPL_DOMAINS; i++) {
 			sprintf(filename, "/sys/bus/event_source/devices/power/events/energy-%s", rapl_domain_names[i]);
 			fff = fopen(filename, "r");
 
@@ -217,8 +217,8 @@ public:
 		read_increments_file(base_filename);
 
 		// Opens counters
-		for (int n = 0; n < system_struct_t::NUM_OF_MEMORIES; n++) {
-			for (int d = 0; d < NUM_RAPL_DOMAINS; d++) {
+		for (size_t n = 0; n < system_struct_t::NUM_OF_MEMORIES; n++) {
+			for (size_t d = 0; d < NUM_RAPL_DOMAINS; d++) {
 				fd[n][d] = -1;
 
 				struct perf_event_attr attr;
@@ -241,7 +241,7 @@ public:
 	}
 
 	inline int get_domain_pos (const char * domain) {
-		for (int i = 0; i < NUM_RAPL_DOMAINS; i++) {
+		for (size_t i = 0; i < NUM_RAPL_DOMAINS; i++) {
 			if (strcmp(rapl_domain_names[i], domain) == 0)
 				return i;
 		}
@@ -251,8 +251,8 @@ public:
 	void read_buffer (const double secs) {
 		long long value;
 
-		for (int n = 0; n < system_struct_t::NUM_OF_MEMORIES; n++) {
-			for (int d = 0; d < NUM_RAPL_DOMAINS; d++) {
+		for (size_t n = 0; n < system_struct_t::NUM_OF_MEMORIES; n++) {
+			for (size_t d = 0; d < NUM_RAPL_DOMAINS; d++) {
 				int dummy = read(fd[n][d],&value,8);
 
 				// Can be uncommented to avoid a "unused-variable" warning, but I think it may affect performance
@@ -279,32 +279,32 @@ public:
 		}
 	}
 
-	inline double get_ratio_against_base (const double val, const int node, const char * domain) {
+	inline double get_ratio_against_base (const double val, const size_t node, const char * domain) {
 		const int col = get_domain_pos(domain);
 		return val / base_vals[node][col];
 	}
 
 	void print_curr_vals () {
-		for (int n = 0; n < system_struct_t::NUM_OF_MEMORIES; n++) {
+		for (size_t n = 0; n < system_struct_t::NUM_OF_MEMORIES; n++) {
 			std::cout << "Node " << n << ":" << '\n';
 
-			for (int d = 0; d < NUM_RAPL_DOMAINS; d++)
+			for (size_t d = 0; d < NUM_RAPL_DOMAINS; d++)
 				std::cout << "\tEnergy consumed in " << rapl_domain_names[d] << ": " << curr_vals[n][d] << " " << units[d] << '\n';
 		}
 		std::cout << '\n';
 	}
 
 	// Some of them may not be used, but they can come handy in the future
-	inline double get_curr_val (const int node, const char * domain) {
+	inline double get_curr_val (const size_t node, const char * domain) {
 		const int pos = get_domain_pos(domain);
 
 		return (pos < 0) ? 0.0 : curr_vals[node][pos];
 	}
 
-	inline std::vector<double> get_curr_vals_from_node (const int node) { // For all domains
+	inline std::vector<double> get_curr_vals_from_node (const size_t node) { // For all domains
 		std::vector<double> v;
 
-		for (int i = 0; i < NUM_RAPL_DOMAINS; i++)
+		for (size_t i = 0; i < NUM_RAPL_DOMAINS; i++)
 			v.push_back(curr_vals[node][i]);
 
 		return v;
@@ -317,7 +317,7 @@ public:
 		if (pos == -1)
 			return v;
 
-		for (int i = 0; i < system_struct_t::NUM_OF_MEMORIES; i++)
+		for (size_t i = 0; i < system_struct_t::NUM_OF_MEMORIES; i++)
 			v.push_back(curr_vals[i][pos]);
 
 		return v;
@@ -328,8 +328,8 @@ public:
 	}
 
 	void close_buffers () {
-		for (int i = 0; i < system_struct_t::NUM_OF_MEMORIES; i++) {
-			for (int j = 0; j < NUM_RAPL_DOMAINS; j++)
+		for (size_t i = 0; i < system_struct_t::NUM_OF_MEMORIES; i++) {
+			for (size_t j = 0; j < NUM_RAPL_DOMAINS; j++)
 				close(fd[i][j]);
 		}
 	}
@@ -338,6 +338,6 @@ public:
 energy_data_t ed;
 
 std::vector<char*> energy_data_t::rapl_domain_names;
-int energy_data_t::NUM_RAPL_DOMAINS = 0;
+size_t energy_data_t::NUM_RAPL_DOMAINS = 0;
 
 #endif

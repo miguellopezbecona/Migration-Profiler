@@ -53,10 +53,10 @@ typedef std::map<long int, table_cell_t> column; // Each column of the table, de
 class page_table_t {
 public:
 	std::vector<column> table; // Matrix/table where rows are threads (uses index from tid_index) and columns are indexed by page address
-	std::set<long int> uniq_addrs; // All different addresses used in this table, useful for heatmap printing
+	std::set<size_t> uniq_addrs; // All different addresses used in this table, useful for heatmap printing
 	std::map<pid_t, short> tid_index; // Translates TID to row index
 
-	std::map<long int, pg_perf_data_t> page_node_map; // Maps page address to memory node and other data (may be redundant with page_node_table)
+	std::map<size_t, pg_perf_data_t> page_node_map; // Maps page address to memory node and other data (may be redundant with page_node_table)
 
 	std::map<pid_t, rm3d_data_t> perf_per_tid; // Maps TID to Óscar's performance data
 
@@ -88,8 +88,8 @@ public:
 
 	~page_table_t () {}
 
-	int add_cell (const long int page_addr, const int current_node, const pid_t tid, const int latency, const int cpu, const int cpu_node, const bool is_cache_miss) {
-		table_cell_t * cell = get_cell(page_addr, tid);
+	int add_cell (const size_t page_addr, const size_t current_node, const pid_t tid, const int latency, const size_t cpu, const size_t cpu_node, const bool is_cache_miss) {
+		auto * cell = get_cell(page_addr, tid);
 
 		if (cell == nullptr) {
 			uniq_addrs.insert(page_addr); // Adds address to the set, won't be inserted if already added by other threads
@@ -110,7 +110,7 @@ public:
 		}
 
 		// Creates/updates association in page node map
-		pg_perf_data_t & pd = page_node_map[page_addr];
+		auto & pd = page_node_map[page_addr];
 		pd.last_cpu_access = cpu;
 		pd.current_node = current_node;
 		pd.acs_per_node[cpu_node]++;
@@ -122,25 +122,25 @@ public:
 		return 0;
 	}
 
-	inline bool contains_addr (const long int page_addr, const int tid) {
+	inline bool contains_addr (const size_t page_addr, const size_t tid) {
 		if (tid_index.count(tid) == 0)
 			return false;
 
-		int pos = tid_index[tid];
+		const auto pos = tid_index[tid];
 		return table[pos].count(page_addr) > 0;
 	}
 
-	inline table_cell_t * get_cell(const long int page_addr, const int tid) {
+	inline table_cell_t * get_cell(const size_t page_addr, const size_t tid) {
 		if (contains_addr(page_addr, tid)) {
-			int pos = tid_index[tid];
+			const auto pos = tid_index[tid];
 			return &(table[pos][page_addr]);
 		} else
 			return nullptr;
 	}
 
-	inline std::vector<int> get_latencies_from_cell (const long int page_addr, const int tid) {
+	inline std::vector<int> get_latencies_from_cell (const size_t page_addr, const size_t tid) {
 		if (contains_addr(page_addr,tid)) {
-			int pos = tid_index[tid];
+			const auto pos = tid_index[tid];
 			return table[pos][page_addr].latencies;
 		} else {
 			return std::vector<int>();
@@ -150,9 +150,9 @@ public:
 	void remove_tid (const pid_t tid) {
 		bool erased = false;
 
-		for (std::map<int, short>::iterator it = tid_index.begin(); it != tid_index.end(); ++it) {
-			pid_t it_tid = it->first;
-			int pos = it->second;
+		for (auto it = tid_index.begin(); it != tid_index.end(); ++it) {
+			const auto it_tid = it->first;
+			const auto pos = it->second;
 
 			// Removing a thread (row) implies deleting the map association (also in system struct), deleting the element in the vector, and updating following positions
 			if (tid == it_tid) {
@@ -169,11 +169,11 @@ public:
 	}
 
 	void remove_finished_tids (const bool unpin_3drminactive_tids) {
-		unsigned int erased = 0;
+		size_t erased = 0;
 
 		for (auto it = tid_index.begin(); it != tid_index.end(); ) {
-			pid_t tid = it->first;
-			int pos = it->second;
+			const auto tid = it->first;
+			const auto pos = it->second;
 
 			// Removing a thread (row) implies deleting the map association (also in system struct), deleting the element in the vector, and updating following positions
 			if (!is_tid_alive(pid, tid)) {
@@ -211,14 +211,14 @@ public:
 
 	void calculate_performance_page (const int threshold) {
 		// Loops over memory pages
-		for (long int const & addr : uniq_addrs) {
+		for (auto const & addr : uniq_addrs) {
 			std::vector<int> l_thres;
 			int threads_accessed = 0;
 			int num_acs_thres = 0;
 
 			// A thread has accessed to the page if its cell is not null
 			for (auto const & t_it : tid_index) {
-				std::vector<int> l = get_latencies_from_cell(addr, t_it.first);
+				const auto l = get_latencies_from_cell(addr, t_it.first);
 
 				// No data
 				if (l.empty())
@@ -238,7 +238,7 @@ public:
 			}
 
 			// Updates data in map
-			pg_perf_data_t & cell = page_node_map[addr];
+			auto & cell = page_node_map[addr];
 			cell.num_uniq_accesses = threads_accessed;
 			cell.num_acs_thres = num_acs_thres;
 
@@ -257,20 +257,20 @@ public:
 
 	void update_page_locations (const std::vector<migration_cell_t> & pg_migr) {
 		for (migration_cell_t const & pgm : pg_migr){
-			long int addr = pgm.elem;
-			short new_dest = pgm.dest;
+			const auto addr = pgm.elem;
+			const auto new_dest = pgm.dest;
 			page_node_map[addr].current_node = new_dest;
 		}
 	}
 
 	inline void update_page_location (const migration_cell_t & pgm) {
-		long int addr = pgm.elem;
-		short new_dest = pgm.dest;
+		const auto addr = pgm.elem;
+		const auto new_dest = pgm.dest;
 		page_node_map[addr].current_node = new_dest;
 	}
 
 	// Code made for replicating Óscar's work
-	inline void add_inst_data_for_tid (const pid_t tid, const int core, const long int insts, const long int req_dr, const long int time) {
+	inline void add_inst_data_for_tid (const pid_t tid, const size_t core, const size_t insts, const size_t req_dr, const size_t time) {
 		perf_per_tid[tid].add_data(core, insts, req_dr, time);
 	}
 
@@ -282,7 +282,7 @@ public:
 			if (!perf_per_tid[tid].active) // Only for active
 				continue;
 
-			auto v = get_lats_for_tid(tid);
+			const auto v = get_lats_for_tid(tid);
 			double mean_lat = std::accumulate(v.begin(), v.end(), 0.0) / v.size();
 
 			// Performance is updated
@@ -299,8 +299,8 @@ public:
 
 		// We loop over TIDs
 		for (auto const & t_it : tid_index) {
-			pid_t tid = t_it.first;
-			const rm3d_data_t & pd = perf_per_tid[tid];
+			const auto tid = t_it.first;
+			const auto & pd = perf_per_tid[tid];
 
 			if (!pd.active)
 				continue;
@@ -308,7 +308,7 @@ public:
 			active_threads++;
 
 			// We sum the last_perf if active
-			double pd_lp = pd.v_perfs[pd.index_last_node_calc];
+			const auto pd_lp = pd.v_perfs[pd.index_last_node_calc];
 			mean_perf += pd_lp;
 			if (pd_lp < min_p) { // And we calculate the minimum
 				min_t = tid;
@@ -320,8 +320,8 @@ public:
 
 		// We loop over TIDs again for normalising
 		for (auto const & t_it : tid_index) {
-			pid_t tid = t_it.first;
-			rm3d_data_t & pd = perf_per_tid[tid];
+			const auto tid = t_it.first;
+			auto & pd = perf_per_tid[tid];
 
 			if (!pd.active)
 				continue;
@@ -335,7 +335,7 @@ public:
 	void reset_performance () {
 		// We loop over TIDs
 		for (auto const & t_it : tid_index) {
-			pid_t tid = t_it.first;
+			const auto tid = t_it.first;
 
 			// And we call reset for them
 			perf_per_tid[tid].reset();
@@ -347,10 +347,10 @@ public:
 
 		// We loop over TIDs
 		for (auto const & t_it : tid_index) {
-			pid_t tid = t_it.first;
+			const auto tid = t_it.first;
 
 			// And we sum them all if active
-			const rm3d_data_t & pd = perf_per_tid.at(tid);
+			const auto & pd = perf_per_tid.at(tid);
 			if (!pd.active)
 				continue;
 
@@ -363,7 +363,7 @@ public:
 	inline std::vector<double> get_perf_data (const pid_t tid) const {
 		// May happen that there is no value with key "tid". ¿ERROR?
 		return (perf_per_tid.find(tid) != perf_per_tid.end()) ?
-				perf_per_tid.at(tid).v_perfs : std::vector<double>(1, 1.0);
+				perf_per_tid.at(tid).v_perfs : std::vector<double>();
 	}
 
 	std::vector<int> get_all_lats () const {
@@ -372,7 +372,7 @@ public:
 
 		// We loop over TIDs
 		for (auto const & t_it : tid_index) {
-			const std::vector<int> ls = get_lats_for_tid(t_it.first);
+			const auto ls = get_lats_for_tid(t_it.first);
 			v.insert(v.end(), ls.begin(), ls.end()); // Appends latencies to main list
 		}
 
@@ -396,8 +396,8 @@ public:
 
 		// We collect the sums of the accesses per node for each page
 		for (auto const & it : page_node_map) {
-			const std::vector<unsigned short> & vaux = it.second.acs_per_node;
-			int num_acs = std::accumulate(vaux.begin(), vaux.end(), 0);
+			const auto & vaux = it.second.acs_per_node;
+			const auto num_acs = std::accumulate(vaux.begin(), vaux.end(), 0);
 			v.push_back(num_acs);
 		}
 
@@ -406,23 +406,23 @@ public:
 	}
 
 	inline double get_mean_lat_to_pages () {
-		const std::vector<int> & v = get_all_lats();
+		const auto & v = get_all_lats();
 		return std::accumulate(v.begin(), v.end(), 0.0) / v.size();
 	}
 
 	// More info about the definitions in source file
-	void print_heatmaps (FILE ** fps, int num_fps) {
+	void print_heatmaps (FILE ** fps, size_t num_fps) {
 		// This is for writing number of accesses by each thread in the last row
 		int accesses[tid_index.size()];
 		memset(accesses, 0, sizeof(accesses));
 
 		// First line of each CSV file: column header
-		for (int i = 0; i < num_fps; i++){
+		for (size_t i = 0; i < num_fps; i++){
 			// Rowname (first column)
 			fprintf(fps[i], "addr,");
 
 			// Threads' ID
-			for(auto const & t_it : tid_index)
+			for (auto const & t_it : tid_index)
 				fprintf(fps[i], "T_%d,", t_it.first);
 			fprintf(fps[i], "\n");
 		}
@@ -431,7 +431,7 @@ public:
 		for (long int const & addr : uniq_addrs) {
 
 			// Writes address as row name (first column)
-			for (int i = 0; i < num_fps; i++)
+			for (size_t i = 0; i < num_fps; i++)
 				fprintf(fps[i], "%lx,", addr);
 
 			// Writes data for each thread
@@ -440,7 +440,7 @@ public:
 
 				// No data
 				if (l.empty()) {
-					for (int j = 0; j < num_fps; j++)
+					for (size_t j = 0; j < num_fps; j++)
 						fprintf(fps[j], "-1,");
 					continue;
 				}
@@ -448,24 +448,24 @@ public:
 				accesses[t_it.second] += l.size();
 
 				// Calculates data
-				int num_accesses = l.size();
-				int min_latency = *(std::min_element(l.begin(), l.end()));
-				double mean_latency = std::accumulate(l.begin(), l.end(), 0.0) / num_accesses;
-				int max_latency = *(std::max_element(l.begin(), l.end()));
+				const auto num_accesses = l.size();
+				const auto min_latency = *(std::min_element(l.begin(), l.end()));
+				const double mean_latency = std::accumulate(l.begin(), l.end(), 0.0) / num_accesses;
+				const auto max_latency = *(std::max_element(l.begin(), l.end()));
 
 				// Prints data to files
-				fprintf(fps[0], "%d,", num_accesses);
+				fprintf(fps[0], "%lu,", num_accesses);
 				fprintf(fps[1], "%d,", min_latency);
 				fprintf(fps[2], "%.2f,", mean_latency);
 				fprintf(fps[3], "%d,", max_latency);
 			}
 
-			for (int j = 0; j < num_fps; j++)
+			for (size_t j = 0; j < num_fps; j++)
 				fprintf(fps[j], "\n");
 		}
 
 		// After all addresses (rows) are processed, we print number of accesses by each thread in the last row
-		for (int i = 0; i < num_fps; i++) {
+		for (size_t i = 0; i < num_fps; i++) {
 			fprintf(fps[i], "num_accesses,"); // Rowname
 			for (size_t j = 0; j < tid_index.size(); j++)
 				fprintf(fps[i], "%d,", accesses[j]);
@@ -477,7 +477,7 @@ public:
 		fprintf(fp, "addr,threads_accessed\n");
 
 		// Each unique page address will write a row with the data for each thread
-		for (long int const & addr : uniq_addrs){
+		for (auto const & addr : uniq_addrs){
 			int threads_accessed = 0;
 
 			// A thread has accessed to the page if its cell is not null
