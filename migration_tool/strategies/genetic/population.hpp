@@ -48,7 +48,7 @@ public:
 		v.push_back(idv); // And then, we add the new idv
 	}
 
-	inline void set (const int idx, const individual_t idv) {
+	inline void set (const size_t idx, const individual_t idv) {
 	    v[idx] = idv;
 	}
 
@@ -79,7 +79,7 @@ public:
 	}
 
 	inline void print () const {
-		std::cout << *this;
+		std::cout << *this << '\n';
 	}
 
 	friend std::ostream & operator << (std::ostream & os, const population & p) {

@@ -21,9 +21,9 @@ class base_perf_data_t {
 public:
 	unsigned short num_uniq_accesses;
 	unsigned short num_acs_thres; // Always equal or lower than num_uniq_accesses
-	unsigned short min_latency;
-	unsigned short median_latency;
-	unsigned short max_latency;
+	lat_t min_latency;
+	lat_t median_latency;
+	lat_t max_latency;
 
 	base_perf_data_t () {}
 
@@ -40,8 +40,8 @@ public:
 
 class pg_perf_data_t : public base_perf_data_t {
 public:
-	char current_node;
-	short last_cpu_access;
+	node_t current_node;
+	cpu_t last_cpu_access;
 
 	std::vector<unsigned short> acs_per_node; // Number of accesses from threads per memory node
 
@@ -79,9 +79,9 @@ public:
 	bool active; // A TID is considered active if we received samples from it in the current iteration
 
 	// Sum of inst sample fields, per core
-	std::vector<long int> insts;
-	std::vector<long int> reqs;
-	std::vector<long int> times;
+	std::vector<ins_t> insts;
+	std::vector<req_t> reqs;
+	std::vector<tim_t> times;
 
 	std::vector<double> v_perfs; // 3DyRM performance per memory node
 	unsigned char index_last_node_calc; // Used to get last_3DyRM_perf from Óscar's code
@@ -96,7 +96,7 @@ public:
 		// reset();
 	}
 
-	void inline add_data (const size_t cpu, const long int inst, const long int req, const long int time) {
+	void inline add_data (const cpu_t cpu, const ins_t inst, const req_t req, const tim_t time) {
 		active = true;
 
 		insts[cpu] += inst;
@@ -158,7 +158,7 @@ public:
 class perf_cell_t {
 public:
 	// Right now, we just have into account the number of acceses and the mean latency
-	unsigned int num_acs;
+	size_t num_acs;
 	double mean_lat;
 
 	perf_cell_t () :
@@ -198,30 +198,31 @@ public:
 
 // Experimental table to store historical performance for each thread/memory page in each CPU/node
 typedef std::vector<perf_cell_t> perf_col; // Readibility
+
 class perf_table_t {
 public:
 	static double alfa; // For future aging technique
 
 	unsigned short coln; // NUM_OF_MEMORIES or NUM_OF_CPUS
-	std::map<long int, perf_col> table; // Dimensions: TID/page addr and CPU/node
+	std::map<addr_t, perf_col> table; // Dimensions: TID/page addr and CPU/node
 
 	perf_table_t () :
 		coln(1),
 		table()
 	{}
 
-	perf_table_t (const unsigned short n) :
+	perf_table_t (const size_t n) :
 		coln(n),
 		table()
 	{}
 
 	~perf_table_t () {}
 
-	inline bool has_row (const long int key) const {
+	inline bool has_row (const addr_t key) const {
 		return table.count(key) > 0;
 	}
 
-	void remove_row (const long int key) {
+	void remove_row (const addr_t key) {
 		if(!has_row(key))
 			return;
 
@@ -229,7 +230,7 @@ public:
 		table.erase(key);
 	}
 
-	void add_data (const long int key, const size_t col_num, const double lat) {
+	void add_data (const addr_t key, const size_t col_num, const double lat) {
 		if (!has_row(key)) { // No entry, so we create it
 			std::vector<perf_cell_t> pv(coln);
 			table[key] = pv;
@@ -255,9 +256,9 @@ public:
 		os << "Printing perf table (" << keys[is_page_table] << "/" << colns[is_page_table] << " type)" << '\n';
 
 		// Prints each row
-		for (auto const & it : p.table) {
-			long int row = it.first;
-			perf_col pv = it.second;
+		for (const auto & it : p.table) {
+			const auto & row = it.first;
+			const auto & pv = it.second;
 
 			os << keys[is_page_table] << ": " << row << '\n';
 

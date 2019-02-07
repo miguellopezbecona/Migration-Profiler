@@ -856,7 +856,7 @@ uint64_t display_lost(perf_event_desc_t *hw, perf_event_desc_t *fds, int num_fds
 	const int e = perf_id2event(fds, num_fds, lost.id);
 	const char * str = (e == -1) ? "unknown lost event" : fds[e].name;
 
-	fprintf(fp, "<<<LOST %lu SAMPLES FOR EVENT %s>>>\n", lost.lost, str);
+	fprintf((fp == NULL ? stderr : fp), "<<<LOST %lu SAMPLES FOR EVENT %s>>>\n", lost.lost, str);
 
 	return lost.lost;
 }

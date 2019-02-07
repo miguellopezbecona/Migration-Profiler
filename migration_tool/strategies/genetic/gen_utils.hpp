@@ -28,7 +28,8 @@ class gen_utils {
 		return (double) rand() / (double) RAND_MAX;
 	}
 
-	static inline bool contains (const std::vector<int> & v, const int e) {
+	template<class T>
+	static inline bool contains (const std::vector<T> & v, const T e) {
 		return find(v.begin(), v.end(), e) != v.end();
 	}
 };

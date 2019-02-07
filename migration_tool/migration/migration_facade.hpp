@@ -86,10 +86,10 @@ void clean_migration_structures () {
 	#ifdef MEAN_ACS_ANALY
 	std::cout << "pid,mean_acs,page_count" << '\n';
 	std::cout.precision(2); std::cout << std::fixed;
-	for (auto const & it : page_tables) {
-		page_table_t t = it.second;
-		size_t sz = t.uniq_addrs.size();
-		double mean = t.get_mean_acs_to_pages();
+	for (const auto & it : page_tables) {
+		const auto t = it.second;
+		const auto sz = t.uniq_addrs.size();
+		const auto mean = t.get_mean_acs_to_pages();
 		//if(sz > 10 && mean > 1.25) // Trying to print only wanted PID
 		std::cout << it.first << "," << mean << "," << sz << '\n';
 	}
@@ -101,7 +101,7 @@ void clean_migration_structures () {
 	#ifdef MEAN_LAT_ANALY
 	std::cout << "pid,mean_lat" << '\n';
 	std:cout.precision(2); std::cout << std::fixed;
-	for (auto const & it : page_tables) {
+	for (const auto & it : page_tables) {
 		page_table_t t = it.second;
 		std::cout << it.first << "," << t.get_mean_lat_to_pages() << '\n';
 	}
@@ -143,9 +143,9 @@ void work_with_fake_data () {
 	pages(pids, memory_list, inst_list, page_tables);
 
 	// Creates/updates TID -> PID associations
-	for (auto const & it : page_tables) {
-		pid_t pid = it.first;
-		page_table t = it.second;
+	for (const auto & it : page_tables) {
+		const auto pid = it.first;
+		auto t = it.second;
 		for (pid_t const & tid : t.get_tids())
 			system_struct_t::set_pid_to_tid(pid, tid);
 	}

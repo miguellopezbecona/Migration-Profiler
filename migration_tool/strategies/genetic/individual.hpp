@@ -8,7 +8,7 @@
 // This would fit better in genetic.h, but it raised double link problems
 #define GENETIC_OUTPUT
 
-typedef std::vector<pid_t> gene; // List of TID per CPU
+using gene = std::vector<pid_t>; // List of TID per CPU
 
 #ifdef MAXIMIZATION
 const double NO_FITNESS = -1.0;
@@ -43,9 +43,9 @@ public:
 		}
 
 		// Calculates fitness (in this case, mean latency), using only data from last iteration
-		std::vector<int> all_ls;
+		std::vector<lat_t> all_ls;
 		for (const auto & it : ts) { // For each table (PID), gets all its latencies
-			const std::vector<int> l = it.second.get_all_lats();
+			const auto l = it.second.get_all_lats();
 			all_ls.insert(end(all_ls), begin(l), end(l));
 		}
 
@@ -78,7 +78,7 @@ public:
 
 		// Check the percentage of dead TIDs the idv has
 		for (gene const & tids : v) {
-			for (pid_t const & tid : tids) {
+			for (tid_t const & tid : tids) {
 				num_tids++;
 
 				pid_t pid = system_struct_t::get_pid_from_tid(tid);
@@ -163,7 +163,7 @@ public:
 	}
 
 	inline individual_t get_copy() const {
-		individual_t i(v);
+		individual_t i = *this;
 		return i;
 	}
 

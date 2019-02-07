@@ -7,26 +7,18 @@
 
 #include <vector> // std::vector
 
+#include "data_cell.hpp" // data_cell_t
 #include "system_struct.hpp" // NUM_OF_CPUS
 
-class inst_data_cell_t {
+class inst_data_cell_t : public data_cell_t {
 public:
-	uint32_t cpu;
-	int pid;
-	int tid;
-	uint64_t inst;
+	ins_t inst;
 	uint64_t req_dr;
-	uint64_t time;
 
-	inst_data_cell_t () {};
-
-	inst_data_cell_t (const uint32_t cpu, const int pid, const int tid, const uint64_t inst, const uint64_t req_dr, const uint64_t time) :
-		cpu(cpu),
-		pid(pid),
-		tid(tid),
+	inst_data_cell_t (const cpu_t cpu, const pid_t pid, const tid_t tid, const ins_t inst, const uint64_t req_dr, const tim_t time) :
+		data_cell_t(cpu, pid, tid, time),
 		inst(inst),
-		req_dr(req_dr),
-		time(time)
+		req_dr(req_dr)
 	{};
 
 	inline void print () const {

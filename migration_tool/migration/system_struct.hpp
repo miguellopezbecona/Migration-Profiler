@@ -21,6 +21,8 @@
 #include <vector>
 #include <set>
 
+#include "types_definition.hpp"
+
 class system_struct_t {
 public:
 	static size_t NUM_OF_CPUS;
@@ -28,24 +30,24 @@ public:
 	static size_t CPUS_PER_MEMORY;
 
 	// To know where each CPU is (in terms of memory node)
-	static std::vector<size_t> cpu_node_map; // cpu_node_map[cpu] = node
-	static std::vector<std::vector<size_t>> node_cpu_map; // cpu_node_map[node] = list(cpus)
+	static std::vector<node_t> cpu_node_map; // cpu_node_map[cpu] = node
+	static std::vector<std::vector<cpu_t>> node_cpu_map; // cpu_node_map[node] = list(cpus)
 
 	// To know where each TID is (in terms of CPUs)
-	static std::map<pid_t, size_t> tid_cpu_map; // input: tid, output: cpu
-	static std::vector<std::vector<pid_t>> cpu_tid_map; // input: cpu, output, list of tids
+	static std::map<tid_t, cpu_t> tid_cpu_map; // input: tid, output: cpu
+	static std::vector<std::vector<tid_t>> cpu_tid_map; // input: cpu, output, list of tids
 
 	// static int** node_distances;
 	static std::vector<std::vector<size_t>> node_distances;
 
 	// To know where each TID is (in terms of PIDs)
-	static std::map<pid_t, pid_t> tid_pid_map; // input: tid, output: pid
+	static std::map<tid_t, pid_t> tid_pid_map; // input: tid, output: pid
 
-	static std::vector<size_t> ordered_cpus; // Ordered by distance nodes. Might be useful for genetic strategy
+	static std::vector<cpu_t> ordered_cpus; // Ordered by distance nodes. Might be useful for genetic strategy
 
 private:
 	/*** Auxiliar functions ***/
-	static void set_affinity_error (const pid_t tid) {
+	static void set_affinity_error (const tid_t tid) {
 		switch(errno){
 			case EFAULT:
 				std::cerr << "Error setting affinity: A supplied memory address was invalid." << '\n';
@@ -99,12 +101,12 @@ public:
 		NUM_OF_MEMORIES = numa_num_configured_nodes();
 		CPUS_PER_MEMORY = NUM_OF_CPUS / NUM_OF_MEMORIES;
 
-		node_cpu_map = std::vector<std::vector<size_t>>(NUM_OF_MEMORIES);
+		node_cpu_map = std::vector<std::vector<cpu_t>>(NUM_OF_MEMORIES);
 		for (size_t i = 0; i < NUM_OF_MEMORIES; i++) {
 			node_cpu_map[i].reserve(CPUS_PER_MEMORY);
 		}
 
-		std::vector<int> counters(CPUS_PER_MEMORY, 0); // For keeping indexes to build node_cpu_map
+		std::vector<size_t> counters(CPUS_PER_MEMORY, 0); // For keeping indexes to build node_cpu_map
 
 		cpu_node_map.reserve(NUM_OF_CPUS);
 		cpu_tid_map.resize(NUM_OF_CPUS);
@@ -146,7 +148,7 @@ public:
 		std::vector<bool> processed(NUM_OF_MEMORIES, false);
 
 		// We begin with node 0
-		size_t ref_node = 0;
+		node_t ref_node = 0;
 		ordered_cpus.insert(ordered_cpus.end(), node_cpu_map[0].begin(), node_cpu_map[0].begin() + CPUS_PER_MEMORY);
 		processed[0] = true;
 		while (!are_all_nodes_processed(processed)) {
@@ -154,7 +156,7 @@ public:
 			size_t min_index;
 			size_t min_distance = 1e3;
 			for (size_t i = 0; i < NUM_OF_MEMORIES; i++) {
-				if (i == ref_node || processed[i])
+				if (i == size_t(ref_node) || processed[i])
 					continue;
 
 				if (node_distances[ref_node][i] < min_distance) {
@@ -183,21 +185,21 @@ public:
 	static void clean () {}
 
 	// Node-CPU methods
-	static inline size_t get_cpu_memory_node (const size_t cpu) {
+	static inline node_t get_cpu_memory_node (const cpu_t cpu) {
 		return cpu_node_map[cpu];
 	}
 
-	static inline bool is_in_same_memory_node(const size_t cpu1, const size_t cpu2) {
+	static inline bool is_in_same_memory_node(const cpu_t cpu1, const cpu_t cpu2) {
 		return cpu_node_map[cpu1] == cpu_node_map[cpu2];
 	}
 
-	static inline size_t get_random_cpu_in_node (const size_t node) {
+	static inline cpu_t get_random_cpu_in_node (const node_t node) {
 		const auto position = rand() % CPUS_PER_MEMORY;
 		return node_cpu_map[node][position];
 	}
 
 	// CPU-thread methods
-	static inline void add_tid (const pid_t tid, const size_t cpu) {
+	static inline void add_tid (const tid_t tid, const cpu_t cpu) {
 		if (tid_cpu_map.count(tid)) // We don't continue if the TID already exists in map
 			return;
 
@@ -207,9 +209,9 @@ public:
 		}
 
 		// If not, we search a free CPU on its same node
-		int node = cpu_node_map[cpu];
+		const auto node = cpu_node_map[cpu];
 		for (size_t i = 0; i < CPUS_PER_MEMORY; i++) {
-			int other_cpu = node_cpu_map[node][i];
+			const auto other_cpu = node_cpu_map[node][i];
 			if (is_cpu_free(other_cpu)) {
 				set_tid_cpu(tid, other_cpu, true);
 				return;
@@ -221,21 +223,21 @@ public:
 		set_tid_cpu(tid, cpu, true);
 	}
 
-	static size_t get_cpu_from_tid (const pid_t tid) {
+	static cpu_t get_cpu_from_tid (const tid_t tid) {
 		return tid_cpu_map[tid];
 	}
 
-	static inline std::vector<pid_t> get_tids_from_cpu (const size_t cpu) {
+	static inline std::vector<tid_t> get_tids_from_cpu (const cpu_t cpu) {
 		return cpu_tid_map[cpu];
 	}
 
-	static int set_tid_cpu (const pid_t tid, const size_t cpu, const bool do_pin) {
+	static int set_tid_cpu (const tid_t tid, const cpu_t cpu, const bool do_pin) {
 		// We drop the previous CPU-TID assignation, if there was one
 		if (tid_cpu_map.count(tid)) { // contains
 			const auto old_cpu = tid_cpu_map[tid];
 
 			// Drops TID from the list
-			std::vector<pid_t> & l = cpu_tid_map[old_cpu];
+			auto & l = cpu_tid_map[old_cpu];
 			l.erase(std::remove(l.begin(), l.end(), tid), l.end());
 		}
 
@@ -248,13 +250,13 @@ public:
 		return pin_thread_to_cpu(tid, cpu);
 	}
 
-	static void remove_tid (const pid_t tid, const bool do_unpin) {
+	static void remove_tid (const tid_t tid, const bool do_unpin) {
 		tid_pid_map.erase(tid);
 
 		const auto cpu = tid_cpu_map[tid];
 		tid_cpu_map.erase(tid);
 
-		std::vector<pid_t> & l = cpu_tid_map[cpu];
+		auto & l = cpu_tid_map[cpu];
 		l.erase(remove(l.begin(), l.end(), tid), l.end());
 
 		// Already finished threads don't need unpin
@@ -262,11 +264,11 @@ public:
 			unpin_thread(tid);
 	}
 
-	static inline bool is_cpu_free (const size_t cpu) {
+	static inline bool is_cpu_free (const cpu_t cpu) {
 		return cpu_tid_map[cpu].empty();
 	}
 
-	static inline size_t get_free_cpu_from_node(const size_t node, const std::set<int> & nopes) {
+	static inline cpu_t get_free_cpu_from_node(const node_t node, const std::set<int> & nopes) {
 		for (size_t c = 0; c < CPUS_PER_MEMORY; c++) {
 			const auto cpu = node_cpu_map[node][c];
 			if (is_cpu_free(cpu) && !nopes.count(cpu))
@@ -274,12 +276,12 @@ public:
 		}
 
 		// If no free/feasible CPUs, picks any random one
-		int index = rand() % CPUS_PER_MEMORY;
+		size_t index = rand() % CPUS_PER_MEMORY;
 		return node_cpu_map[node][index];
 	}
 
 	// CPU-pin/free methods
-	static inline int pin_thread_to_cpu (const pid_t tid, const size_t cpu) {
+	static inline int pin_thread_to_cpu (const tid_t tid, const cpu_t cpu) {
 		cpu_set_t affinity;
 		sched_getaffinity(tid, sizeof(cpu_set_t), &affinity);
 		int ret = 0;
@@ -295,7 +297,7 @@ public:
 		return ret;
 	}
 
-	static inline int unpin_thread (const pid_t tid) {
+	static inline int unpin_thread (const tid_t tid) {
 		cpu_set_t affinity;
 		sched_getaffinity(0, sizeof(cpu_set_t), &affinity); // Gets profiler's affinity (all CPUs)
 		int ret = 0;
@@ -310,7 +312,7 @@ public:
 	}
 
 	// Node distance methods
-	static inline size_t get_node_distance (const size_t node1, const size_t node2) {
+	static inline size_t get_node_distance (const node_t node1, const node_t node2) {
 		return node_distances[node1][node2];
 	}
 
@@ -324,11 +326,11 @@ public:
 	}
 
 	// Other functions
-	static inline void set_pid_to_tid (const pid_t pid, const pid_t tid) {
+	static inline void set_pid_to_tid (const pid_t pid, const tid_t tid) {
 		tid_pid_map[tid] = pid;
 	}
 
-	static inline pid_t get_pid_from_tid (const pid_t tid) {
+	static inline pid_t get_pid_from_tid (const tid_t tid) {
 		if (tid_pid_map.count(tid) > 0)
 			return tid_pid_map[tid];
 		else
@@ -341,14 +343,14 @@ size_t system_struct_t::NUM_OF_CPUS;
 size_t system_struct_t::NUM_OF_MEMORIES;
 size_t system_struct_t::CPUS_PER_MEMORY;
 // To know where each CPU is (in terms of memory node)
-std::vector<size_t> system_struct_t::cpu_node_map; // cpu_node_map[cpu] = node
-std::vector<std::vector<size_t>> system_struct_t::node_cpu_map; // cpu_node_map[node] = list(cpus)
+std::vector<node_t> system_struct_t::cpu_node_map; // cpu_node_map[cpu] = node
+std::vector<std::vector<cpu_t>> system_struct_t::node_cpu_map; // cpu_node_map[node] = list(cpus)
 // To know where each TID is (in terms of CPUs)
-std::map<pid_t, size_t> system_struct_t::tid_cpu_map; // input: tid, output: cpu
-std::vector<std::vector<pid_t>> system_struct_t::cpu_tid_map; // input: cpu, output, list of tids
+std::map<tid_t, cpu_t> system_struct_t::tid_cpu_map; // input: tid, output: cpu
+std::vector<std::vector<tid_t>> system_struct_t::cpu_tid_map; // input: cpu, output, list of tids
 std::vector<std::vector<size_t>> system_struct_t::node_distances;
 // To know where each TID is (in terms of PIDs)
-std::map<pid_t, pid_t> system_struct_t::tid_pid_map; // input: tid, output: pid
-std::vector<size_t> system_struct_t::ordered_cpus; // Ordered by distance nodes. Might be useful for genetic strategy
+std::map<tid_t, pid_t> system_struct_t::tid_pid_map; // input: tid, output: pid
+std::vector<cpu_t> system_struct_t::ordered_cpus; // Ordered by distance nodes. Might be useful for genetic strategy
 
 #endif

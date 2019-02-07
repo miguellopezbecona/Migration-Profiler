@@ -13,7 +13,7 @@ public:
 		std::vector<migration_cell_t> ret;
 
 		// Loops over all the pages
-		for (auto const & t_it : page_t.page_node_map) {
+		for (const auto & t_it : page_t.page_node_map) {
 			const auto & pd = t_it.second;
 
 			// Gets memory node of last CPU access
@@ -21,7 +21,7 @@ public:
 
 			// Compares to page location and adds to migration list if different
 			const auto page_node = pd.current_node;
-			if (cpu_node != size_t(page_node)) {
+			if (cpu_node != page_node) {
 				const auto addr = t_it.first;
 				ret.push_back(migration_cell_t(addr, cpu_node, page_t.pid, false));
 			}

@@ -5,6 +5,8 @@
 #include <iostream>
 #include <vector>
 
+#include "types_definition.hpp"
+
 #include "strategy.hpp"
 #include "migration/migration_cell.hpp"
 
@@ -101,7 +103,7 @@ private:
 			return TICKETS_MEM_CELL_BETTER[mod];
 	}
 
-	std::vector<labeled_migr_t> get_candidate_list (const pid_t worst_tid, const page_table_t & page_t) const {
+	std::vector<labeled_migr_t> get_candidate_list (const tid_t worst_tid, const page_table_t & page_t) const {
 		std::vector<labeled_migr_t> migration_list;
 
 		const auto current_cpu = system_struct_t::get_cpu_from_tid(worst_tid);
@@ -110,7 +112,7 @@ private:
 
 		// Search potential core destinations from different memory nodes
 		for (size_t n = 0; n < system_struct_t::NUM_OF_MEMORIES; n++) {
-			if (n == current_cell)
+			if (n == size_t(current_cell))
 				continue;
 
 			for (size_t i = 0; i < system_struct_t::CPUS_PER_MEMORY; i++) {
@@ -131,7 +133,7 @@ private:
 
 				// We will choose the TID with generates the higher number of tickets
 				const auto tids = system_struct_t::get_tids_from_cpu(actual_cpu);
-				pid_t other_tid = -1;
+				tid_t other_tid = -1;
 				int aux_tickets = -1;
 
 				for (pid_t const & aux_tid : tids) {
@@ -213,20 +215,20 @@ private:
 	}
 
 	std::vector<migration_cell_t> get_iteration_migration (std::map<pid_t, page_table_t> & page_ts) const {
-		pid_t worst_tid = -1;
+		tid_t worst_tid = -1;
 		double min_p = 1e15;
 
 		// normalize_perf_and_get_worst_thread() for all tables
 		for (auto & t_it : page_ts) {
-			page_table_t & t = t_it.second;
-			pid_t local_worst_t = t.normalize_perf_and_get_worst_thread();
+			auto & t = t_it.second;
+			auto local_worst_t = t.normalize_perf_and_get_worst_thread();
 
 			// No active threads for that PID
 			if (local_worst_t == -1)
 				continue;
 
-			rm3d_data_t pd = t.perf_per_tid[local_worst_t];
-			double local_worst_p = pd.v_perfs[pd.index_last_node_calc];
+			auto pd = t.perf_per_tid[local_worst_t];
+			auto local_worst_p = pd.v_perfs[pd.index_last_node_calc];
 
 			if (local_worst_p < min_p) {
 				worst_tid = local_worst_t;
@@ -271,7 +273,7 @@ private:
 			return std::vector<migration_cell_t>();
 		}
 
-		labeled_migr_t target_cell = get_random_labeled_cell(migration_list);
+		const auto target_cell = get_random_labeled_cell(migration_list);
 
 		#ifdef ANNEALING_PRINT
 		std::cout << "TARGET MIGRATION: " << target_cell;
@@ -317,10 +319,10 @@ private:
 
 				// We will choose the TID with generates the higher number of tickets
 				const auto tids = system_struct_t::get_tids_from_cpu(actual_cpu);
-				pid_t other_tid = -1;
+				tid_t other_tid = -1;
 				int aux_tickets = -1;
 
-				for (pid_t const & aux_tid : tids) {
+				for (const auto & aux_tid : tids) {
 					const auto other_pid = system_struct_t::get_pid_from_tid(aux_tid);
 					const auto other_perfs = (page_ts.find(other_pid) != page_ts.end()) ?
 						page_ts.at(other_pid).get_perf_data(aux_tid) : std::vector<double>();
@@ -350,8 +352,8 @@ public:
 	std::vector<migration_cell_t> get_threads_to_migrate (page_table_t & page_t) const {
 		std::vector<migration_cell_t> ret;
 
-		const double current_performance = page_t.get_total_performance();
-		const double diff = current_performance / last_performance;
+		const auto current_performance = page_t.get_total_performance();
+		const auto diff = current_performance / last_performance;
 
 		#ifdef TH_MIGR_OUTPUT
 		std::cout.precision(2); std::cout << std::fixed;

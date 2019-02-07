@@ -16,23 +16,24 @@
 #include "inst_list.hpp"
 #include "page_table.hpp"
 
+#include "types_definition.hpp"
 #include "migration_algorithm.hpp" // For checking strategy macros
 
 //#define PERFORMANCE_OUTPUT
 
 //#define PRINT_HEATMAPS
-const int ITERATIONS_PER_HEATMAP_PRINT = 5;
-const int NUM_FILES = 5;
+const size_t ITERATIONS_PER_HEATMAP_PRINT = 5;
+const size_t NUM_FILES = 5;
 
 #ifdef PRINT_HEATMAPS
 // FILE *fps[NUM_FILES];
 std::array<std::iofstream, NUM_FILES> fps;
 #endif
 
-const long pagesize = sysconf(_SC_PAGESIZE);
-const int expn = log2(pagesize);
+const auto pagesize = sysconf(_SC_PAGESIZE);
+const auto expn = log2(pagesize);
 
-inline int get_page_current_node (const pid_t pid, const long int pageAddr) {
+inline int get_page_current_node (const pid_t pid, const addr_t pageAddr) {
 	void * pages[] = {(void *) pageAddr};
 	int status;
 
@@ -51,7 +52,7 @@ void build_page_tables (const memory_data_list_t & m_list, const inst_data_list_
 	for (memory_data_cell_t const & m_cell : m_list.list) {
 
 		// This gets page address with offset 0
-		long int page_addr = m_cell.addr & ~((long int)(pagesize - 1));
+		addr_t page_addr = m_cell.addr & ~((long int)(pagesize - 1));
 
 		// This gets page number
 		//long int page_num = m_cell.addr >> expn;
@@ -88,14 +89,14 @@ void build_page_tables (const memory_data_list_t & m_list, const inst_data_list_
 	}
 
 	// After all the sums from insts are done, the perf is calculated
-	for (auto const & it : page_ts)
+	for (const auto & it : page_ts)
 		page_ts[it.first].calc_perf();
 	#endif
 
 	#ifdef PERFORMANCE_OUTPUT
 	// This generates way too much output. Uncomment only when really necessary
 /*
-	for(auto const & it : *page_ts)
+	for(const auto & it : *page_ts)
 		it.second.print_performance();
 */
 	tid_cpu_table.print();
@@ -110,7 +111,7 @@ int pages (const std::set<pid_t> & pids, const memory_data_list_t & m_list, cons
 	#ifdef PRINT_HEATMAPS
 	if (step % ITERATIONS_PER_HEATMAP_PRINT == 0) {
 		for (pid_t const & pid : pids) {
-			page_table_t & t = page_ts[pid];
+			const auto & t = page_ts[pid];
 
 			const char* CSV_NAMES[] = {"acs", "min", "avg", "max", "alt"};
 

@@ -20,8 +20,8 @@
 class my_pebs_sample_t {
 public:
 	uint64_t iip;
-	int      pid;
-	int      tid;
+	pid_t	 pid;
+	pid_t    tid;
 	uint64_t time;
 	uint64_t sample_addr;
 	uint32_t cpu;

@@ -17,8 +17,8 @@ const double MUT_PROB = 0.1;
 class genetic_t : public strategy {
 public:
 	population p;
-	int it = 0;
-	int best_it = 0;
+	size_t it = 0;
+	size_t best_it = 0;
 	individual_t best_sol;
 
 	genetic_t () :
@@ -182,14 +182,14 @@ public:
 			// Migration cells concerning to those TIDs may already exist from cross process. If this is the case, we just have to change their destination
 			bool first_exists = false, sec_exists = false;
 			for (migration_cell_t & mc : v) {
-				for (auto const & tid : ind.v[pos1]) {
+				for (const auto & tid : ind.v[pos1]) {
 					if (mc.elem == size_t(tid)) { // Cell already exists: changes its destination
 						mc.dest = dest1;
 						first_exists = true;
 					}
 				}
 
-				for (auto const & tid : ind.v[pos2]) {
+				for (const auto & tid : ind.v[pos2]) {
 					if (mc.elem == size_t(tid)) { // Cell already exists: changes its destination
 						mc.dest = dest2;
 						sec_exists = true;

@@ -17,12 +17,15 @@
 #include <vector>
 #include <algorithm>
 
+#include "types_definition.hpp"
+
 #include "sample_data.hpp"
 
 // For JUST_PROFILE_MODE
 //#define PRINT_JSON
 
-inline int get_median_from_list (std::vector<int> l) {
+template<class T>
+inline T get_median_from_list (std::vector<T> l) {
 	auto size = l.size();
 	sort(l.begin(), l.end()); // Getting median requires sorting
 
@@ -53,7 +56,7 @@ inline bool is_pid_alive  (const pid_t pid) {
 	return access(dir, F_OK ) != -1;
 }
 
-inline bool is_tid_alive  (const pid_t pid, const pid_t tid) {
+inline bool is_tid_alive  (const pid_t pid, const tid_t tid) {
 	char dir[32] = "\0";
 	sprintf(dir, "/proc/%d/task/%d", pid, tid);
 
@@ -79,7 +82,7 @@ inline void time_go_down () {
 		current_time_value = 0;
 }
 
-inline int  get_time_value () {
+inline int get_time_value () {
 	return sys_time_values[current_time_value];
 }
 
@@ -105,9 +108,9 @@ inline void get_formatted_current_time (char * output) {
 
 #ifdef JUST_PROFILE
 /*** For getting children processes and writting them into a JSON file ***/
-std::vector<pid_t> get_tids (const pid_t pid) {
-	std::vector<pid_t> tids;
-	pid_t tid;
+std::vector<tid_t> get_tids (const pid_t pid) {
+	std::vector<tid_t> tids;
+	tid_t tid;
 	char folder[20] = "\0";
 	struct dirent * buffer = NULL;
 	DIR * dir = NULL;
@@ -133,7 +136,7 @@ std::vector<pid_t> get_children_processes (const pid_t pid) {
 	std::vector<pid_t> v;
 	auto tids = get_tids(pid); // To know which task folders to search
 
-	for (auto const & tid : tids) {
+	for (const auto & tid : tids) {
 		char filename[32] = "\0";
 		sprintf(filename, "/proc/%d/task/%d/children", pid, tid);
 
@@ -170,14 +173,14 @@ void print_map_to_json (const std::map<pid_t, std::vector<pid_t>> & m, char cons
 
 	// To know when stop printing commas
 	auto & m_last = *(--m.end());
-	for (auto const & it : m) {
-		auto parent = it.first;
-		std::vector<pid_t> children = it.second;
+	for (const auto & it : m) {
+		const auto parent = it.first;
+		const auto & children = it.second;
 
 		file << "\t{ \"pid\" : " << parent << ", \"children\" : [\n\t\t";
 
 		auto & l_last = *(--children.end());
-		for (auto const & c : children) {
+		for (const auto & c : children) {
 			file << " " << c;
 
 			if (&c != &l_last) {
@@ -212,7 +215,7 @@ void print_samples (const std::vector<my_pebs_sample_t> & samples, const char * 
 	}
 
 	my_pebs_sample_t::print_header(file);
-	for (auto const & s : samples) {
+	for (const auto & s : samples) {
 		file << s;
 	}
 

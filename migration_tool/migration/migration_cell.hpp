@@ -14,6 +14,8 @@
 
 #include "system_struct.hpp"
 
+#include "types_definition.hpp"
+
 //#define PG_MIGR_OUTPUT
 #define TH_MIGR_OUTPUT
 
@@ -23,15 +25,15 @@ public:
 	static size_t total_thread_migrations;
 	static size_t total_page_migrations;
 
-	size_t elem; // Core or page address
-	short dest; // Mem node for pages or core for TIDs
-	short prev_dest; // Useful for undoing migrations
+	addr_t elem; // Core or page address
+	node_t dest; // Mem node for pages or core for TIDs
+	node_t prev_dest; // Useful for undoing migrations
 	pid_t pid;
 	bool thread_cell;
 
 	migration_cell_t () {};
 
-	migration_cell_t (size_t elem, short dest) :
+	migration_cell_t (size_t elem, node_t dest) :
 		elem(elem),
 		dest(dest),
 		prev_dest(-1),
@@ -39,7 +41,7 @@ public:
 		thread_cell(true) // If we don't use a PID, it HAS to be a thread cell
 	{};
 
-	migration_cell_t (size_t elem, short dest, pid_t pid, bool thread_cell) :
+	migration_cell_t (size_t elem, node_t dest, pid_t pid, bool thread_cell) :
 		elem(elem),
 		dest(dest),
 		prev_dest(-1),
@@ -47,7 +49,7 @@ public:
 		thread_cell(thread_cell)
 	{};
 
-	migration_cell_t (size_t elem, short dest, short prev_dest, pid_t pid, bool thread_cell) :
+	migration_cell_t (size_t elem, node_t dest, node_t prev_dest, pid_t pid, bool thread_cell) :
 		elem(elem),
 		dest(dest),
 		prev_dest(prev_dest),
@@ -61,7 +63,7 @@ public:
 
 	int perform_page_migration () const {
 		void * page[] = {(void *) elem};
-		const int dest_int = dest;
+		const auto dest_int = dest;
 		int status;
 
 		// Key system call: numa_move_pages

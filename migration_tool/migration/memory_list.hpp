@@ -9,26 +9,19 @@
 
 #include <vector>
 
-class memory_data_cell_t {
+#include "data_cell.hpp" // data_cell_t
+
+class memory_data_cell_t : public data_cell_t {
 public:
-	uint32_t cpu;
-	int pid;
-	int tid;
-	uint64_t addr;
-	uint64_t latency;
-	uint64_t dsrc;
-	uint64_t time;
+	addr_t addr;
+	lat_t  latency;
+	dsrc_t dsrc;
 
-	memory_data_cell_t () {};
-
-	memory_data_cell_t (const uint32_t cpu, const int pid, const int tid, const uint64_t addr, const uint64_t latency, const uint64_t dsrc, const uint64_t time) :
-		cpu(cpu),
-		pid(pid),
-		tid(tid),
+	memory_data_cell_t (const cpu_t cpu, const pid_t pid, const tid_t tid, const addr_t addr, const lat_t latency, const dsrc_t dsrc, const tim_t time) :
+		data_cell_t(cpu, pid, tid, time),
 		addr(addr),
 		latency(latency),
-		dsrc(dsrc),
-		time(time)
+		dsrc(dsrc)
 	{};
 
 	inline bool is_cache_miss () const {
@@ -107,7 +100,7 @@ public:
 		list.reserve(1000); // Speeds up doing preallocation
 	}
 
-	inline void add_cell (const uint32_t cpu, const int pid, const int tid, const uint64_t addr, const uint64_t latency, const uint64_t dsrc, const uint64_t time) {
+	inline void add_cell (const cpu_t cpu, const pid_t pid, const tid_t tid, const addr_t addr, const lat_t latency, const dsrc_t dsrc, const tim_t time) {
 		memory_data_cell_t cell(cpu, pid, tid, addr, latency, dsrc, time);
 		list.push_back(cell);
 	}

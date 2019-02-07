@@ -206,14 +206,14 @@ public:
 		#endif
 
 		// We search memory pages from "from" node to migrate
-		for (auto const & t_it : page_ts) { // Looping over PIDs
+		for (const auto & t_it : page_ts) { // Looping over PIDs
 			if (v.size() == MAX_PAGES_TO_MIGRATE)
 				break;
 
 			const auto pid = t_it.first;
 			const auto table = t_it.second;
 
-			for (auto const & p_it : table.page_node_map) { // Looping over pages
+			for (const auto & p_it : table.page_node_map) { // Looping over pages
 				if (v.size() == MAX_PAGES_TO_MIGRATE)
 					break;
 
