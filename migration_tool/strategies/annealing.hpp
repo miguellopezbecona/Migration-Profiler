@@ -297,7 +297,7 @@ private:
 
 		// Search potential core destinations from different memory nodes
 		for (size_t n = 0; n < system_struct_t::NUM_OF_MEMORIES; n++) {
-			if (n == current_cell)
+			if (n == size_t(current_cell))
 				continue;
 
 			for (size_t i = 0; i < system_struct_t::CPUS_PER_MEMORY; i++) {

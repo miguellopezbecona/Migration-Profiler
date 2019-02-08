@@ -49,7 +49,7 @@ public:
 	}
 };
 
-using column = std::map<size_t, table_cell_t>; // Each column of the table, defined with using for readibility
+using column = std::map<addr_t, table_cell_t>; // Each column of the table, defined with using for readibility
 
 class page_table_t {
 public:
@@ -66,7 +66,7 @@ public:
 	pid_t pid;
 
 	page_table_t () :
-		table(),
+		table(system_struct_t::NUM_OF_CPUS),
 		uniq_addrs(),
 		tid_index(),
 		page_node_map(),
@@ -74,11 +74,11 @@ public:
 		page_node_table(system_struct_t::NUM_OF_MEMORIES),
 		pid()
 	{
-		table.reserve(system_struct_t::NUM_OF_CPUS);
+		// table.reserve(system_struct_t::NUM_OF_CPUS);
 	};
 
 	page_table_t (const pid_t p) :
-		table(),
+		table(system_struct_t::NUM_OF_CPUS),
 		uniq_addrs(),
 		tid_index(),
 		page_node_map(),
@@ -131,7 +131,7 @@ public:
 		return table[pos].count(page_addr) > 0;
 	}
 
-	inline table_cell_t * get_cell(const addr_t page_addr, const tid_t tid) {
+	inline table_cell_t * get_cell (const addr_t page_addr, const tid_t tid) {
 		if (contains_addr(page_addr, tid)) {
 			const auto pos = tid_index[tid];
 			return &(table[pos][page_addr]);

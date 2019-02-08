@@ -62,6 +62,7 @@ static uint64_t collected_samples_group[NUM_GROUPS], lost_samples_group[NUM_GROU
 static uint64_t buffer_reads[NUM_GROUPS];
 static uint64_t unknown_samples = 0;
 
+static struct pollfd * pollfds = nullptr;
 static perf_event_desc_t **all_fds[NUM_GROUPS];
 static int num_fds[NUM_GROUPS];
 static options_t options;
@@ -304,6 +305,9 @@ static void clean_end (const int n) {
 	std::cout << "TERMINATING" << '\n';
 	#endif
 
+	delete[] options.base_filename;
+	delete[] pollfds;
+
 	// Closes and frees resources
 	for (size_t i = 0; i < NUM_GROUPS; i++) {
 		for (size_t j = 0; j < system_struct_t::NUM_OF_CPUS; j++) {
@@ -378,7 +382,7 @@ int mainloop (char ** arg) {
 	const unsigned short TOTAL_BUFFS = system_struct_t::NUM_OF_CPUS * NUM_GROUPS;
 
 	// This is the struct for polling the buffers of system_struct_t::NUM_OF_CPUS for different groups of events
-	struct pollfd * pollfds = new struct pollfd[TOTAL_BUFFS];
+	pollfds = new struct pollfd[TOTAL_BUFFS];
 	int fd = -1;
 	perf_event_desc_t * fds = NULL;
 
@@ -483,7 +487,7 @@ int mainloop (char ** arg) {
 }
 
 static void usage (void) {
-	std::cout << "usage: my_profiler_tm [-h] [--help] [-b base_filename] [-p period_memory] [-P period_indtructions] [-l minimum_latency] [-s seconds_between_migrations]" << '\n';
+	std::cout << "usage: my_profiler_tm [-h] [--help] [-b base_filename] [-p period_memory] [-P period_instructions] [-l minimum_latency] [-s milliseconds_between_migrations]" << '\n';
 }
 
 int main (const int argc, char * argv[]) {
@@ -496,8 +500,7 @@ int main (const int argc, char * argv[]) {
 		options.periods[1] = 10000000;
 	}
 
-	options.base_filename = (char*) malloc(32 * sizeof(char));
-	strcpy(options.base_filename, "");
+	options.base_filename = new char[32]{};
 	options.minimum_latency = 250;
 	#ifdef JUST_PROFILE_ENERGY
 	options.sbm = 1000;

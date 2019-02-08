@@ -35,12 +35,18 @@ class inst_data_list_t {
 public:
 	std::vector<inst_data_cell_t> list;
 
-	inst_data_list_t () {
+	inst_data_list_t () :
+		list()
+	{
 		list.reserve(1000); // Speeds up doing preallocation
 	}
 
 	inline void add_cell (const uint32_t cpu, const int pid, const int tid, const uint64_t inst, const uint64_t req_dr, const uint64_t time) {
 		inst_data_cell_t cell(cpu, pid, tid, inst, req_dr, time);
+		list.push_back(cell);
+	}
+
+	inline void add_cell (const inst_data_cell_t & cell) {
 		list.push_back(cell);
 	}
 

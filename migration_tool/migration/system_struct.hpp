@@ -74,9 +74,11 @@ private:
 		if (!file.is_open())
 			return;
 
-		for (size_t i = 0; !file.eof(); i++) {
+		for (size_t i = 0; !file.eof() && i < array.size(); i++) {
 			T element;
 			file >> element;
+			if (file.eof())
+				break;
 			array[i] = element;
 		}
 		array.shrink_to_fit();

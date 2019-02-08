@@ -10,12 +10,14 @@ public:
 	pid_t pid;
 	tid_t tid;
 	tim_t time;
+	bool  memory;
 
 	data_cell_t (const cpu_t cpu, const pid_t pid, const tid_t tid, const tim_t time) :
 		cpu(cpu),
 		pid(pid),
 		tid(tid),
-		time(time)
+		time(time),
+		memory(false)
 	{}
 
 	inline void print () const {

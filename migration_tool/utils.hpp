@@ -46,7 +46,7 @@ inline bool is_migratable (const pid_t my_uid, const pid_t pid) {
 
 	sprintf(folder, "/proc/%d", pid);
 	stat(folder, &info);
-	return info.st_uid == (unsigned) my_uid;
+	return info.st_uid == unsigned(my_uid);
 }
 
 inline bool is_pid_alive  (const pid_t pid) {

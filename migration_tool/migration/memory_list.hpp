@@ -85,7 +85,7 @@ public:
 
 	friend std::ostream & operator << (std::ostream & os, const memory_data_cell_t & m) {
 		os << "CPU: " << m.cpu << ", PID: " << m.pid << ", TID: " << m.tid <<
-			"ADDR: " << m.addr << ", LATENCY: " << m.latency << ", DSRC: " << m.dsrc << ", TIME: " << m.time;
+			", ADDR: " << m.addr << ", LATENCY: " << m.latency << ", DSRC: " << m.dsrc << ", TIME: " << m.time;
 		return os;
 	}
 };
@@ -102,6 +102,10 @@ public:
 
 	inline void add_cell (const cpu_t cpu, const pid_t pid, const tid_t tid, const addr_t addr, const lat_t latency, const dsrc_t dsrc, const tim_t time) {
 		memory_data_cell_t cell(cpu, pid, tid, addr, latency, dsrc, time);
+		list.push_back(cell);
+	}
+
+	inline void add_cell (const memory_data_cell_t & cell) {
 		list.push_back(cell);
 	}
 
