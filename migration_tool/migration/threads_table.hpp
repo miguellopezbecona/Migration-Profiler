@@ -52,7 +52,7 @@ public:
 		cpu_table.clear();
 	}
 
-	inline void print () {
+	inline void print () const {
 		std::cout << *this << '\n';
 	}
 

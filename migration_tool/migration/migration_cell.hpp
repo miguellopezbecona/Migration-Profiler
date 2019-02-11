@@ -90,7 +90,7 @@ public:
 		const auto ret = system_struct_t::set_tid_cpu((pid_t) elem, dest, true);
 
 		#ifdef TH_MIGR_OUTPUT
-		std::cout << "Migrated thread " << pid_t(elem) << " to CPU " << dest << '\n'; // +1 only for demo!
+		std::cout << "Migrated thread " << static_cast<pid_t>(elem) << " to CPU " << dest << '\n'; // +1 only for demo!
 		#endif
 
 		total_thread_migrations++;

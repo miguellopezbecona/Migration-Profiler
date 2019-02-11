@@ -262,7 +262,7 @@ int setup_cpu (int cpu, int fd, int group) {
 	 */
 	if (num_fds[group] > 1) {
 		size_t sz = (3 + 2 * num_fds[group]) * sizeof(uint64_t);
-		uint64_t val[3 + 2 * num_fds[group]];
+		uint64_t * val = new uint64_t[3 + 2 * num_fds[group]];
 
 		ret = read(fds[0].fd, val, sz);
 		if (ret == -1) {
@@ -294,6 +294,8 @@ int setup_cpu (int cpu, int fd, int group) {
 		// We are assuming just a group of memory events (nr always 1) and another one of instructions (nr always > 1). Maybe it should be adapted for another kind of group events
 		my_pebs_sample_t::max_nr = num_fds[group];
 		#endif
+
+		delete[] val;
 	}
 	return 0;
 }

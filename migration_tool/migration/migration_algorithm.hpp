@@ -30,11 +30,11 @@ int perform_migration_strategy (page_table_t & page_t) { // For a one process-on
 	#ifdef USE_RAND_ST
 	random_t rand_st;
 	ths_migr = rand_st.get_threads_to_migrate(page_t);
-	for (migration_cell_t const & thm : ths_migr)
+	for (const auto & thm : ths_migr)
 		thm.perform_thread_migration();
 
 	pgs_migr = rand_st.get_pages_to_migrate(page_t);
-	for (migration_cell_t const & pgm : pgs_migr)
+	for (const auto & pgm : pgs_migr)
 		pgm.perform_page_migration();
 
 	page_t.update_page_locations(pgs_migr);
@@ -44,7 +44,7 @@ int perform_migration_strategy (page_table_t & page_t) { // For a one process-on
 	#ifdef USE_FIRST_ST
 	first_touch_t ft_st;
 	pgs_migr = ft_st.get_pages_to_migrate(page_t);
-	for (migration_cell_t const & pgm : pgs_migr)
+	for (const auto & pgm : pgs_migr)
 		pgm.perform_page_migration();
 
 	page_t.update_page_locations(pgs_migr);
@@ -96,7 +96,7 @@ int perform_migration_strategy (std::map<pid_t, page_table_t> & page_ts) { // Fo
 	ths_migr = gen_st.get_threads_to_migrate(page_ts);
 
 	// Performs generated migrations. It must handle possible errors
-	for (migration_cell_t const & thm : ths_migr) {
+	for (const auto & thm : ths_migr) {
 		int ret = thm.perform_thread_migration();
 
 		if (ret != 0) { // There was an error
@@ -111,21 +111,21 @@ int perform_migration_strategy (std::map<pid_t, page_table_t> & page_ts) { // Fo
 	#ifdef USE_ANNEA_ST
 	annealing_t a_st;
 	ths_migr = a_st.get_threads_to_migrate(page_ts);
-	for (migration_cell_t const & thm : ths_migr)
+	for (const auto & thm : ths_migr)
 		thm.perform_thread_migration();
 	#endif
 
 	#ifdef USE_ENER_ST
 	energy_str_t e_st;
 	ths_migr = e_st.get_threads_to_migrate(page_ts);
-	for (migration_cell_t const & thm : ths_migr)
+	for (const auto & thm : ths_migr)
 		thm.perform_thread_migration();
 
 /*
 	pgs_migr = e_st.get_pages_to_migrate(page_ts);
 	for(migration_cell_t const & pgm : pgs_migr){
 		pgm.perform_page_migration();
-		page_ts->operator[](pgm.pid).update_page_location(pgm);
+		page_ts[pgm.pid].update_page_location(pgm);
 	}
 */
 	#endif

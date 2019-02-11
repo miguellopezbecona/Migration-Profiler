@@ -48,7 +48,7 @@ public:
 		v.push_back(idv); // And then, we add the new idv
 	}
 
-	inline void set (const size_t idx, const individual_t idv) {
+	inline void set (const size_t idx, const individual_t & idv) {
 	    v[idx] = idv;
 	}
 

@@ -30,7 +30,7 @@ public:
 	uint64_t time_running;
 	uint64_t nr;
 	uint64_t dsrc;
-	uint64_t * values;
+	std::vector<uint64_t> values;
 
 	#ifdef JUST_PROFILE_ENERGY
 	std::vector<double> energies;
@@ -38,10 +38,12 @@ public:
 
 	#ifdef JUST_PROFILE
 	static size_t max_nr;
-	static std::vector<char*> inst_subevent_names;
+	// static std::vector<char*> inst_subevent_names;
+	static std::vector<std::string> inst_subevent_names;
 
 	static void add_subevent_name (const char * const name) {
-		inst_subevent_names.push_back(strdup(name));
+		// inst_subevent_names.push_back(strdup(name));
+		inst_subevent_names.push_back(std::string(name));
 	}
 	#endif
 
@@ -49,24 +51,13 @@ public:
 		#ifdef JUST_PROFILE_ENERGY
 		energies = std::vector<double>(energy_data_t::NUM_RAPL_DOMAINS, -1.0);
 		#endif
-		#ifdef JUST_PROFILE
-		inst_subevent_names = std::vector<char*>();
-		#endif
 	}
 
-	my_pebs_sample_t (const size_t num_fds_p) :
-		values(new uint64_t[num_fds_p])
-	{
+	my_pebs_sample_t (const size_t num_fds_p) {
 		#ifdef JUST_PROFILE_ENERGY
 		energies = std::vector<double>(energy_data_t::NUM_RAPL_DOMAINS, -1.0);
 		#endif
-		#ifdef JUST_PROFILE
-		inst_subevent_names = std::vector<char*>();
-		#endif
-	}
-
-	~my_pebs_sample_t () {
-		delete[] values;
+		values.reserve(num_fds_p);
 	}
 
 	inline bool is_mem_sample () const {
@@ -120,7 +111,7 @@ public:
 		os << "TYPE,IIP,PID,TID,CPU,TIME,SAMPLE_ADDR,WEIGHT,TIME_E,TIME_R,DSRC";
 		#endif
 
-		for (char * const & e_name : my_pebs_sample_t::inst_subevent_names) {
+		for (const auto & e_name : my_pebs_sample_t::inst_subevent_names) {
 			os << "," << e_name;
 		}
 
@@ -170,8 +161,8 @@ public:
 			os << s.values[0];
 			#endif
 		} else {
-			for (long int i = s.nr - 1; i >= 0; i--) { // Inst subevents
-				os << "," << s.values[i];
+			for (const auto & value : s.values) {
+				os << "," << value;
 			}
 			#ifndef SIMPL_PRINT
 			os << ",0"; // No MEM_OPS

@@ -29,12 +29,12 @@ public:
 
 	table_cell_t (const lat_t latency, const bool is_cache_miss) :
 	 	latencies(1, latency),
-		cache_misses(unsigned(is_cache_miss))
+		cache_misses(static_cast<unsigned>(is_cache_miss))
 	{}
 
 	inline void update (const lat_t latency, const bool is_cache_miss) {
 		latencies.push_back(latency);
-		cache_misses += (unsigned) is_cache_miss;
+		cache_misses += static_cast<unsigned>(is_cache_miss);
 	}
 
 	inline void print () const {
@@ -123,26 +123,26 @@ public:
 		return 0;
 	}
 
-	inline bool contains_addr (const addr_t page_addr, const tid_t tid) {
+	inline bool contains_addr (const addr_t page_addr, const tid_t tid) const {
 		if (tid_index.count(tid) == 0)
 			return false;
 
-		const auto pos = tid_index[tid];
+		const auto pos = tid_index.at(tid);
 		return table[pos].count(page_addr) > 0;
 	}
 
 	inline table_cell_t * get_cell (const addr_t page_addr, const tid_t tid) {
 		if (contains_addr(page_addr, tid)) {
-			const auto pos = tid_index[tid];
+			const auto pos = tid_index.at(tid);
 			return &(table[pos][page_addr]);
 		} else
 			return nullptr;
 	}
 
-	inline std::vector<lat_t> get_latencies_from_cell (const addr_t page_addr, const pid_t tid) {
+	inline std::vector<lat_t> get_latencies_from_cell (const addr_t page_addr, const pid_t tid) const {
 		if (contains_addr(page_addr,tid)) {
-			const auto pos = tid_index[tid];
-			return table[pos][page_addr].latencies;
+			const auto pos = tid_index.at(tid);
+			return table.at(pos).at(page_addr).latencies;
 		} else {
 			return std::vector<lat_t>();
 		}
@@ -211,7 +211,7 @@ public:
 	}
 
 	template<class T>
-	void calculate_performance_page (const T threshold) {
+	void calculate_performance_page (const T threshold) const {
 		// Loops over memory pages
 		for (const auto & addr : uniq_addrs) {
 			std::vector<lat_t> l_thres;
@@ -240,7 +240,7 @@ public:
 			}
 
 			// Updates data in map
-			auto & cell = page_node_map[addr];
+			auto & cell = page_node_map.at(addr);
 			cell.num_uniq_accesses = threads_accessed;
 			cell.num_acs_thres = num_acs_thres;
 
@@ -393,7 +393,7 @@ public:
 		return v;
 	}
 
-	double get_mean_acs_to_pages () {
+	double get_mean_acs_to_pages () const {
 		std::vector<size_t> v;
 
 		// We collect the sums of the accesses per node for each page

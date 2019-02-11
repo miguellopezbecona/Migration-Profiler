@@ -48,7 +48,7 @@ public:
 private:
 	/*** Auxiliar functions ***/
 	static void set_affinity_error (const tid_t tid) {
-		switch(errno){
+		switch (errno) {
 			case EFAULT:
 				std::cerr << "Error setting affinity: A supplied memory address was invalid." << '\n';
 				break;
@@ -158,7 +158,7 @@ public:
 			size_t min_index;
 			size_t min_distance = 1e3;
 			for (size_t i = 0; i < NUM_OF_MEMORIES; i++) {
-				if (i == size_t(ref_node) || processed[i])
+				if (i == static_cast<size_t>(ref_node) || processed[i])
 					continue;
 
 				if (node_distances[ref_node][i] < min_distance) {
@@ -184,7 +184,23 @@ public:
 		return 0;
 	}
 
-	static void clean () {}
+	static void clean () {
+		cpu_node_map.clear();
+		for(int i=0;i<NUM_OF_MEMORIES;i++){
+			node_cpu_map[i].clear();
+			node_distances[i].clear();
+		}
+		node_distances.clear();
+		node_cpu_map.clear();
+		tid_cpu_map.clear();
+
+		for (size_t i = 0; i < NUM_OF_CPUS; i++)
+			cpu_tid_map[i].clear();
+
+		cpu_tid_map.clear();
+		ordered_cpus.clear();
+		tid_pid_map.clear();
+	}
 
 	// Node-CPU methods
 	static inline node_t get_cpu_memory_node (const cpu_t cpu) {

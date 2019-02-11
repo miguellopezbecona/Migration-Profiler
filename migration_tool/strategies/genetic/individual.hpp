@@ -66,7 +66,7 @@ public:
 		return v.size();
 	}
 
-	inline void set (const size_t index, const gene value) {
+	inline void set (const size_t index, const gene & value) {
 		v[index] = value;
 	}
 
@@ -118,7 +118,7 @@ public:
 			free_cpus = free_cpus_other;
 
 		// Creates a copy which will already have the center block copied
-		individual_t son = get_copy();
+		individual_t son(*this);
 
 		// Gets central block from current individual
 		std::set<gene> sublist(v.begin() + cut1, v.begin() + cut2 + 1);
@@ -160,11 +160,6 @@ public:
 		}
 
 		return son;
-	}
-
-	inline individual_t get_copy() const {
-		individual_t i = *this;
-		return i;
 	}
 
 	inline void print () const {

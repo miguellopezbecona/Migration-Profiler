@@ -240,7 +240,7 @@ public:
 		return 0;
 	}
 
-	inline int get_domain_pos (const char * domain) {
+	inline int get_domain_pos (const char * domain) const {
 		for (size_t i = 0; i < NUM_RAPL_DOMAINS; i++) {
 			if (strcmp(rapl_domain_names[i], domain) == 0)
 				return i;
@@ -279,12 +279,12 @@ public:
 		}
 	}
 
-	inline double get_ratio_against_base (const double val, const node_t node, const char * domain) {
+	inline double get_ratio_against_base (const double val, const node_t node, const char * domain) const {
 		const int col = get_domain_pos(domain);
 		return val / base_vals[node][col];
 	}
 
-	void print_curr_vals () {
+	void print_curr_vals () const {
 		for (size_t n = 0; n < system_struct_t::NUM_OF_MEMORIES; n++) {
 			std::cout << "Node " << n << ":" << '\n';
 
@@ -295,13 +295,13 @@ public:
 	}
 
 	// Some of them may not be used, but they can come handy in the future
-	inline double get_curr_val (const node_t node, const char * domain) {
+	inline double get_curr_val (const node_t node, const char * domain) const {
 		const int pos = get_domain_pos(domain);
 
 		return (pos < 0) ? 0.0 : curr_vals[node][pos];
 	}
 
-	inline std::vector<double> get_curr_vals_from_node (const node_t node) { // For all domains
+	inline std::vector<double> get_curr_vals_from_node (const node_t node) const { // For all domains
 		std::vector<double> v;
 
 		for (size_t i = 0; i < NUM_RAPL_DOMAINS; i++)
@@ -310,7 +310,7 @@ public:
 		return v;
 	}
 
-	std::vector<double> get_curr_vals_from_domain (const char * domain) { // For all nodes
+	std::vector<double> get_curr_vals_from_domain (const char * domain) const { // For all nodes
 		std::vector<double> v;
 		int pos = get_domain_pos(domain);
 
@@ -323,7 +323,7 @@ public:
 		return v;
 	}
 
-	inline double ** get_curr_vals () { // Everything
+	inline double ** get_curr_vals () const { // Everything
 		return curr_vals;
 	}
 

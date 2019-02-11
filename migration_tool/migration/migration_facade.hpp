@@ -199,8 +199,8 @@ int begin_migration_process () {
 	// For each existent table, checks if its associated process and/or threads are alive, to clean useless data
 	// It also applies a single-PID migration strategy for active PIDs (i.e: we got at least a memory sample from it in this iteration)
 	for (auto t_it = temp_page_tables.begin(); t_it != temp_page_tables.end(); ) {
-		pid_t pid = t_it->first;
-		page_table_t & table = t_it->second;
+		const auto & pid = t_it->first;
+		auto & table = t_it->second;
 		//printf("Working over table associated to PID: %d\n", pid);
 
 		// Is PID alive?
@@ -224,7 +224,7 @@ int begin_migration_process () {
 		#endif
 
 		// Creates/updates TID -> PID associations
-		for (pid_t const & tid : table.get_tids())
+		for (const auto & tid : table.get_tids())
 			system_struct_t::set_pid_to_tid(pid, tid);
 
 		//table->print(); // For debugging

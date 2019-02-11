@@ -14,7 +14,7 @@ public:
 		// Searches random page address in set
 		const auto & s = page_t.uniq_addrs;
 		const auto pos = rand() % s.size();
-		const auto page_addr = *(std::next(s.begin(), pos));
+		const auto & page_addr = *(std::next(s.begin(), pos));
 
 		// Creates migration cell with data
 		const auto mem_node = rand() % system_struct_t::NUM_OF_MEMORIES;
@@ -31,7 +31,7 @@ public:
 		const auto & page_addr = *(std::next(m.begin(), pos));
 
 		// Creates migration cell with data
-		const auto tid = page_addr.first;
+		const auto & tid = page_addr.first;
 		const auto core = rand() % system_struct_t::NUM_OF_CPUS;
 		const migration_cell_t mc(tid, core, page_t.pid, true);
 

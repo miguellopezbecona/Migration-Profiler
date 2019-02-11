@@ -56,7 +56,7 @@ public:
 		std::cout << p << '\n'; // Prints poblation content
 		#endif
 
-		const individual_t best = p.get_best_ind();
+		const auto & best = p.get_best_ind();
 
 		// Updates best_sol if needed
 		#ifdef MAXIMIZATION
@@ -77,7 +77,7 @@ public:
 	}
 
 	individual_t tournament () const {
-		const individual_t ind = p.get_best_ind();
+		const auto ind = p.get_best_ind();
 
 		#ifdef GENETIC_OUTPUT
 		std::cout << "Winner idv. from selection: " << ind << '\n';
@@ -117,18 +117,14 @@ public:
 
 			// We can only keep one child, decided randomly
 			prob = gen_utils::get_rand_double();
-			individual_t chosen_child;
+			#ifdef GENETIC_OUTPUT
 			if (prob > 0.5) {
-				#ifdef GENETIC_OUTPUT
 				std::cout << "\tWe kept first child: ";
-				#endif
-				chosen_child = c1;
 			} else {
-				#ifdef GENETIC_OUTPUT
 				std::cout << "\tWe kept second child: " << '\n';
-				#endif
-				chosen_child = c2;
 			}
+			#endif
+			individual_t & chosen_child = prob > 0.5 ? c1 : c2;
 
 			#ifdef GENETIC_OUTPUT
 			std::cout << chosen_child << '\n';
@@ -183,14 +179,14 @@ public:
 			bool first_exists = false, sec_exists = false;
 			for (migration_cell_t & mc : v) {
 				for (const auto & tid : ind.v[pos1]) {
-					if (mc.elem == size_t(tid)) { // Cell already exists: changes its destination
+					if (mc.elem == static_cast<size_t>(tid)) { // Cell already exists: changes its destination
 						mc.dest = dest1;
 						first_exists = true;
 					}
 				}
 
 				for (const auto & tid : ind.v[pos2]) {
-					if (mc.elem == size_t(tid)) { // Cell already exists: changes its destination
+					if (mc.elem == static_cast<size_t>(tid)) { // Cell already exists: changes its destination
 						mc.dest = dest2;
 						sec_exists = true;
 					}

@@ -35,14 +35,14 @@ public:
 		tickets(0)
 	{};
 
-	labeled_migr_t (const migration_cell_t mc, const int t) :
+	labeled_migr_t (const migration_cell_t & mc, const int t) :
 		potential_migr(),
 		tickets(t)
 	{
 		potential_migr.push_back(mc);
 	};
 
-	labeled_migr_t (const migration_cell_t mc1, const migration_cell_t mc2, const int t) :
+	labeled_migr_t (const migration_cell_t & mc1, const migration_cell_t & mc2, const int t) :
 		potential_migr(),
 		tickets(t)
 	{
@@ -67,7 +67,7 @@ public:
 	}
 
 	/*** Rest of functions ***/
-	static std::vector<migration_cell_t> undo_last_migration () {
+	static std::vector<migration_cell_t> & undo_last_migration () {
 		last_migration.prepare_for_undo();
 
 		return last_migration.potential_migr;
@@ -112,7 +112,7 @@ private:
 
 		// Search potential core destinations from different memory nodes
 		for (size_t n = 0; n < system_struct_t::NUM_OF_MEMORIES; n++) {
-			if (n == size_t(current_cell))
+			if (n == static_cast<size_t>(current_cell))
 				continue;
 
 			for (size_t i = 0; i < system_struct_t::CPUS_PER_MEMORY; i++) {
@@ -297,7 +297,7 @@ private:
 
 		// Search potential core destinations from different memory nodes
 		for (size_t n = 0; n < system_struct_t::NUM_OF_MEMORIES; n++) {
-			if (n == size_t(current_cell))
+			if (n == static_cast<size_t>(current_cell))
 				continue;
 
 			for (size_t i = 0; i < system_struct_t::CPUS_PER_MEMORY; i++) {

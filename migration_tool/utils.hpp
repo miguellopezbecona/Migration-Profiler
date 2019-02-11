@@ -46,7 +46,7 @@ inline bool is_migratable (const pid_t my_uid, const pid_t pid) {
 
 	sprintf(folder, "/proc/%d", pid);
 	stat(folder, &info);
-	return info.st_uid == unsigned(my_uid);
+	return info.st_uid == static_cast<unsigned>(my_uid);
 }
 
 inline bool is_pid_alive  (const pid_t pid) {
@@ -236,7 +236,7 @@ void print_everything (const std::vector<my_pebs_sample_t> & samples, const std:
 
 #ifdef JUST_PROFILE
 size_t my_pebs_sample_t::max_nr = 0;
-std::vector<char*> my_pebs_sample_t::inst_subevent_names;
+std::vector<std::string> my_pebs_sample_t::inst_subevent_names;
 #endif
 
 #endif
