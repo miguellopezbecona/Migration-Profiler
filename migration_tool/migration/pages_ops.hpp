@@ -35,7 +35,7 @@ const auto expn = log2(pagesize);
 
 inline int get_page_current_node (const pid_t pid, const addr_t pageAddr) {
 	void * pages[] = {(void *) pageAddr};
-	int status;
+	int status = 0;
 
 	//printf("Getting page current node for page addr 0x%016lx for PID %d. It is: ", pageAddr, pid);
 
@@ -52,7 +52,7 @@ void build_page_tables (const memory_data_list_t & m_list, const inst_data_list_
 	for (memory_data_cell_t const & m_cell : m_list.list) {
 
 		// This gets page address with offset 0
-		addr_t page_addr = m_cell.addr & ~((long int)(pagesize - 1));
+		addr_t page_addr = m_cell.addr & ~(static_cast<long int>(pagesize - 1));
 
 		// This gets page number
 		//long int page_num = m_cell.addr >> expn;

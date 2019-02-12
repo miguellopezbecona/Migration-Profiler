@@ -9,7 +9,6 @@
 #include <set>
 
 #include "sample_data.hpp"
-#include "threads_table.hpp"
 #include "memory_list.hpp"
 #include "inst_list.hpp"
 #include "pages_ops.hpp"
@@ -28,7 +27,6 @@ const int ELEMS_PER_PRINT = 1000000;
 std::vector<my_pebs_sample_t> samples;
 std::map<pid_t, std::vector<pid_t>> pmap;
 #else // For building migration strategy
-threads_table_t threads_table;
 memory_data_list_t memory_list;
 inst_data_list_t inst_list;
 std::set<pid_t> pids;
@@ -59,12 +57,10 @@ void add_data_to_list (const my_pebs_sample_t & sample) {
 	if (sample.is_mem_sample()) { // [TOTHINK]: Before, we discarded samples with DSRC == 0, why?
 		memory_data_cell_t data(sample.cpu, sample.pid, sample.tid, sample.sample_addr, sample.weight, sample.dsrc, sample.time);
 		memory_list.add_cell(data);
-		threads_table.add_data(data);
 		pids.insert(sample.pid); // We will consider a process is active if we get a memory sample from it
 	} else {
 		inst_data_cell_t data(sample.cpu, sample.pid, sample.tid, sample.values[1], sample.values[0], sample.time);
 		inst_list.add_cell(data);
-		threads_table.add_data(data);
 	}
 	#endif
 }
@@ -84,7 +80,6 @@ void clean_migration_structures () {
 	samples.clear();
 	pmap.clear();
 	#else
-	threads_table.clear();
 	memory_list.clear();
 	inst_list.clear();
 	pids.clear();
@@ -173,14 +168,12 @@ void work_with_fake_data () {
 
 #ifndef JUST_PROFILE
 int begin_migration_process () {
-	std::clog << threads_table << '\n';
-	// system_struct_t::print();
-	// std::clog << "Memory events: " << memory_list.list.size() << '\n';
-	// std::clog << "Instr. events: " << inst_list.list.size() << '\n';
-	// std::clog << '\n';
+	system_struct_t::print();
+	std::clog << "Memory events: " << memory_list.list.size() << '\n';
+	std::clog << "Instr. events: " << inst_list.list.size() << '\n';
+	std::clog << '\n';
 	if (memory_list.is_empty()) {
 		// std::cerr << "Memory list is empty. Skipping iteration..." << '\n';
-		threads_table.clear();
 		return -1;
 	}
 
@@ -248,7 +241,6 @@ int begin_migration_process () {
 	#endif
 
 	//printf("Mem list size: %lu, inst list size: %lu\n", memory_list.list.size(), inst_list.list.size());
-	threads_table.clear();
 	memory_list.clear();
 	inst_list.clear();
 	pids.clear(); // To maintain only active PIDs in each iteration

@@ -172,7 +172,7 @@ public:
 	{}
 
 	void update_mlat (const double lat) {
-		mean_lat = (mean_lat*num_acs + lat) / (num_acs + 1);
+		mean_lat = (mean_lat * num_acs + lat) / (num_acs + 1);
 		num_acs++;
 	}
 
@@ -197,7 +197,7 @@ public:
 };
 
 // Experimental table to store historical performance for each thread/memory page in each CPU/node
-typedef std::vector<perf_cell_t> perf_col; // Readibility
+using perf_col = std::vector<perf_cell_t>; // Readibility
 
 class perf_table_t {
 public:
@@ -233,7 +233,7 @@ public:
 			std::vector<perf_cell_t> pv(coln);
 			table[key] = pv;
 
-			for(size_t i = 0; i < coln; i++) {
+			for (size_t i = 0; i < coln; i++) {
 				perf_cell_t pc;
 				table[key][i] = pc;
 			}
