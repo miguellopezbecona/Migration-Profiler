@@ -186,20 +186,26 @@ public:
 
 	static void clean () {
 		cpu_node_map.clear();
-		for(int i=0;i<NUM_OF_MEMORIES;i++){
-			node_cpu_map[i].clear();
-			node_distances[i].clear();
+
+		for (auto & node : node_cpu_map) {
+			node.clear();
 		}
-		node_distances.clear();
 		node_cpu_map.clear();
+
 		tid_cpu_map.clear();
 
-		for (size_t i = 0; i < NUM_OF_CPUS; i++)
-			cpu_tid_map[i].clear();
-
+		for (auto & cpu : cpu_tid_map) {
+			cpu.clear();
+		}
 		cpu_tid_map.clear();
-		ordered_cpus.clear();
+
+		for (auto & distances : node_distances) {
+			distances.clear();
+		}
+		node_distances.clear();
+
 		tid_pid_map.clear();
+		ordered_cpus.clear();
 	}
 
 	// Node-CPU methods
@@ -286,7 +292,7 @@ public:
 		return cpu_tid_map[cpu].empty();
 	}
 
-	static inline cpu_t get_free_cpu_from_node(const node_t node, const std::set<int> & nopes) {
+	static inline cpu_t get_free_cpu_from_node (const node_t node, const std::set<int> & nopes) {
 		for (size_t c = 0; c < CPUS_PER_MEMORY; c++) {
 			const auto cpu = node_cpu_map[node][c];
 			if (is_cpu_free(cpu) && !nopes.count(cpu))
@@ -353,6 +359,15 @@ public:
 			return tid_pid_map[tid];
 		else
 			return -1;
+	}
+
+	static inline void print () {
+		std::cout << "CPU map: " << cpu_tid_map.size() << " entries. ";
+		size_t count = 0;
+		for (const auto & cpu : cpu_tid_map) {
+			count += cpu.size();
+		}
+		std::cout << "Total of " << count << " TIDs registered." << '\n';
 	}
 };
 

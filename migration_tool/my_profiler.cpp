@@ -99,7 +99,7 @@ void perform_migration () {
 
 static void process_smpl_buf (perf_event_desc_t * hw, const size_t cpu, perf_event_desc_t ** all_fds_p, const size_t num_fds_p, const size_t name) {
 	struct perf_event_header ehdr;
-	perf_event_desc_t * fds = NULL;
+	perf_event_desc_t * fds = nullptr;
 
 	fds = all_fds_p[cpu];
 
@@ -381,12 +381,12 @@ int mainloop (char ** arg) {
 	return 0;
 	#endif
 
-	const unsigned short TOTAL_BUFFS = system_struct_t::NUM_OF_CPUS * NUM_GROUPS;
+	const auto TOTAL_BUFFS = system_struct_t::NUM_OF_CPUS * NUM_GROUPS;
 
 	// This is the struct for polling the buffers of system_struct_t::NUM_OF_CPUS for different groups of events
 	pollfds = new struct pollfd[TOTAL_BUFFS];
 	int fd = -1;
-	perf_event_desc_t * fds = NULL;
+	perf_event_desc_t * fds = nullptr;
 
 	// Initializes arrays to zero
 	memset(collected_samples_group, 0, sizeof(collected_samples_group));
@@ -396,7 +396,7 @@ int mainloop (char ** arg) {
 
 	// Allocates memory for all_fds
 	for (size_t i = 0; i < NUM_GROUPS; i++) {
-		all_fds[i] = new perf_event_desc_t*[system_struct_t::NUM_OF_CPUS];
+		all_fds[i] = new perf_event_desc_t* [system_struct_t::NUM_OF_CPUS];
 		if (!all_fds[i]) {
 			err(1, "cannot allocate memory for all_fds[%lu]", i);
 		}
@@ -512,12 +512,12 @@ int main (const int argc, char * argv[]) {
 	options.mmap_pages = 16;
 
 	static struct option the_options[]= {
-		{ "help", 0, 0,  1},
+		{"help", 0, 0,  1},
 		{0,0,0,0}
 	};
 
 	while ((c=getopt_long(argc, argv,"+h:b:p:P:l:s:", the_options, 0)) != -1) {
-		switch(c) {
+		switch (c) {
 			case 'b': // Base_filename
 				strcpy(options.base_filename, optarg);
 				break;

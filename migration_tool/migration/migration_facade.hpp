@@ -174,6 +174,10 @@ void work_with_fake_data () {
 #ifndef JUST_PROFILE
 int begin_migration_process () {
 	std::clog << threads_table << '\n';
+	// system_struct_t::print();
+	// std::clog << "Memory events: " << memory_list.list.size() << '\n';
+	// std::clog << "Instr. events: " << inst_list.list.size() << '\n';
+	// std::clog << '\n';
 	if (memory_list.is_empty()) {
 		// std::cerr << "Memory list is empty. Skipping iteration..." << '\n';
 		threads_table.clear();

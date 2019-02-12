@@ -53,11 +53,12 @@ public:
 		#endif
 	}
 
-	my_pebs_sample_t (const size_t num_fds_p) {
+	my_pebs_sample_t (const size_t num_fds_p) :
+		values(std::vector<uint64_t>(num_fds_p, 0))
+	{
 		#ifdef JUST_PROFILE_ENERGY
 		energies = std::vector<double>(energy_data_t::NUM_RAPL_DOMAINS, -1.0);
 		#endif
-		values.reserve(num_fds_p);
 	}
 
 	inline bool is_mem_sample () const {
@@ -66,41 +67,7 @@ public:
 
 	#ifdef JUST_PROFILE
 	void print (std::ostream & os) const {
-		const bool mem_sample = is_mem_sample();
-		const char type = mem_sample ? 'M' : 'I';
-
-		#ifdef SIMPL_PRINT
-		os << type << "," << pid << "," << tid << "," << cpu << "," << time << "," << sample_addr << "," << weight;
-		#else
-		os << "," << type << "," << ii p<< "," << pid << "," << tid << "," << cpu << "," << time << ","
-			<< sample_addr << "," << weight << "," << time_enabled << "," << time_running << "," << dsrc;
-		#endif
-
-		if (mem_sample) {
-			for (size_t i = 0; i < my_pebs_sample_t::max_nr; i++) { // No inst subevents
-				os << ",0";
-			}
-			#ifndef SIMPL_PRINT
-			os << "," << values[0]; // Mem ops
-			#endif
-		} else {
-			for (long int i = nr-1; i >= 0; i--) { // Inst subevents
-				os << "," << values[i];
-			}
-			#ifndef SIMPL_PRINT
-			os << ",0"; // No MEM_OPS
-			#endif
-		}
-
-		#ifdef JUST_PROFILE_ENERGY
-		os.precision(3); os << std::fixed;
-		for (size_t i = 0; i < energy_data_t::NUM_RAPL_DOMAINS; i++) {
-			os << "," << energies[i];
-		}
-		os << std::defaultfloat;
-		#endif
-
-		os << '\n';
+		std::cout << *this << '\n';
 	}
 
 	// static void print_header (FILE * const fp) {

@@ -54,7 +54,7 @@ public:
 		list.clear();
 	}
 
-	inline void print() const {
+	inline void print () const {
 		std::cout << *this << '\n';
 	}
 

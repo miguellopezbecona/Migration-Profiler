@@ -17,7 +17,7 @@ template<typename _Tp>
 class my_vec : public std::vector<_Tp> {
 public:
 	my_vec () {
-		this->reserve(1000);
+		this->reserve(5000);
 	}
 
 	my_vec (const size_t capacity) {
@@ -57,33 +57,38 @@ public:
 	}
 
 	friend std::ostream & operator << (std::ostream & os, const threads_table_t & tt) {
-		os << "Threads map: " << tt.thr_table.size() << " entries" << '\n';
+		os << "Threads map: " << tt.thr_table.size() << " entries." << '\n';
+		size_t ins_samples = 0;
+		size_t mem_samples = 0;
 		for (const auto & entry : tt.thr_table) {
 			const auto & tid = entry.first;
 
-			os << "\tTID: " << tid << ". ";
+			// os << "\tTID: " << tid << ". ";
 			const auto & ins_data_it = tt.ins_table.find(tid);
 			if (ins_data_it != tt.ins_table.end()) {
 				const auto & ins_data = ins_data_it->second;
-				os << ins_data.size() << " instruction samples. ";
+				// os << ins_data.size() << " instruction samples. ";
+				ins_samples += ins_data.size();
 			}
 
 			const auto & mem_data_it = tt.mem_table.find(tid);
 			if (mem_data_it != tt.mem_table.end()) {
 				const auto & mem_data = mem_data_it->second;
-				os << mem_data.size() << " memory samples.";
+				// os << mem_data.size() << " memory samples.";
+				mem_samples += mem_data.size();
 			}
-			os << '\n';
+			// os << '\n';
 		}
-		os << "CPU map: " << tt.cpu_table.size() << " entries" << '\n';
-		for (const auto & cpu : tt.cpu_table) {
-			os << "\tCPU " << std::setw(3) << cpu.first << " has TIDs: ";
-			const auto & tids = cpu.second;
-			for (const auto & tid : tids) {
-				os << tid << " ";
-			}
-			os << '\n';
-		}
+		os << "Total: " << ins_samples << " instruction samples and " << mem_samples << " memory samples." << '\n';
+		os << "CPU map: " << tt.cpu_table.size() << " entries." << '\n';
+		// for (const auto & cpu : tt.cpu_table) {
+		// 	os << "\tCPU " << std::setw(3) << cpu.first << " has TIDs: ";
+		// 	const auto & tids = cpu.second;
+		// 	for (const auto & tid : tids) {
+		// 		os << tid << " ";
+		// 	}
+		// 	os << '\n';
+		// }
 		return os;
 	}
 };

@@ -216,14 +216,12 @@ public:
 		table()
 	{}
 
-	~perf_table_t () {}
-
 	inline bool has_row (const addr_t key) const {
 		return table.count(key) > 0;
 	}
 
 	void remove_row (const addr_t key) {
-		if(!has_row(key))
+		if (!has_row(key))
 			return;
 
 		table[key].clear();
