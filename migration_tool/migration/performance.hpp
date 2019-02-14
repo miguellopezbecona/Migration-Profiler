@@ -46,7 +46,7 @@ public:
 	std::vector<unsigned short> acs_per_node; // Number of accesses from threads per memory node
 
 	pg_perf_data_t () :
-		acs_per_node(system_struct_t::NUM_OF_MEMORIES, 0)
+		acs_per_node(system_struct::NUM_OF_MEMORIES, 0)
 	{
 		num_acs_thres = 0;
 	}
@@ -88,10 +88,10 @@ public:
 
 	rm3d_data_t () :
 		active(false),
-		insts(system_struct_t::NUM_OF_CPUS, 0),
-		reqs(system_struct_t::NUM_OF_CPUS, 0),
-		times(system_struct_t::NUM_OF_CPUS, 0),
-		v_perfs(system_struct_t::NUM_OF_MEMORIES, PERFORMANCE_INVALID_VALUE)
+		insts(system_struct::NUM_OF_CPUS, 0),
+		reqs(system_struct::NUM_OF_CPUS, 0),
+		times(system_struct::NUM_OF_CPUS, 0),
+		v_perfs(system_struct::NUM_OF_MEMORIES, PERFORMANCE_INVALID_VALUE)
 	{
 		// reset();
 	}
@@ -107,7 +107,7 @@ public:
 	void calc_perf (const double mean_lat) {
 		const double inv_mean_lat = 1.0 / mean_lat;
 
-		for (size_t cpu = 0; cpu < system_struct_t::NUM_OF_CPUS; cpu++) {
+		for (size_t cpu = 0; cpu < system_struct::NUM_OF_CPUS; cpu++) {
 			if (reqs[cpu] == 0) // No data, bye
 				continue;
 
@@ -115,7 +115,7 @@ public:
 			const double inst_per_s = (double) insts[cpu] * 1000.0 / times[cpu]; // Óscar used inst/ms, so * 10^3
 			const double inst_per_b = (double) insts[cpu] / (reqs[cpu] * CACHE_LINE_SIZE);
 
-			const auto cpu_node = system_struct_t::get_cpu_memory_node(cpu);
+			const auto cpu_node = system_struct::get_cpu_memory_node(cpu);
 			v_perfs[cpu_node] = inv_mean_lat * inst_per_s * inst_per_b;
 
 			// Debug
@@ -139,12 +139,12 @@ public:
 	}
 
 	friend std::ostream & operator << (std::ostream & os, const rm3d_data_t & d) {
-		for (size_t cpu = 0; cpu < system_struct_t::NUM_OF_CPUS; cpu++) {
+		for (size_t cpu = 0; cpu < system_struct::NUM_OF_CPUS; cpu++) {
 			os << "\tCPU: " << cpu << ", INSTS = " << d.insts[cpu] << ", REQS = " << d.reqs[cpu] << ", TIMES = " << d.times[cpu];
 		}
 
 		os.precision(2); os << std::fixed;
-		for (size_t node = 0; node < system_struct_t::NUM_OF_MEMORIES; node++) {
+		for (size_t node = 0; node < system_struct::NUM_OF_MEMORIES; node++) {
 			os << "\tNODE: " << node << ", PERF = " << d.v_perfs[node] << '\n';
 		}
 		os << std::defaultfloat;
@@ -249,7 +249,7 @@ public:
 	friend std::ostream & operator << (std::ostream & os, const perf_table_t & p) {
 		const char* const keys[] = {"TID", "Page address"};
 		const char* const colns[] = {"CPU", "Node"};
-		bool is_page_table = (p.coln == system_struct_t::NUM_OF_MEMORIES);
+		bool is_page_table = (p.coln == system_struct::NUM_OF_MEMORIES);
 
 		os << "Printing perf table (" << keys[is_page_table] << "/" << colns[is_page_table] << " type)" << '\n';
 

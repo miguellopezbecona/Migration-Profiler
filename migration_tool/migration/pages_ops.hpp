@@ -58,14 +58,14 @@ void build_page_tables (const memory_data_list_t & m_list, const inst_data_list_
 		//long int page_num = m_cell.addr >> expn;
 
 		const auto page_node = get_page_current_node(m_cell.tid, page_addr);
-		const auto cpu_node = system_struct_t::get_cpu_memory_node(m_cell.cpu);
+		const auto cpu_node = system_struct::get_cpu_memory_node(m_cell.cpu);
 
 		// We filter pages that give problems
 		if (page_node < 0)
 			continue;
 
 		// Registers TID in system structure if needed
-		system_struct_t::add_tid(m_cell.tid, m_cell.cpu);
+		system_struct::add_tid(m_cell.tid, m_cell.cpu);
 
 		if (!page_ts.count(m_cell.pid)) { // = !contains(pid). We init the entry if it doesn't exist
 			page_ts[m_cell.pid] = page_table_t(m_cell.pid);

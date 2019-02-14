@@ -17,7 +17,7 @@ public:
 			const auto & pd = t_it.second;
 
 			// Gets memory node of last CPU access
-			const auto cpu_node = system_struct_t::get_cpu_memory_node(pd.last_cpu_access);
+			const auto cpu_node = system_struct::get_cpu_memory_node(pd.last_cpu_access);
 
 			// Compares to page location and adds to migration list if different
 			const auto page_node = pd.current_node;

@@ -45,7 +45,7 @@ public:
 			return;
 		}
 
-		for (size_t i = 0; i < system_struct_t::NUM_OF_MEMORIES; i++) {
+		for (size_t i = 0; i < system_struct::NUM_OF_MEMORIES; i++) {
 			delete[] base_vals[i];
 			delete[] prev_vals[i];
 			delete[] curr_vals[i];
@@ -64,14 +64,14 @@ public:
 	}
 
 	void allocate_data () {
-		base_vals = new double* [system_struct_t::NUM_OF_MEMORIES];
-		prev_vals = new double* [system_struct_t::NUM_OF_MEMORIES];
-		curr_vals = new double* [system_struct_t::NUM_OF_MEMORIES];
+		base_vals = new double* [system_struct::NUM_OF_MEMORIES];
+		prev_vals = new double* [system_struct::NUM_OF_MEMORIES];
+		curr_vals = new double* [system_struct::NUM_OF_MEMORIES];
 		units = new char* [NUM_RAPL_DOMAINS];
-		fd = new int* [system_struct_t::NUM_OF_MEMORIES];
+		fd = new int* [system_struct::NUM_OF_MEMORIES];
 		scale = new double[NUM_RAPL_DOMAINS];
 
-		for (size_t i = 0; i < system_struct_t::NUM_OF_MEMORIES; i++) {
+		for (size_t i = 0; i < system_struct::NUM_OF_MEMORIES; i++) {
 			base_vals[i] = new double[NUM_RAPL_DOMAINS]{};
 			prev_vals[i] = new double[NUM_RAPL_DOMAINS]{};
 			curr_vals[i] = new double[NUM_RAPL_DOMAINS];
@@ -217,7 +217,7 @@ public:
 		read_increments_file(base_filename);
 
 		// Opens counters
-		for (size_t n = 0; n < system_struct_t::NUM_OF_MEMORIES; n++) {
+		for (size_t n = 0; n < system_struct::NUM_OF_MEMORIES; n++) {
 			for (size_t d = 0; d < NUM_RAPL_DOMAINS; d++) {
 				fd[n][d] = -1;
 
@@ -227,9 +227,9 @@ public:
 				attr.config = config[d];
 				if (config[d] == 0) continue;
 
-				fd[n][d] = perf_event_open(&attr, -1, system_struct_t::node_cpu_map[n][0], -1, 0);
+				fd[n][d] = perf_event_open(&attr, -1, system_struct::node_cpu_map[n][0], -1, 0);
 				if(fd[n][d] < 0) {
-					std::cerr << "\tError code while opening buffer for CPU " << system_struct_t::node_cpu_map[n][0] << ", config " << config[d] << ": " << fd[n][d] << "\n\n";
+					std::cerr << "\tError code while opening buffer for CPU " << system_struct::node_cpu_map[n][0] << ", config " << config[d] << ": " << fd[n][d] << "\n\n";
 					return -1;
 				}
 			}
@@ -251,7 +251,7 @@ public:
 	void read_buffer (const double secs) {
 		long long value;
 
-		for (size_t n = 0; n < system_struct_t::NUM_OF_MEMORIES; n++) {
+		for (size_t n = 0; n < system_struct::NUM_OF_MEMORIES; n++) {
 			for (size_t d = 0; d < NUM_RAPL_DOMAINS; d++) {
 				int dummy = read(fd[n][d],&value,8);
 
@@ -285,7 +285,7 @@ public:
 	}
 
 	void print_curr_vals () const {
-		for (size_t n = 0; n < system_struct_t::NUM_OF_MEMORIES; n++) {
+		for (size_t n = 0; n < system_struct::NUM_OF_MEMORIES; n++) {
 			std::cout << "Node " << n << ":" << '\n';
 
 			for (size_t d = 0; d < NUM_RAPL_DOMAINS; d++)
@@ -317,7 +317,7 @@ public:
 		if (pos == -1)
 			return v;
 
-		for (size_t i = 0; i < system_struct_t::NUM_OF_MEMORIES; i++)
+		for (size_t i = 0; i < system_struct::NUM_OF_MEMORIES; i++)
 			v.push_back(curr_vals[i][pos]);
 
 		return v;
@@ -328,7 +328,7 @@ public:
 	}
 
 	void close_buffers () {
-		for (size_t i = 0; i < system_struct_t::NUM_OF_MEMORIES; i++) {
+		for (size_t i = 0; i < system_struct::NUM_OF_MEMORIES; i++) {
 			for (size_t j = 0; j < NUM_RAPL_DOMAINS; j++)
 				close(fd[i][j]);
 		}

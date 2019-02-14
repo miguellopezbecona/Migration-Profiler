@@ -68,9 +68,9 @@ public:
 	int create_increments () {
 		if (list.empty()) return -1;
 
-		std::vector<uint64_t> last_inst(system_struct_t::NUM_OF_CPUS, 0);
-		std::vector<uint64_t> last_req_dr(system_struct_t::NUM_OF_CPUS, 0);
-		std::vector<uint64_t> last_time(system_struct_t::NUM_OF_CPUS, 0);
+		std::vector<uint64_t> last_inst   (system_struct::NUM_OF_CPUS, 0);
+		std::vector<uint64_t> last_req_dr (system_struct::NUM_OF_CPUS, 0);
+		std::vector<uint64_t> last_time   (system_struct::NUM_OF_CPUS, 0);
 		uint64_t temp_inst;
 		uint64_t temp_req_dr;
 		uint64_t temp_time;

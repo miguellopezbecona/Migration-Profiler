@@ -134,7 +134,7 @@ public:
 			for (size_t i = 0; i < sz; i++) {
 				if (from_iter[i] != chosen_child[i]) { // Difference: TIDs from child are migrated to its CPU possition
 					for (pid_t tid : chosen_child[i]) {
-						const migration_cell_t mc(tid, system_struct_t::ordered_cpus[i]);
+						const migration_cell_t mc(tid, system_struct::ordered_cpus[i]);
 						v.push_back(mc);
 					}
 				}
@@ -172,8 +172,8 @@ public:
 			const auto pos2 = gen_utils::get_rand_int(sz, pos1);
 
 			// Generates two migration cells: ind[pos1] goes to ind[pos2] location and viceversa
-			const auto dest1 = system_struct_t::ordered_cpus[pos2]; // CPU associated to pos2
-			const auto dest2 = system_struct_t::ordered_cpus[pos1];
+			const auto dest1 = system_struct::ordered_cpus[pos2]; // CPU associated to pos2
+			const auto dest2 = system_struct::ordered_cpus[pos1];
 
 			// Migration cells concerning to those TIDs may already exist from cross process. If this is the case, we just have to change their destination
 			bool first_exists = false, sec_exists = false;

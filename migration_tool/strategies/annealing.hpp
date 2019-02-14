@@ -106,24 +106,24 @@ private:
 	std::vector<labeled_migr_t> get_candidate_list (const tid_t worst_tid, const page_table_t & page_t) const {
 		std::vector<labeled_migr_t> migration_list;
 
-		const auto current_cpu = system_struct_t::get_cpu_from_tid(worst_tid);
-		const auto current_cell = system_struct_t::get_cpu_memory_node(current_cpu);
+		const auto current_cpu = system_struct::get_cpu_from_tid(worst_tid);
+		const auto current_cell = system_struct::get_cpu_memory_node(current_cpu);
 		const auto current_perfs = page_t.get_perf_data(worst_tid);
 
 		// Search potential core destinations from different memory nodes
-		for (size_t n = 0; n < system_struct_t::NUM_OF_MEMORIES; n++) {
+		for (size_t n = 0; n < system_struct::NUM_OF_MEMORIES; n++) {
 			if (n == static_cast<size_t>(current_cell))
 				continue;
 
-			for (size_t i = 0; i < system_struct_t::CPUS_PER_MEMORY; i++) {
-				const auto actual_cpu = system_struct_t::node_cpu_map[n][i];
+			for (size_t i = 0; i < system_struct::CPUS_PER_MEMORY; i++) {
+				const auto actual_cpu = system_struct::node_cpu_map[n][i];
 
 				auto tickets = get_tickets_from_perfs(n, current_cell, current_perfs, false);
 
 				const migration_cell_t mc(worst_tid, actual_cpu, current_cpu, page_t.pid, true); // Migration associated to this iteration (CPU)
 
 				// Free core: posible simple migration with a determined score
-				if (system_struct_t::is_cpu_free(actual_cpu)) {
+				if (system_struct::is_cpu_free(actual_cpu)) {
 					tickets += TICKETS_FREE_CORE;
 
 					labeled_migr_t lm(mc, tickets);
@@ -132,7 +132,7 @@ private:
 				}
 
 				// We will choose the TID with generates the higher number of tickets
-				const auto tids = system_struct_t::get_tids_from_cpu(actual_cpu);
+				const auto tids = system_struct::get_tids_from_cpu(actual_cpu);
 				tid_t other_tid = -1;
 				int aux_tickets = -1;
 
@@ -289,25 +289,25 @@ private:
 	std::vector<labeled_migr_t> get_candidate_list (const pid_t worst_tid, const std::map<pid_t, page_table_t> & page_ts) const {
 		std::vector<labeled_migr_t> migration_list;
 
-		const auto current_cpu = system_struct_t::get_cpu_from_tid(worst_tid);
-		const auto current_cell = system_struct_t::get_cpu_memory_node(current_cpu);
+		const auto current_cpu = system_struct::get_cpu_from_tid(worst_tid);
+		const auto current_cell = system_struct::get_cpu_memory_node(current_cpu);
 
-		const auto current_pid = system_struct_t::get_pid_from_tid(worst_tid);
+		const auto current_pid = system_struct::get_pid_from_tid(worst_tid);
 		const auto current_perfs = page_ts.at(current_pid).get_perf_data(worst_tid);
 
 		// Search potential core destinations from different memory nodes
-		for (size_t n = 0; n < system_struct_t::NUM_OF_MEMORIES; n++) {
+		for (size_t n = 0; n < system_struct::NUM_OF_MEMORIES; n++) {
 			if (n == static_cast<size_t>(current_cell))
 				continue;
 
-			for (size_t i = 0; i < system_struct_t::CPUS_PER_MEMORY; i++) {
-				const auto actual_cpu = system_struct_t::node_cpu_map[n][i];
+			for (size_t i = 0; i < system_struct::CPUS_PER_MEMORY; i++) {
+				const auto actual_cpu = system_struct::node_cpu_map[n][i];
 				auto tickets = get_tickets_from_perfs(n, current_cell, current_perfs, false);
 
 				migration_cell_t mc(worst_tid, actual_cpu, current_cpu, current_pid, true); // Migration associated to this iteration (CPU)
 
 				// Free core: posible simple migration with a determined score
-				if (system_struct_t::is_cpu_free(actual_cpu)) {
+				if (system_struct::is_cpu_free(actual_cpu)) {
 					tickets += TICKETS_FREE_CORE;
 
 					labeled_migr_t lm(mc, tickets);
@@ -318,12 +318,12 @@ private:
 				// Not a free core: get its TIDs info so a possible interchange can be planned
 
 				// We will choose the TID with generates the higher number of tickets
-				const auto tids = system_struct_t::get_tids_from_cpu(actual_cpu);
+				const auto tids = system_struct::get_tids_from_cpu(actual_cpu);
 				tid_t other_tid = -1;
 				int aux_tickets = -1;
 
 				for (const auto & aux_tid : tids) {
-					const auto other_pid = system_struct_t::get_pid_from_tid(aux_tid);
+					const auto other_pid = system_struct::get_pid_from_tid(aux_tid);
 					const auto other_perfs = (page_ts.find(other_pid) != page_ts.end()) ?
 						page_ts.at(other_pid).get_perf_data(aux_tid) : std::vector<double>();
 					const auto tid_tickets = get_tickets_from_perfs(current_cell, n, other_perfs, true);
@@ -337,7 +337,7 @@ private:
 
 				tickets += aux_tickets;
 
-				migration_cell_t mc2(other_tid, current_cpu, actual_cpu, system_struct_t::get_pid_from_tid(other_tid), true);
+				migration_cell_t mc2(other_tid, current_cpu, actual_cpu, system_struct::get_pid_from_tid(other_tid), true);
 				labeled_migr_t lm(mc, mc2, tickets);
 				migration_list.push_back(lm);
 			}

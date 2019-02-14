@@ -31,7 +31,7 @@ public:
 		const double MAX_PERC_THRES = 0.2; // Threshold maximum increase ratio against base to do migrations
 		const double DIFF_PERC_THRES = 0.3; // Minimum ratio difference between lowest and highest to do migrations
 		const size_t MAX_THREADS_TO_MIGRATE = 1;
-		//const size_t MAX_THREADS_TO_MIGRATE = system_struct_t::CPUS_PER_MEMORY / 4;
+		//const size_t MAX_THREADS_TO_MIGRATE = system_struct::CPUS_PER_MEMORY / 4;
 		std::vector<migration_cell_t> v;
 
 		// Regarding threads
@@ -106,15 +106,15 @@ public:
 		// We search TIDs from CPUs from "from" node to be migrated
 		// [TODO]: use tid_cpu_table information to decide which threads to migrate
 		std::set<int> picked_cpus;
-		for (size_t c = 0; c < system_struct_t::CPUS_PER_MEMORY && v.size() < MAX_THREADS_TO_MIGRATE; c++) {
-			const auto from_cpu = system_struct_t::node_cpu_map[from][c];
+		for (size_t c = 0; c < system_struct::CPUS_PER_MEMORY && v.size() < MAX_THREADS_TO_MIGRATE; c++) {
+			const auto from_cpu = system_struct::node_cpu_map[from][c];
 
-			for (pid_t const & tid : system_struct_t::cpu_tid_map[from_cpu]) {
+			for (pid_t const & tid : system_struct::cpu_tid_map[from_cpu]) {
 				if (v.size() == MAX_THREADS_TO_MIGRATE)
 					break;
 
 				// We search a, if possible, free CPU to migrate to
-				const auto to_cpu = system_struct_t::get_free_cpu_from_node(to, picked_cpus);
+				const auto to_cpu = system_struct::get_free_cpu_from_node(to, picked_cpus);
 				picked_cpus.insert(to_cpu);
 				migration_cell_t mc(tid, to_cpu);
 				v.push_back(mc);

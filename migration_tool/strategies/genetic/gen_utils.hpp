@@ -14,9 +14,8 @@
 	#define MINIMIZATION
 #endif
 
-class gen_utils {
-	public:
-	static inline int get_rand_int (const int max, const int no_repeat) {
+namespace gen_utils {
+	inline int get_rand_int (const int max, const int no_repeat) {
 		auto ret = no_repeat;
 		do {
 			ret = rand() % max;
@@ -24,12 +23,12 @@ class gen_utils {
 		return ret;
 	}
 
-	static inline double get_rand_double () {
+	inline double get_rand_double () {
 		return (double) rand() / (double) RAND_MAX;
 	}
 
 	template<class T>
-	static inline bool contains (const std::vector<T> & v, const T e) {
+	inline bool contains (const std::vector<T> & v, const T e) {
 		return find(v.begin(), v.end(), e) != v.end();
 	}
 };

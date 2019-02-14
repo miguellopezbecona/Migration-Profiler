@@ -66,24 +66,22 @@ public:
 	pid_t pid;
 
 	page_table_t () :
-		table(system_struct_t::NUM_OF_CPUS),
+		table(system_struct::NUM_OF_CPUS),
 		uniq_addrs(),
 		tid_index(),
 		page_node_map(),
 		perf_per_tid(),
-		page_node_table(system_struct_t::NUM_OF_MEMORIES),
+		page_node_table(system_struct::NUM_OF_MEMORIES),
 		pid()
-	{
-		// table.reserve(system_struct_t::NUM_OF_CPUS);
-	};
+	{};
 
 	page_table_t (const pid_t p) :
-		table(system_struct_t::NUM_OF_CPUS),
+		table(system_struct::NUM_OF_CPUS),
 		uniq_addrs(),
 		tid_index(),
 		page_node_map(),
 		perf_per_tid(),
-		page_node_table(system_struct_t::NUM_OF_MEMORIES),
+		page_node_table(system_struct::NUM_OF_MEMORIES),
 		pid(p)
 	{};
 
@@ -162,7 +160,7 @@ public:
 				++it;
 				table.erase(table.begin() + pos - erased);
 				erased = true;
-				system_struct_t::remove_tid(tid, false);
+				system_struct::remove_tid(tid, false);
 			}
 			else
 				tid_index[it_tid] = pos - erased;
@@ -183,14 +181,14 @@ public:
 
 				table.erase(table.begin() + pos - erased);
 				erased++;
-				system_struct_t::remove_tid(tid, false);
+				system_struct::remove_tid(tid, false);
 			}
 			else {
 				++it; // For erasing correctly
 
 				// Only when we use annealing strategy
 				if (unpin_3drminactive_tids && !perf_per_tid[tid].active)
-					system_struct_t::remove_tid(tid, true);
+					system_struct::remove_tid(tid, true);
 
 				tid_index[tid] = pos - erased;
 			}

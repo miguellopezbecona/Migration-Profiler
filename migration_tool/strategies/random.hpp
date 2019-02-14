@@ -17,7 +17,7 @@ public:
 		const auto & page_addr = *(std::next(s.begin(), pos));
 
 		// Creates migration cell with data
-		const auto mem_node = rand() % system_struct_t::NUM_OF_MEMORIES;
+		const auto mem_node = rand() % system_struct::NUM_OF_MEMORIES;
 		const migration_cell_t mc(page_addr, mem_node, page_t.pid, false);
 
 		return std::vector<migration_cell_t>(1, mc);
@@ -32,7 +32,7 @@ public:
 
 		// Creates migration cell with data
 		const auto & tid = page_addr.first;
-		const auto core = rand() % system_struct_t::NUM_OF_CPUS;
+		const auto core = rand() % system_struct::NUM_OF_CPUS;
 		const migration_cell_t mc(tid, core, page_t.pid, true);
 
 		return std::vector<migration_cell_t>(1, mc);

@@ -23,79 +23,77 @@
 
 #include "types_definition.hpp"
 
-class system_struct_t {
-public:
-	static size_t NUM_OF_CPUS;
-	static size_t NUM_OF_MEMORIES;
-	static size_t CPUS_PER_MEMORY;
+namespace system_struct {
+	size_t NUM_OF_CPUS;
+	size_t NUM_OF_MEMORIES;
+	size_t CPUS_PER_MEMORY;
 
 	// To know where each CPU is (in terms of memory node)
-	static std::vector<node_t> cpu_node_map; // cpu_node_map[cpu] = node
-	static std::vector<std::vector<cpu_t>> node_cpu_map; // cpu_node_map[node] = list(cpus)
+	std::vector<node_t> cpu_node_map; // cpu_node_map[cpu] = node
+	std::vector<std::vector<cpu_t>> node_cpu_map; // cpu_node_map[node] = list(cpus)
 
 	// To know where each TID is (in terms of CPUs)
-	static std::map<tid_t, cpu_t> tid_cpu_map; // input: tid, output: cpu
-	static std::vector<std::vector<tid_t>> cpu_tid_map; // input: cpu, output, list of tids
+	std::map<tid_t, cpu_t> tid_cpu_map; // input: tid, output: cpu
+	std::vector<std::vector<tid_t>> cpu_tid_map; // input: cpu, output, list of tids
 
-	// static int** node_distances;
-	static std::vector<std::vector<size_t>> node_distances;
+	std::vector<std::vector<size_t>> node_distances;
 
 	// To know where each TID is (in terms of PIDs)
-	static std::map<tid_t, pid_t> tid_pid_map; // input: tid, output: pid
+	std::map<tid_t, pid_t> tid_pid_map; // input: tid, output: pid
 
-	static std::vector<cpu_t> ordered_cpus; // Ordered by distance nodes. Might be useful for genetic strategy
+	std::vector<cpu_t> ordered_cpus; // Ordered by distance nodes. Might be useful for genetic strategy
 
-private:
-	/*** Auxiliar functions ***/
-	static void set_affinity_error (const tid_t tid) {
-		switch (errno) {
-			case EFAULT:
-				std::cerr << "Error setting affinity: A supplied memory address was invalid." << '\n';
-				break;
-			case EINVAL:
-				std::cerr << "Error setting affinity: The affinity bitmask mask contains no processors that are physically on the system, or cpusetsize is smaller than the size of the affinity mask used by the kernel." << '\n';
-				break;
-			case EPERM:
-				std::cerr << "Error setting affinity: The calling process does not have appropriate privileges for TID " << tid << "," << '\n';
-				break;
-			case ESRCH: // When this happens, it's practically unavoidable
-				//printf("Error setting affinity: The process whose ID is %d could not be found\n", tid);
-				break;
+	namespace {
+		/*** Auxiliar functions ***/
+		void set_affinity_error (const tid_t tid) {
+			switch (errno) {
+				case EFAULT:
+					std::cerr << "Error setting affinity: A supplied memory address was invalid." << '\n';
+					break;
+				case EINVAL:
+					std::cerr << "Error setting affinity: The affinity bitmask mask contains no processors that are physically on the system, or cpusetsize is smaller than the size of the affinity mask used by the kernel." << '\n';
+					break;
+				case EPERM:
+					std::cerr << "Error setting affinity: The calling process does not have appropriate privileges for TID " << tid << "," << '\n';
+					break;
+				case ESRCH: // When this happens, it's practically unavoidable
+					//printf("Error setting affinity: The process whose ID is %d could not be found\n", tid);
+					break;
+			}
+		}
+
+		// Each line will result in a row in the distance matrix
+		template<class T>
+		void read_line_from_file (const T node, std::vector<T> & array) {
+			char filename[64] = "\0";
+			sprintf(filename, "/sys/devices/system/node/node%lu/distance", node);
+			std::ifstream file(filename);
+
+			if (!file.is_open())
+				return;
+
+			for (size_t i = 0; !file.eof() && i < array.size(); i++) {
+				T element;
+				file >> element;
+				if (file.eof())
+					break;
+				array[i] = element;
+			}
+			array.shrink_to_fit();
+
+			file.close();
+		}
+
+		static bool are_all_nodes_processed (const std::vector<bool> & processed) {
+			for (size_t i = 0; i < system_struct::NUM_OF_MEMORIES; i++) {
+				if (!processed[i])
+					return false;
+			}
+			return true;
 		}
 	}
 
-	// Each line will result in a row in the distance matrix
-	template<class T>
-	static void read_line_from_file (const T node, std::vector<T> & array) {
-		char filename[64] = "\0";
-		sprintf(filename, "/sys/devices/system/node/node%lu/distance", node);
-		std::ifstream file(filename);
-
-		if (!file.is_open())
-			return;
-
-		for (size_t i = 0; !file.eof() && i < array.size(); i++) {
-			T element;
-			file >> element;
-			if (file.eof())
-				break;
-			array[i] = element;
-		}
-		array.shrink_to_fit();
-
-		file.close();
-	}
-
-	static bool are_all_nodes_processed (const std::vector<bool> & processed) {
-		for (size_t i = 0; i < system_struct_t::NUM_OF_MEMORIES; i++) {
-			if (!processed[i])
-				return false;
-		}
-		return true;
-	}
-
-public:
-	static int detect_system () {
+	int detect_system () {
 		char filename[BUFSIZ]; // BUFSIZ is a system macro.
 		int package;
 
@@ -184,7 +182,7 @@ public:
 		return 0;
 	}
 
-	static void clean () {
+	void clean () {
 		cpu_node_map.clear();
 
 		for (auto & node : node_cpu_map) {
@@ -208,22 +206,83 @@ public:
 		ordered_cpus.clear();
 	}
 
+	void iteration_clean () {
+		tid_cpu_map.clear();
+		for (auto & cpu : cpu_tid_map) {
+			cpu.clear();
+		}
+	}
+
+	// CPU-pin/free methods
+	inline int pin_thread_to_cpu (const tid_t tid, const cpu_t cpu) {
+		cpu_set_t affinity;
+		sched_getaffinity(tid, sizeof(cpu_set_t), &affinity);
+		int ret = 0;
+
+		CPU_ZERO(&affinity);
+		CPU_SET(cpu, &affinity);
+
+		if ( (ret = sched_setaffinity(tid, sizeof(cpu_set_t), &affinity)) ) {
+			set_affinity_error(tid);
+			return errno;
+		}
+
+		return ret;
+	}
+
+	inline int unpin_thread (const tid_t tid) {
+		cpu_set_t affinity;
+		sched_getaffinity(0, sizeof(cpu_set_t), &affinity); // Gets profiler's affinity (all CPUs)
+		int ret = 0;
+
+		// Gives profiler's affinity to freed thread
+		if ( (ret = sched_setaffinity(tid, sizeof(cpu_set_t), &affinity)) ) {
+			set_affinity_error(tid);
+			return errno;
+		}
+
+		return ret;
+	}
+
 	// Node-CPU methods
-	static inline node_t get_cpu_memory_node (const cpu_t cpu) {
+	inline node_t get_cpu_memory_node (const cpu_t cpu) {
 		return cpu_node_map[cpu];
 	}
 
-	static inline bool is_in_same_memory_node(const cpu_t cpu1, const cpu_t cpu2) {
+	inline bool is_in_same_memory_node(const cpu_t cpu1, const cpu_t cpu2) {
 		return cpu_node_map[cpu1] == cpu_node_map[cpu2];
 	}
 
-	static inline cpu_t get_random_cpu_in_node (const node_t node) {
+	inline cpu_t get_random_cpu_in_node (const node_t node) {
 		const auto position = rand() % CPUS_PER_MEMORY;
 		return node_cpu_map[node][position];
 	}
 
 	// CPU-thread methods
-	static inline void add_tid (const tid_t tid, const cpu_t cpu) {
+	inline bool is_cpu_free (const cpu_t cpu) {
+		return cpu_tid_map[cpu].empty();
+	}
+
+	int set_tid_cpu (const tid_t tid, const cpu_t cpu, const bool do_pin) {
+		// We drop the previous CPU-TID assignation, if there was one
+		if (tid_cpu_map.count(tid)) { // contains
+			const auto old_cpu = tid_cpu_map[tid];
+
+			// Drops TID from the list
+			auto & l = cpu_tid_map[old_cpu];
+			l.erase(std::remove(l.begin(), l.end(), tid), l.end());
+		}
+
+		tid_cpu_map[tid] = cpu;
+
+		if (!do_pin)
+		return 0;
+
+		cpu_tid_map[cpu].push_back(tid);
+		return pin_thread_to_cpu(tid, cpu);
+	}
+
+	inline void add_tid (const tid_t tid, const cpu_t cpu) {
 		if (tid_cpu_map.count(tid)) // We don't continue if the TID already exists in map
 			return;
 
@@ -247,34 +306,27 @@ public:
 		set_tid_cpu(tid, cpu, true);
 	}
 
-	static cpu_t get_cpu_from_tid (const tid_t tid) {
+	inline void add_tid (const tid_t tid, const cpu_t cpu, const bool pin) {
+		if (pin) {
+			add_tid(tid, cpu);
+		} else {
+			tid_cpu_map[tid] = cpu;
+			const auto & cpu_l = cpu_tid_map[cpu];
+			if (std::count(cpu_l.begin(), cpu_l.end(), tid) == 0) {
+				cpu_tid_map[cpu].push_back(tid);
+			}
+		}
+	}
+
+	cpu_t get_cpu_from_tid (const tid_t tid) {
 		return tid_cpu_map[tid];
 	}
 
-	static inline std::vector<tid_t> get_tids_from_cpu (const cpu_t cpu) {
+	inline std::vector<tid_t> get_tids_from_cpu (const cpu_t cpu) {
 		return cpu_tid_map[cpu];
 	}
 
-	static int set_tid_cpu (const tid_t tid, const cpu_t cpu, const bool do_pin) {
-		// We drop the previous CPU-TID assignation, if there was one
-		if (tid_cpu_map.count(tid)) { // contains
-			const auto old_cpu = tid_cpu_map[tid];
-
-			// Drops TID from the list
-			auto & l = cpu_tid_map[old_cpu];
-			l.erase(std::remove(l.begin(), l.end(), tid), l.end());
-		}
-
-		tid_cpu_map[tid] = cpu;
-
-		if (!do_pin)
-			return 0;
-
-		cpu_tid_map[cpu].push_back(tid);
-		return pin_thread_to_cpu(tid, cpu);
-	}
-
-	static void remove_tid (const tid_t tid, const bool do_unpin) {
+	void remove_tid (const tid_t tid, const bool do_unpin) {
 		tid_pid_map.erase(tid);
 
 		const auto cpu = tid_cpu_map[tid];
@@ -288,11 +340,7 @@ public:
 			unpin_thread(tid);
 	}
 
-	static inline bool is_cpu_free (const cpu_t cpu) {
-		return cpu_tid_map[cpu].empty();
-	}
-
-	static inline cpu_t get_free_cpu_from_node (const node_t node, const std::set<int> & nopes) {
+	inline cpu_t get_free_cpu_from_node (const node_t node, const std::set<int> & nopes) {
 		for (size_t c = 0; c < CPUS_PER_MEMORY; c++) {
 			const auto cpu = node_cpu_map[node][c];
 			if (is_cpu_free(cpu) && !nopes.count(cpu))
@@ -304,43 +352,12 @@ public:
 		return node_cpu_map[node][index];
 	}
 
-	// CPU-pin/free methods
-	static inline int pin_thread_to_cpu (const tid_t tid, const cpu_t cpu) {
-		cpu_set_t affinity;
-		sched_getaffinity(tid, sizeof(cpu_set_t), &affinity);
-		int ret = 0;
-
-		CPU_ZERO(&affinity);
-		CPU_SET(cpu, &affinity);
-
-		if ( (ret = sched_setaffinity(tid, sizeof(cpu_set_t), &affinity)) ) {
-			set_affinity_error(tid);
-			return errno;
-		}
-
-		return ret;
-	}
-
-	static inline int unpin_thread (const tid_t tid) {
-		cpu_set_t affinity;
-		sched_getaffinity(0, sizeof(cpu_set_t), &affinity); // Gets profiler's affinity (all CPUs)
-		int ret = 0;
-
-		// Gives profiler's affinity to freed thread
-		if ( (ret = sched_setaffinity(tid, sizeof(cpu_set_t), &affinity)) ) {
-			set_affinity_error(tid);
-			return errno;
-		}
-
-		return ret;
-	}
-
 	// Node distance methods
-	static inline size_t get_node_distance (const node_t node1, const node_t node2) {
+	inline size_t get_node_distance (const node_t node1, const node_t node2) {
 		return node_distances[node1][node2];
 	}
 
-	static void print_node_distance_matrix () {
+	void print_node_distance_matrix () {
 		for (size_t i = 0; i < NUM_OF_MEMORIES; i++) {
 			for (size_t j = 0; j < NUM_OF_MEMORIES; j++) {
 				std::cout << node_distances[i][j] << ' ';
@@ -350,40 +367,35 @@ public:
 	}
 
 	// Other functions
-	static inline void set_pid_to_tid (const pid_t pid, const tid_t tid) {
+	inline void set_pid_to_tid (const pid_t pid, const tid_t tid) {
 		tid_pid_map[tid] = pid;
 	}
 
-	static inline pid_t get_pid_from_tid (const tid_t tid) {
+	inline pid_t get_pid_from_tid (const tid_t tid) {
 		if (tid_pid_map.count(tid) > 0)
 			return tid_pid_map[tid];
 		else
 			return -1;
 	}
 
-	static inline void print () {
+	inline void print () {
 		std::cout << "CPU map: " << cpu_tid_map.size() << " entries. ";
 		size_t count = 0;
 		for (const auto & cpu : cpu_tid_map) {
 			count += cpu.size();
 		}
 		std::cout << "Total of " << count << " TIDs registered." << '\n';
+		// if (count < 10 * NUM_OF_CPUS) {
+		// 	for (size_t i = 0; i < cpu_tid_map.size(); i++) {
+		// 		const auto & cpu = cpu_tid_map[i];
+		// 		std::cout << "\tCPU " << i << ": ";
+		// 		for (const auto & tid : cpu) {
+		// 			std::cout << tid << " ";
+		// 		}
+		// 		std::cout << '\n';
+		// 	}
+		// }
 	}
 };
-
-// Declaration of static variables
-size_t system_struct_t::NUM_OF_CPUS;
-size_t system_struct_t::NUM_OF_MEMORIES;
-size_t system_struct_t::CPUS_PER_MEMORY;
-// To know where each CPU is (in terms of memory node)
-std::vector<node_t> system_struct_t::cpu_node_map; // cpu_node_map[cpu] = node
-std::vector<std::vector<cpu_t>> system_struct_t::node_cpu_map; // cpu_node_map[node] = list(cpus)
-// To know where each TID is (in terms of CPUs)
-std::map<tid_t, cpu_t> system_struct_t::tid_cpu_map; // input: tid, output: cpu
-std::vector<std::vector<tid_t>> system_struct_t::cpu_tid_map; // input: cpu, output, list of tids
-std::vector<std::vector<size_t>> system_struct_t::node_distances;
-// To know where each TID is (in terms of PIDs)
-std::map<tid_t, pid_t> system_struct_t::tid_pid_map; // input: tid, output: pid
-std::vector<cpu_t> system_struct_t::ordered_cpus; // Ordered by distance nodes. Might be useful for genetic strategy
 
 #endif

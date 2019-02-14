@@ -100,7 +100,7 @@ public:
 #ifdef JUST_PROFILE
 	#ifdef JUST_PROFILE_ENERGY
 	void add_energy_data () {
-		const auto node = system_struct_t::cpu_node_map[cpu];
+		const auto node = system_struct::cpu_node_map[cpu];
 		const auto vals = ed.get_curr_vals(); // Energy values
 		// const double ** vals = ed.get_curr_vals(); // Energy values
 

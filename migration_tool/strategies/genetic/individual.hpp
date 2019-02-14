@@ -27,19 +27,19 @@ public:
 	{}
 
 	individual_t (const std::map<pid_t, page_table_t> & ts) :
-		v(system_struct_t::NUM_OF_CPUS),
+		v(system_struct::NUM_OF_CPUS),
 		fitness(NO_FITNESS)
 	{
 		// Builds list from system_struct data
-		for (size_t i = 0; i < system_struct_t::NUM_OF_CPUS; i++){
-			if (system_struct_t::is_cpu_free(i))
+		for (size_t i = 0; i < system_struct::NUM_OF_CPUS; i++){
+			if (system_struct::is_cpu_free(i))
 				continue;
 
 			// Correct index of CPU in ordered_cpus
-			const auto index = find(system_struct_t::ordered_cpus.begin(), system_struct_t::ordered_cpus.end(), i) - system_struct_t::ordered_cpus.begin();
+			const auto index = find(system_struct::ordered_cpus.begin(), system_struct::ordered_cpus.end(), i) - system_struct::ordered_cpus.begin();
 
 			// Assigns list
-			v[index] = system_struct_t::get_tids_from_cpu(i);
+			v[index] = system_struct::get_tids_from_cpu(i);
 		}
 
 		// Calculates fitness (in this case, mean latency), using only data from last iteration
@@ -81,7 +81,7 @@ public:
 			for (tid_t const & tid : tids) {
 				num_tids++;
 
-				pid_t pid = system_struct_t::get_pid_from_tid(tid);
+				pid_t pid = system_struct::get_pid_from_tid(tid);
 				if (!is_tid_alive(pid,tid))
 					dead_tids++;
 			}

@@ -51,7 +51,8 @@ typedef struct {
 	char * base_filename;
 
 	int mmap_pages;
-	int sbm;
+	int millis_between_samples;
+	double min_time_between_mig;
 	int periods[NUM_GROUPS];
 	int minimum_latency;
 } options_t;
@@ -89,7 +90,7 @@ void perform_migration () {
 	const double secs = difftime(current_time, last_migr_time);
 
 	// We profile every 1, 2 or 4 seconds depending on get_time_value()
-	if (secs > (get_time_value() * inv_1000)) {
+	if (secs > (options.min_time_between_mig * get_time_value() * inv_1000)) {
 		last_migr_time = current_time;
 		// printf("\n***********\nAt %s\n", ctime(&last_migr_time));
 		begin_migration_process();
@@ -200,13 +201,13 @@ int setup_cpu (int cpu, int fd, int group) {
 		if (fds[i].hw.sample_period) {
 			// set notification threshold to be halfway through the buffer
 			if (fds[i].hw.sample_period) {
-				fds[i].hw.wakeup_watermark = (options.mmap_pages*pgsz) / 2;
+				fds[i].hw.wakeup_watermark = (options.mmap_pages * pgsz) / 2;
 				fds[i].hw.watermark = 1;
 			}
 
 			fds[i].hw.sample_type = PERF_SAMPLE_IP|PERF_SAMPLE_TID|PERF_SAMPLE_READ|PERF_SAMPLE_TIME|PERF_SAMPLE_PERIOD|PERF_SAMPLE_STREAM_ID|PERF_SAMPLE_ADDR|PERF_SAMPLE_CPU|PERF_SAMPLE_WEIGHT|PERF_SAMPLE_DATA_SRC;
 			#ifdef EVENT_OUTPUT
-			std::cout << fds[i].name << " period=" << (long unsigned int) fds[i].hw.sample_period << " freq=" << fds[i].hw.freq << '\n';
+			std::cout << fds[i].name << " period=" << static_cast<long unsigned int>(fds[i].hw.sample_period) << " freq=" << fds[i].hw.freq << '\n';
 			#endif
 
 			fds[i].hw.read_format = PERF_FORMAT_SCALE;
@@ -301,7 +302,7 @@ int setup_cpu (int cpu, int fd, int group) {
 }
 
 static void clean_end (const int n) {
-	perf_event_desc_t * fds = NULL;
+	perf_event_desc_t * fds = nullptr;
 
 	#ifdef EVENT_OUTPUT
 	std::cout << "TERMINATING" << '\n';
@@ -312,7 +313,7 @@ static void clean_end (const int n) {
 
 	// Closes and frees resources
 	for (size_t i = 0; i < NUM_GROUPS; i++) {
-		for (size_t j = 0; j < system_struct_t::NUM_OF_CPUS; j++) {
+		for (size_t j = 0; j < system_struct::NUM_OF_CPUS; j++) {
 			fds = all_fds[i][j];
 			for (int k = 0; k < num_fds[i]; k++) {
 				close(fds[k].fd);
@@ -335,7 +336,7 @@ static void clean_end (const int n) {
 	ed.close_buffers();
 	#endif
 
-	system_struct_t::clean();
+	system_struct::clean();
 
 	//#ifdef EVENT_OUTPUT
 	const char * types[2] = {"memory", "instruction"};
@@ -356,13 +357,13 @@ static void clean_end (const int n) {
 
 int mainloop (char ** arg) {
 	// Obtains some important system "constants" in execution time
-	int ret = system_struct_t::detect_system();
+	int ret = system_struct::detect_system();
 	if (ret != 0) {
 		exit(ret);
 	}
 
 	#if ( !defined(JUST_PROFILE) && defined(USE_ENER_ST) ) || defined(JUST_PROFILE_ENERGY)
-	ret = ed.prepare_energy_data(options.base_filename); // Needs system_struct_t::detect_system() be called before
+	ret = ed.prepare_energy_data(options.base_filename); // Needs system_struct::detect_system() be called before
 	if (ret != 0) {
 		exit(ret);
 	}
@@ -373,7 +374,7 @@ int mainloop (char ** arg) {
 	map_size = (options.mmap_pages + 1) * pgsz;
 
 	#ifndef JUST_PROFILE
-	tid_cpu_table.coln = system_struct_t::NUM_OF_CPUS; // Badly done because NUM_OF_CPUS is gotten in execution time
+	tid_cpu_table.coln = system_struct::NUM_OF_CPUS; // Badly done because NUM_OF_CPUS is gotten in execution time
 	#endif
 
 	#ifdef FAKE_DATA
@@ -381,22 +382,22 @@ int mainloop (char ** arg) {
 	return 0;
 	#endif
 
-	const auto TOTAL_BUFFS = system_struct_t::NUM_OF_CPUS * NUM_GROUPS;
+	const auto TOTAL_BUFFS = system_struct::NUM_OF_CPUS * NUM_GROUPS;
 
-	// This is the struct for polling the buffers of system_struct_t::NUM_OF_CPUS for different groups of events
+	// This is the struct for polling the buffers of system_struct::NUM_OF_CPUS for different groups of events
 	pollfds = new struct pollfd[TOTAL_BUFFS];
 	int fd = -1;
 	perf_event_desc_t * fds = nullptr;
 
 	// Initializes arrays to zero
-	memset(collected_samples_group, 0, sizeof(collected_samples_group));
-	memset(processed_samples_group, 0, sizeof(processed_samples_group));
-	memset(buffer_reads, 0, sizeof(buffer_reads));
-	memset(lost_samples_group, 0, sizeof(lost_samples_group));
+	memset(collected_samples_group,	0, sizeof(collected_samples_group));
+	memset(processed_samples_group,	0, sizeof(processed_samples_group));
+	memset(buffer_reads,			0, sizeof(buffer_reads));
+	memset(lost_samples_group,		0, sizeof(lost_samples_group));
 
 	// Allocates memory for all_fds
 	for (size_t i = 0; i < NUM_GROUPS; i++) {
-		all_fds[i] = new perf_event_desc_t* [system_struct_t::NUM_OF_CPUS];
+		all_fds[i] = new perf_event_desc_t* [system_struct::NUM_OF_CPUS];
 		if (!all_fds[i]) {
 			err(1, "cannot allocate memory for all_fds[%lu]", i);
 		}
@@ -409,7 +410,7 @@ int mainloop (char ** arg) {
 
 	// Sets up counter configuration
 	for (size_t g = 0; g < NUM_GROUPS; g++) {
-		for (size_t c = 0; c < system_struct_t::NUM_OF_CPUS; c++) {
+		for (size_t c = 0; c < system_struct::NUM_OF_CPUS; c++) {
 			setup_cpu(c, fd, g);
 		}
 	}
@@ -418,17 +419,17 @@ int mainloop (char ** arg) {
 	signal(SIGALRM, clean_end);
 	signal(SIGINT, clean_end);
 
-	// This is for polling the buffers of system_struct_t::NUM_OF_CPUS cpus for the available groups
+	// This is for polling the buffers of system_struct::NUM_OF_CPUS cpus for the available groups
 	for (size_t i = 0; i < TOTAL_BUFFS; i++) {
-		const auto gr  = i / system_struct_t::NUM_OF_CPUS;
-		const auto cpu = i % system_struct_t::NUM_OF_CPUS;
+		const auto gr  = i / system_struct::NUM_OF_CPUS;
+		const auto cpu = i % system_struct::NUM_OF_CPUS;
 		fds = all_fds[gr][cpu];
 		pollfds[i].fd = fds[0].fd;
 		pollfds[i].events = POLLIN;
 	}
 
 	// Starts counters
-	for (size_t i = 0; i < system_struct_t::NUM_OF_CPUS; i++) {
+	for (size_t i = 0; i < system_struct::NUM_OF_CPUS; i++) {
 		for (size_t j = 0; j < NUM_GROUPS; j++) {
 			fds = all_fds[j][i];
 
@@ -447,17 +448,17 @@ int mainloop (char ** arg) {
 	// Core loop where the polling to the buffers is done, has some issues
 	for (;;) {
 		#if defined(JUST_PROFILE_ENERGY) || defined(USE_ENER_ST)
-		usleep(options.sbm * 1000); // Not the best way, but using polling may give issues to read energy buffers
+		usleep(options.millis_between_samples * 1000); // Not the best way, but using polling may give issues to read energy buffers
 
 		// Time is got and energy buffers are read
 		time_t current_time = time(NULL);
-		double secs = options.sbm * 1e-3;
+		double secs = options.millis_between_samples * 1e-3;
 		ed.read_buffer(secs);
 		//ed.print_curr_vals(); // Just for testing we got the data
 		//printf("Secs: %.3f. Pkg: %.3f\n", secs, ed.curr_vals[0][0]);
 		#else
 		// Core call under normal conditions: polling to counter buffers
-		int ret = poll(pollfds, TOTAL_BUFFS, options.sbm);
+		int ret = poll(pollfds, TOTAL_BUFFS, options.millis_between_samples);
 
 		if (ret < 0 && errno == EINTR)
 			break;
@@ -465,9 +466,9 @@ int mainloop (char ** arg) {
 
 		// Reads (only ready) buffers
 		for (size_t g = 0; g < NUM_GROUPS; g++) {
-			for (size_t c = 0; c < system_struct_t::NUM_OF_CPUS; c++) {
+			for (size_t c = 0; c < system_struct::NUM_OF_CPUS; c++) {
 				#if ! (defined(JUST_PROFILE_ENERGY) || defined(USE_ENER_ST))
-				const auto i =  g * system_struct_t::NUM_OF_CPUS + c; // Poll index
+				const auto i =  g * system_struct::NUM_OF_CPUS + c; // Poll index
 				if (pollfds[i].revents == 0) { // Now new data
 					continue;
 				}
@@ -488,8 +489,8 @@ int mainloop (char ** arg) {
 	return 0;
 }
 
-static void usage (void) {
-	std::cout << "usage: my_profiler_tm [-h] [--help] [-b base_filename] [-p period_memory] [-P period_instructions] [-l minimum_latency] [-s milliseconds_between_migrations]" << '\n';
+static void usage () {
+	std::cout << "usage: my_profiler_tm [-h] [--help] [-b base_filename] [-p period_memory] [-P period_instructions] [-l minimum_latency] [-m min_secs_between_migrations] [-s milliseconds_between_samples]" << '\n';
 }
 
 int main (const int argc, char * argv[]) {
@@ -505,35 +506,58 @@ int main (const int argc, char * argv[]) {
 	options.base_filename = new char[32]{};
 	options.minimum_latency = 250;
 	#ifdef JUST_PROFILE_ENERGY
-	options.sbm = 1000;
+	// options.sbm = 1000;
+	options.millis_between_samples = 1000;
 	#else
-	options.sbm = -1;
+	// options.sbm = -1;
+	options.millis_between_samples = -1;
 	#endif
+	options.min_time_between_mig = 1.0;
 	options.mmap_pages = 16;
 
-	static struct option the_options[]= {
-		{"help", 0, 0,  1},
-		{0,0,0,0}
+	// static struct option the_options[]= {
+	// 	{"help", 0, 0,  1},
+	// 	{0,0,0,0}
+	// };
+	static struct option long_options[] = {
+	    {"help",			no_argument, 		0, 'h' },
+	    {"base-filename",	required_argument,	0, 'b' },
+	    {"period-memory",	required_argument,	0, 'p' },
+	    {"period-instr",	required_argument,	0, 'P' },
+	    {"min-latency",		required_argument,	0, 'l' },
+	    {"sec-migrations",	required_argument,	0, 'm' },
+	    {"msec-sampling",	required_argument,	0, 's' },
+	    {0,					0,					0,  0  }
 	};
 
-	while ((c=getopt_long(argc, argv,"+h:b:p:P:l:s:", the_options, 0)) != -1) {
+	while ((c=getopt_long(argc, argv,"+h:b:p:P:l:m:s:", long_options, 0)) != -1) {
 		switch (c) {
 			case 'b': // Base_filename
 				strcpy(options.base_filename, optarg);
+				std::clog << "Energy base file: " << options.base_filename << '\n';
 				break;
 			case 'p':
 				// In the future it will be better if this gets redefined with something like "periodG0_periodG1_p..."
 				options.periods[0] = atoi(optarg);
+				std::clog << "Instructions sampling period: " << options.periods[0] << '\n';
 				break;
 			case 'P':
-				if(NUM_GROUPS > 1)
+				if (NUM_GROUPS > 1) {
 					options.periods[1] = atoi(optarg);
+					std::clog << "Memory sampling period: " << options.periods[1] << '\n';
+				}
 				break;
 			case 'l':
 				options.minimum_latency = atoi(optarg);
+				std::clog << "Minimum latency: " << options.minimum_latency << '\n';
+				break;
+			case 'm':
+				options.min_time_between_mig = atof(optarg);
+				std::clog << "Minimum time (seconds) between migrations: " << options.min_time_between_mig << '\n';
 				break;
 			case 's':
-				options.sbm = atoi(optarg);
+				options.millis_between_samples = atoi(optarg);
+				std::clog << "Milliseconds between reads of samples buffer: " << options.millis_between_samples << '\n';
 				break;
 			case 'h':
 				usage();

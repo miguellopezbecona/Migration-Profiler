@@ -87,7 +87,7 @@ public:
 	}
 
 	inline int perform_thread_migration () const {
-		const auto ret = system_struct_t::set_tid_cpu((pid_t) elem, dest, true);
+		const auto ret = system_struct::set_tid_cpu((pid_t) elem, dest, true);
 
 		#ifdef TH_MIGR_OUTPUT
 		std::cout << "Migrated thread " << static_cast<pid_t>(elem) << " to CPU " << dest << '\n'; // +1 only for demo!

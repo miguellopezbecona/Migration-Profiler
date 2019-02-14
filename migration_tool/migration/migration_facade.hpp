@@ -57,11 +57,12 @@ void add_data_to_list (const my_pebs_sample_t & sample) {
 	if (sample.is_mem_sample()) { // [TOTHINK]: Before, we discarded samples with DSRC == 0, why?
 		memory_data_cell_t data(sample.cpu, sample.pid, sample.tid, sample.sample_addr, sample.weight, sample.dsrc, sample.time);
 		memory_list.add_cell(data);
-		pids.insert(sample.pid); // We will consider a process is active if we get a memory sample from it
 	} else {
 		inst_data_cell_t data(sample.cpu, sample.pid, sample.tid, sample.values[1], sample.values[0], sample.time);
 		inst_list.add_cell(data);
 	}
+	pids.insert(sample.pid); // We will consider a process is active if we get any sample from it
+	system_struct::add_tid(sample.tid, sample.cpu, false);
 	#endif
 }
 
@@ -162,18 +163,23 @@ void work_with_fake_data () {
 	//perform_migration_strategy(&page_tables[500]);
 
 	clean_migration_structures();
-	system_struct_t::clean();
+	system_struct::clean();
 }
 #endif
 
 #ifndef JUST_PROFILE
 int begin_migration_process () {
-	system_struct_t::print();
+	system_struct::print();
 	std::clog << "Memory events: " << memory_list.list.size() << '\n';
 	std::clog << "Instr. events: " << inst_list.list.size() << '\n';
 	std::clog << '\n';
 	if (memory_list.is_empty()) {
 		// std::cerr << "Memory list is empty. Skipping iteration..." << '\n';
+		// memory_list.clear();
+		// inst_list.clear();
+		pids.clear(); // To maintain only active PIDs in each iteration
+		// temp_page_tables.clear(); // Only-current-iteration data is erased
+		system_struct::iteration_clean();
 		return -1;
 	}
 
@@ -205,7 +211,7 @@ int begin_migration_process () {
 			// We get TIDs from the dead PID so we can remove those rows from tid_cpu_table and system_struct
 			for (pid_t const & tid : table.get_tids()) {
 				tid_cpu_table.remove_row(tid);
-				system_struct_t::remove_tid(tid, false);
+				system_struct::remove_tid(tid, false);
 			}
 
 			t_it = temp_page_tables.erase(t_it); // We erase entry from table map
@@ -222,7 +228,7 @@ int begin_migration_process () {
 
 		// Creates/updates TID -> PID associations
 		for (const auto & tid : table.get_tids())
-			system_struct_t::set_pid_to_tid(pid, tid);
+			system_struct::set_pid_to_tid(pid, tid);
 
 		//table->print(); // For debugging
 
@@ -246,6 +252,8 @@ int begin_migration_process () {
 	pids.clear(); // To maintain only active PIDs in each iteration
 
 	temp_page_tables.clear(); // Only-current-iteration data is erased
+
+	system_struct::iteration_clean();
 
 	return 0;
 }
