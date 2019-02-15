@@ -57,7 +57,7 @@ namespace system_struct {
 					std::cerr << "Error setting affinity: The calling process does not have appropriate privileges for TID " << tid << "," << '\n';
 					break;
 				case ESRCH: // When this happens, it's practically unavoidable
-					//printf("Error setting affinity: The process whose ID is %d could not be found\n", tid);
+					std::cerr << "Error setting affinity: The process whose ID is " << tid << " could not be found" << '\n';
 					break;
 			}
 		}
@@ -216,8 +216,12 @@ namespace system_struct {
 	// CPU-pin/free methods
 	inline int pin_thread_to_cpu (const tid_t tid, const cpu_t cpu) {
 		cpu_set_t affinity;
-		sched_getaffinity(tid, sizeof(cpu_set_t), &affinity);
 		int ret = 0;
+
+		if (tid == 0) {
+			std::cerr << "Error: TID is 0. Omiting sched_setaffinity() call..." << '\n';
+			return -1;
+		}
 
 		CPU_ZERO(&affinity);
 		CPU_SET(cpu, &affinity);
@@ -335,9 +339,9 @@ namespace system_struct {
 		auto & l = cpu_tid_map[cpu];
 		l.erase(remove(l.begin(), l.end(), tid), l.end());
 
-		// Already finished threads don't need unpin
-		if (do_unpin)
-			unpin_thread(tid);
+		// Already finished threads don't need unpin -> If not necessary, why to do it?
+		// if (do_unpin)
+		// 	unpin_thread(tid);
 	}
 
 	inline cpu_t get_free_cpu_from_node (const node_t node, const std::set<int> & nopes) {

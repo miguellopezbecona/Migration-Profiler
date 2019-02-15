@@ -117,7 +117,7 @@ public:
 			os << type << "," << s.pid << "," << s.tid << "," << s.cpu << "," << s.time << "," << s.sample_addr << "," << s.weight;
 		#else
 			os << type << "," << s.iip << "," << s.pid << "," << s.tid << "," << s.cpu << "," << s.time << "," <<
-				s.sample_addr << "," << s.weight << "," << s.time_enabled << "," << s.time_running << "," << s.dsrc;
+				reinterpret_cast<void *>(s.sample_addr) << "," << s.weight << "," << s.time_enabled << "," << s.time_running << "," << s.dsrc;
 		#endif
 
 		if (mem_sample) {

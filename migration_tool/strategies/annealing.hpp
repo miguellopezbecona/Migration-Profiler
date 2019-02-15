@@ -227,8 +227,8 @@ private:
 			if (local_worst_t == -1)
 				continue;
 
-			auto pd = t.perf_per_tid[local_worst_t];
-			auto local_worst_p = pd.v_perfs[pd.index_last_node_calc];
+			const auto & pd = t.perf_per_tid[local_worst_t];
+			auto local_worst_p = pd.v_perfs.at(pd.index_last_node_calc);
 
 			if (local_worst_p < min_p) {
 				worst_tid = local_worst_t;
@@ -324,8 +324,9 @@ private:
 
 				for (const auto & aux_tid : tids) {
 					const auto other_pid = system_struct::get_pid_from_tid(aux_tid);
-					const auto other_perfs = (page_ts.find(other_pid) != page_ts.end()) ?
-						page_ts.at(other_pid).get_perf_data(aux_tid) : std::vector<double>();
+					const auto & other_perfs_it = page_ts.find(other_pid);
+					const auto other_perfs = (other_perfs_it != page_ts.end()) ?
+						other_perfs_it->second.get_perf_data(aux_tid) : std::vector<double>();
 					const auto tid_tickets = get_tickets_from_perfs(current_cell, n, other_perfs, true);
 
 					// Better TID to pick

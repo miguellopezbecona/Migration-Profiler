@@ -85,7 +85,7 @@ public:
 
 	friend std::ostream & operator << (std::ostream & os, const memory_data_cell_t & m) {
 		os << "CPU: " << m.cpu << ", PID: " << m.pid << ", TID: " << m.tid <<
-			", ADDR: " << m.addr << ", LATENCY: " << m.latency << ", DSRC: " << m.dsrc << ", TIME: " << m.time;
+			", ADDR: " << reinterpret_cast<void *>(m.addr) << ", LATENCY: " << m.latency << ", DSRC: " << m.dsrc << ", TIME: " << m.time;
 		return os;
 	}
 };

@@ -114,7 +114,7 @@ public:
 			delete[] no_energy;
 		}
 
-		sort(rapl_domain_names.begin(), rapl_domain_names.end(), comparison_func); // Not necessary, but meh
+		// sort(rapl_domain_names.begin(), rapl_domain_names.end(), comparison_func); // Not necessary, but meh -> ¿Meh WHAT?
 
 		#ifdef INIT_VERBOSE
 		std::cout << "RAPL domains detected: " << NUM_RAPL_DOMAINS << ". They are:";
@@ -260,7 +260,7 @@ public:
 				if(dummy < 0)
 					//return;
 				*/
-				double raw_value_scaled = ((double)value*scale[d]);
+				double raw_value_scaled = static_cast<double>(value) * scale[d];
 				#ifdef JUST_PROFILE_ENERGY
 				curr_vals[n][d] = (raw_value_scaled - prev_vals[n][d]) / secs;
 				#else

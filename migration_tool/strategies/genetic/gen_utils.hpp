@@ -24,7 +24,7 @@ namespace gen_utils {
 	}
 
 	inline double get_rand_double () {
-		return (double) rand() / (double) RAND_MAX;
+		return static_cast<double>(rand()) / RAND_MAX;
 	}
 
 	template<class T>

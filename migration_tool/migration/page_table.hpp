@@ -140,7 +140,10 @@ public:
 	inline std::vector<lat_t> get_latencies_from_cell (const addr_t page_addr, const pid_t tid) const {
 		if (contains_addr(page_addr,tid)) {
 			const auto pos = tid_index.at(tid);
-			return table.at(pos).at(page_addr).latencies;
+			std::clog << "Taking at() value...";
+			const auto & ret = table.at(pos).at(page_addr).latencies;
+			std::clog << " Done." << '\n';
+			return ret;
 		} else {
 			return std::vector<lat_t>();
 		}
@@ -251,7 +254,7 @@ public:
 	}
 
 	inline void print_performance () const {
-		std::cout << "Page table por PID: " << pid << '\n';
+		std::cout << "Page table per PID: " << pid << '\n';
 		std::cout << page_node_table;
 	}
 
@@ -362,8 +365,9 @@ public:
 
 	inline std::vector<double> get_perf_data (const tid_t tid) const {
 		// May happen that there is no value with key "tid". ¿ERROR?
-		return (perf_per_tid.find(tid) != perf_per_tid.end()) ?
-				perf_per_tid.at(tid).v_perfs : std::vector<double>();
+		const auto & perf_tid_it = perf_per_tid.find(tid);
+		return (perf_tid_it != perf_per_tid.end()) ?
+				perf_tid_it->second.v_perfs : std::vector<double>();
 	}
 
 	std::vector<lat_t> get_all_lats () const {
@@ -508,7 +512,7 @@ public:
 				const auto cell = it.second;
 				const auto current_node = pg.page_node_map.at(page_addr).current_node;
 
-				os << "\tPAGE_ADDR: " << page_addr << "x, CURRENT_NODE: " << current_node << ", " << cell << '\n';
+				os << "\tPAGE_ADDR: " << reinterpret_cast<void *>(page_addr) << "x, CURRENT_NODE: " << current_node << ", " << cell << '\n';
 			}
 			os << '\n';
 		}

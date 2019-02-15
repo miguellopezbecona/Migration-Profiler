@@ -91,10 +91,9 @@ public:
 		insts(system_struct::NUM_OF_CPUS, 0),
 		reqs(system_struct::NUM_OF_CPUS, 0),
 		times(system_struct::NUM_OF_CPUS, 0),
-		v_perfs(system_struct::NUM_OF_MEMORIES, PERFORMANCE_INVALID_VALUE)
-	{
-		// reset();
-	}
+		v_perfs(system_struct::NUM_OF_MEMORIES, PERFORMANCE_INVALID_VALUE),
+		index_last_node_calc(0)
+	{}
 
 	void inline add_data (const cpu_t cpu, const ins_t inst, const req_t req, const tim_t time) {
 		active = true;
@@ -112,8 +111,8 @@ public:
 				continue;
 
 			// Divide by zeros check should be made. It's assumed it won't happen if the thread is inactive
-			const double inst_per_s = (double) insts[cpu] * 1000.0 / times[cpu]; // Óscar used inst/ms, so * 10^3
-			const double inst_per_b = (double) insts[cpu] / (reqs[cpu] * CACHE_LINE_SIZE);
+			const double inst_per_s = insts[cpu] * 1000.0 / times[cpu]; // Óscar used inst/ms, so * 10^3
+			const double inst_per_b = static_cast<double>(insts[cpu]) / (reqs[cpu] * CACHE_LINE_SIZE);
 
 			const auto cpu_node = system_struct::get_cpu_memory_node(cpu);
 			v_perfs[cpu_node] = inv_mean_lat * inst_per_s * inst_per_b;
