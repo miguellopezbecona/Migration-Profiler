@@ -515,11 +515,7 @@ int main (const int argc, char * argv[]) {
 	options.min_time_between_mig = 1.0;
 	options.mmap_pages = 16;
 
-	// static struct option the_options[]= {
-	// 	{"help", 0, 0,  1},
-	// 	{0,0,0,0}
-	// };
-	static struct option long_options[] = {
+	static const struct option long_options[] = {
 	    {"help",			no_argument, 		0, 'h' },
 	    {"base-filename",	required_argument,	0, 'b' },
 	    {"period-memory",	required_argument,	0, 'p' },
@@ -539,12 +535,12 @@ int main (const int argc, char * argv[]) {
 			case 'p':
 				// In the future it will be better if this gets redefined with something like "periodG0_periodG1_p..."
 				options.periods[0] = atoi(optarg);
-				std::clog << "Instructions sampling period: " << options.periods[0] << '\n';
+				std::clog << "Memory sampling period: " << options.periods[0] << '\n';
 				break;
 			case 'P':
 				if (NUM_GROUPS > 1) {
 					options.periods[1] = atoi(optarg);
-					std::clog << "Memory sampling period: " << options.periods[1] << '\n';
+					std::clog << "Instr. sampling period: " << options.periods[1] << '\n';
 				}
 				break;
 			case 'l':
