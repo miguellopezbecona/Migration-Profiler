@@ -103,7 +103,7 @@ namespace system_struct {
 
 		node_cpu_map = std::vector<std::vector<cpu_t>>(NUM_OF_MEMORIES);
 		for (size_t i = 0; i < NUM_OF_MEMORIES; i++) {
-			node_cpu_map[i].reserve(CPUS_PER_MEMORY);
+			node_cpu_map[i] = std::vector<cpu_t>(CPUS_PER_MEMORY);
 		}
 
 		std::vector<size_t> counters(CPUS_PER_MEMORY, 0); // For keeping indexes to build node_cpu_map
