@@ -44,10 +44,13 @@
 //#define EVENT_OUTPUT
 //#define ABORT_IF_MANY_UNKNOWN
 
+#if defined(JUST_PROFILE_ENERGY) || defined(USE_ENER_ST)
+	#define USE_ENERGY
+#endif
+
 typedef struct {
 	char* base_filename;
 
-	int mmap_pages;
 	int sbm;
 	int periods[NUM_GROUPS];
 	int minimum_latency;
@@ -62,7 +65,6 @@ uint64_t unknown_samples = 0;
 static perf_event_desc_t **all_fds[NUM_GROUPS];
 static int num_fds[NUM_GROUPS];
 static options_t options;
-static size_t pgsz;
 static size_t map_size;
 
 time_t last_migr_time;
@@ -124,6 +126,10 @@ static void process_smpl_buf(perf_event_desc_t *hw, int cpu, perf_event_desc_t *
 					break;
 
 				add_data_to_list(my_sample);
+
+				#ifndef JUST_PROFILE
+				free(my_sample.values); // Not needed anymore at this point
+				#endif
 				
 				if (ret)
 					errx(1, "cannot parse sample");
@@ -135,7 +141,7 @@ static void process_smpl_buf(perf_event_desc_t *hw, int cpu, perf_event_desc_t *
 				//display_exit(hw, options.output_file);
 				break;
 			case PERF_RECORD_LOST:
-				lost_samples_group[name] += display_lost(hw, fds, num_fds_p, NULL);
+				lost_samples_group[name] += display_lost(hw, fds, num_fds_p, stderr);
 				break;
 			case PERF_RECORD_THROTTLE:
 				//display_freq(1, hw, options.output_file);
@@ -169,6 +175,10 @@ static void process_smpl_buf(perf_event_desc_t *hw, int cpu, perf_event_desc_t *
 int setup_cpu(int cpu, int fd, int group) {
 	perf_event_desc_t *fds = NULL;
 	int ret, flags;
+	size_t pgsz = sysconf(_SC_PAGESIZE);
+	const int mmap_pages = 16;
+	map_size = (mmap_pages+1)*pgsz;
+
 
 	// Allocate fds
 	ret = perf_setup_list_events(events[group], &fds, &num_fds[group]);
@@ -197,7 +207,7 @@ int setup_cpu(int cpu, int fd, int group) {
 		if (fds[i].hw.sample_period) {
 			// set notification threshold to be halfway through the buffer
 			if (fds[i].hw.sample_period) {
-				fds[i].hw.wakeup_watermark = (options.mmap_pages*pgsz) / 2;
+				fds[i].hw.wakeup_watermark = (mmap_pages*pgsz) / 2;
 				fds[i].hw.watermark = 1;
 			}
 
@@ -228,7 +238,7 @@ int setup_cpu(int cpu, int fd, int group) {
 		err(1, "cannot mmap buffer");
 
 	// does not include header page
-	fds[0].pgmsk = (options.mmap_pages*pgsz)-1;
+	fds[0].pgmsk = (mmap_pages*pgsz)-1;
 
 	// send samples for all events to first event's buffer
 	for (int i = 1; i < num_fds[group]; i++) {
@@ -315,7 +325,7 @@ static void clean_end(int n) {
 	//printf("%d,%d,%lu\n", options.periods[0], options.minimum_latency,processed_samples_group[0]);
 	clean_migration_structures();
 
-	#if defined(JUST_PROFILE_ENERGY) || ( !defined(JUST_PROFILE) && defined(USE_ENER_ST) )
+	#ifdef USE_ENERGY
 	ed.close_buffers();
 	#endif
 
@@ -342,15 +352,13 @@ int mainloop(char **arg) {
 	if(ret != 0)
 		exit(ret);
 
-	#if ( !defined(JUST_PROFILE) && defined(USE_ENER_ST) ) || defined(JUST_PROFILE_ENERGY)
+	#ifdef USE_ENERGY
 	ret = ed.prepare_energy_data(options.base_filename); // Needs system_struct_t::detect_system() be called before
 	if(ret != 0)
 		exit(ret);
 	#endif
 
 	uid = getuid();
-	pgsz = sysconf(_SC_PAGESIZE);
-	map_size = (options.mmap_pages+1)*pgsz;
 
 	#ifndef JUST_PROFILE
 	tid_cpu_table.coln = system_struct_t::NUM_OF_CPUS; // Badly done because NUM_OF_CPUS is gotten in execution time
@@ -421,7 +429,7 @@ int mainloop(char **arg) {
 
 	// Core loop where the polling to the buffers is done, has some issues
 	for(;;) {
-		#if defined(JUST_PROFILE_ENERGY) || defined(USE_ENER_ST)
+		#ifdef USE_ENERGY
 		usleep(options.sbm * 1000); // Not the best way, but using polling may give issues to read energy buffers
 
 		// Time is got and energy buffers are read
@@ -441,11 +449,14 @@ int mainloop(char **arg) {
 		// Reads (only ready) buffers
 		for(int g=0;g<NUM_GROUPS;g++){
 			for(int c=0;c<system_struct_t::NUM_OF_CPUS;c++){
+/*
+				// Experimental
 				#if ! (defined(JUST_PROFILE_ENERGY) || defined(USE_ENER_ST))
 				int i =  g * system_struct_t::NUM_OF_CPUS + c; // Poll index
-				if(pollfds[i].revents == 0) // Now new data
+				if(pollfds[i].revents == 0) // No (full) new data
 					continue;
 				#endif
+*/
 
 				process_smpl_buf(all_fds[g][c], c, all_fds[g], num_fds[g], g);
 				buffer_reads[g]++;
@@ -468,20 +479,23 @@ int main(int argc, char **argv){
 	char c;
 
 	// Defaults
-	options.periods[0] = 750;
+	options.periods[0] = 1000;
 
 	if(NUM_GROUPS > 1)
-		options.periods[1] = 10000000;
+		options.periods[1] = 50000000;
 
+	#ifdef USE_ENERGY
 	options.base_filename = (char*)malloc(32*sizeof(char));
 	strcpy(options.base_filename, "");
+	#endif
+
 	options.minimum_latency = 250;
-	#ifdef JUST_PROFILE_ENERGY
+
+	#ifdef USE_ENERGY
 	options.sbm = 1000;
 	#else
 	options.sbm = -1;
 	#endif
-	options.mmap_pages = 16;
 
 	static struct option the_options[]= {
 		{ "help", 0, 0,  1},
@@ -515,8 +529,5 @@ int main(int argc, char **argv){
 		}
 	}
 
-	if (options.mmap_pages > 1 && ((options.mmap_pages) & 0x1))
-		errx(1, "number of pages must be power of 2\n");
-	
 	return mainloop(argv+optind);
 }

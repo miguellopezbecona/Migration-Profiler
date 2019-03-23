@@ -10,7 +10,9 @@
 
 #include <errno.h>
 #include <sched.h>
+#ifndef FAKE_DATA
 #include <numa.h>
+#endif
 
 #include <algorithm>
 #include <map>

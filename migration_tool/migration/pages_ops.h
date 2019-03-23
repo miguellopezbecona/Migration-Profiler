@@ -3,8 +3,10 @@
 #include <unistd.h>
 
 // For move_pages, compile with -lnuma
+#ifndef FAKE_DATA
 #include <numa.h>
 #include <numaif.h>
+#endif
 
 // Uses some structures
 #include "memory_list.h"

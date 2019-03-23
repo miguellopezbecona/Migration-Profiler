@@ -62,7 +62,7 @@ void energy_data_t::detect_domains(){
 			rapl_domain_names.push_back(strdup(no_energy));
 	}
 
-	sort(rapl_domain_names.begin(), rapl_domain_names.end(), comparison_func); // Not necessary, but meh
+	sort(rapl_domain_names.begin(), rapl_domain_names.end(), comparison_func); // Not necessary, but it's clearer
 
 	#ifdef INIT_VERBOSE
 	printf("RAPL domains detected: %d. They are:", NUM_RAPL_DOMAINS);

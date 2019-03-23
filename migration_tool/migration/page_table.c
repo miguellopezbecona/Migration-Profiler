@@ -38,7 +38,7 @@ page_table_t::~page_table(){
 		pd->insts.clear();
 		pd->reqs.clear();
 		pd->times.clear();
-		pd->v_perfs.clear(); 
+		pd->v_perfs.clear();
 	}
 	perf_per_tid.clear();
 
@@ -76,7 +76,7 @@ int page_table_t::add_cell(long int page_addr, int current_node, pid_t tid, int 
 
 	// Creates/updates association in experimental table
 	// [TOTHINK]: right now, we are storing accesses and latencies using the node where the page is, maybe it should be done regarding the CPU source of the access?
-	page_node_table.add_data(page_addr, current_node, latency);
+	//page_node_table.add_data(page_addr, current_node, latency);
 
 	return 0;
 }
@@ -449,10 +449,13 @@ pid_t page_table_t::normalize_perf_and_get_worst_thread(){
 		if(!pd.active)
 			continue;
 
+		// We sum the last_perf if active
+		double pd_lp = pd.get_last_performance();
+		if(pd_lp < 0.0)
+			continue;
+
 		active_threads++;
 
-		// We sum the last_perf if active
-		double pd_lp = pd.v_perfs[pd.index_last_node_calc];
 		mean_perf += pd_lp;
 		if(pd_lp < min_p){ // And we calculate the minimum
 			min_t = tid;
@@ -479,13 +482,13 @@ pid_t page_table_t::normalize_perf_and_get_worst_thread(){
 	return min_t;
 }
 
-void page_table_t::reset_performance(){
+void page_table_t::set_inactive(){
 	// We loop over TIDs
 	for(auto const & t_it : tid_index) {
 		pid_t tid = t_it.first;
 
-		// And we call reset for them
-		perf_per_tid[tid].reset();
+		// And we call them the same function
+		perf_per_tid[tid].set_inactive();
 	}
 }
 
@@ -502,7 +505,10 @@ double page_table_t::get_total_performance() {
 		if(!pd.active)
 			continue;
 
-		val += pd.v_perfs[pd.index_last_node_calc];
+		double lp = pd.get_last_performance();
+		if(lp < 0.0)
+			continue;
+		val += lp;
 	}
 
 	return val;

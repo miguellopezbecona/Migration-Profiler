@@ -64,8 +64,13 @@ int system_struct_t::detect_system() {
 	FILE *fff;
 	int package;
 
+	#ifdef FAKE_DATA
+	NUM_OF_CPUS = 8;
+	NUM_OF_MEMORIES = 2;
+	#else
 	NUM_OF_CPUS = sysconf(_SC_NPROCESSORS_ONLN);
 	NUM_OF_MEMORIES = numa_num_configured_nodes();
+	#endif
 	CPUS_PER_MEMORY = NUM_OF_CPUS / NUM_OF_MEMORIES;
 
 	node_cpu_map = (int**)malloc(NUM_OF_MEMORIES*sizeof(int*));
@@ -80,6 +85,12 @@ int system_struct_t::detect_system() {
 
 	// For each CPU, reads topology file to get package (node) id
 	for(int i=0;i<NUM_OF_CPUS;i++) {
+		#ifdef FAKE_DATA
+		int half_cpus = NUM_OF_CPUS / 2;
+		package = 0; // Artificial way to have two fake memory nodes: one half for each other
+		if (i >= half_cpus)
+			package = 1;
+		#else
 		sprintf(filename,"/sys/devices/system/cpu/cpu%d/topology/physical_package_id",i);
 		fff=fopen(filename,"r");
 		if (fff==NULL) break;
@@ -88,6 +99,7 @@ int system_struct_t::detect_system() {
 
 		if(dummy == 0)
 			return -1;
+		#endif
 
 		// Saves data to structures
 		int index = counters[package];
@@ -109,6 +121,7 @@ int system_struct_t::detect_system() {
 	printf("Detected system: %d total CPUs, %d memory nodes, %d CPUs per node.\n", NUM_OF_CPUS, NUM_OF_MEMORIES, CPUS_PER_MEMORY);
 	//print_node_distance_matrix();
 
+	#ifdef USE_GEN_ST
 	// We will calculate ordered_cpus (does not take into account hyperthreading, so a core won't be next to its HT partner)
 	ordered_cpus.reserve(NUM_OF_CPUS);
 
@@ -143,11 +156,12 @@ int system_struct_t::detect_system() {
 	}
 
 	// Now we should have the CPUs ordered as we want
-/*
+	/*
 	for(unsigned short c : ordered_cpus)
 		printf("%d ", c);
 	printf("\n");
-*/
+	*/
+	#endif
 
 	return 0;
 }

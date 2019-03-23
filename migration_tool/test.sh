@@ -1,7 +1,7 @@
 #!/bin/bash
 
-profname=my_profiler_jpe
-profparams="-s1000 -l600 -p1000 -P100000000"
+profname=my_profiler_tm
+profparams="-s1000 -l250 -p1000 -P100000000"
 #profparams="-s500 -l50 -p300 -P50000000"
 #profparams="-s3500 -l750 -p1000 -P7500000"
 #profparams="-s1000 -l500 -p5000 -P1000000"
@@ -15,7 +15,8 @@ gcc -fopenmp -o ABC ABC.c -lnuma
 
 # Compiles profiler
 #make
-make just_profile_energy
+make str_ann
+#make just_profile_energy
 
 # Exits if there was a problem
 if [ $? -ne 0 ]; then
@@ -36,7 +37,8 @@ else
 fi
 
 # Set to what you want to profile
-toprofile="numactl --physcpubind 1,2 ./ABC -m0 -r5000 -s5000000 -t8"
+toprofile="numactl --cpubind 0 $HOME/miniFE-2.2.0/openmp/src/miniFE.x -nx 1000 -ny 1000 -nz 1000"
+#toprofile="numactl --physcpubind 1,2 ./ABC -m0 -r5000 -s5000000 -t8"
 #toprofile="./ABC -m0 -r5000 -s35000000 -t8"
 #toprofile=~/NPB3.3.1/NPB3.3-OMP/bin/lu.B.x
 #toprofile=~/NPB3.3.1/NPB3.3-OMP/bin/bt.C.x

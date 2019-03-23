@@ -58,6 +58,8 @@ typedef struct rm3d_data {
 	unsigned char index_last_node_calc; // Used to get last_3DyRM_perf from Óscar's code
 
 	rm3d_data(){
+		index_last_node_calc = -1;
+
 		insts.resize(system_struct_t::NUM_OF_CPUS);
 		reqs.resize(system_struct_t::NUM_OF_CPUS);
 		times.resize(system_struct_t::NUM_OF_CPUS);
@@ -68,6 +70,9 @@ typedef struct rm3d_data {
 
 	void add_data(int cpu, long int insts, long int reqs, long int time);
 	void calc_perf(double mean_latency);
+	double get_last_performance();
+	void set_inactive();
+	void reset_performance();
 	void reset();
 
 	void print() const;
@@ -82,8 +87,8 @@ typedef struct perf_cell {
 	double mean_lat;
 
 	perf_cell();
-	perf_cell(double lat);
-	void update_mlat(double lat);
+	perf_cell(int lat);
+	void update_mlat(int lat);
 
 	bool is_filled() const;
 	void print() const;
@@ -102,7 +107,7 @@ typedef struct perf_table {
 	~perf_table();
 	bool has_row(long int key);
 	void remove_row(long int key);
-	void add_data(long int key, int col_num, double lat);
+	void add_data(long int key, int col_num, int lat);
 	void print() const;
 
 	// Some future functions could be coded such as: how many CPUs have data for a given TID?, which CPU has the most/least accesses?, etc.

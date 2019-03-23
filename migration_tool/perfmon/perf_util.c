@@ -767,7 +767,7 @@ uint64_t display_lost(perf_event_desc_t *hw, perf_event_desc_t *fds, int num_fds
 	else
 		str = fds[e].name;
 
-	fprintf(fp, "<<<LOST %lu SAMPLES FOR EVENT %s>>>\n", lost.lost, str);
+	//fprintf(fp, "<<<LOST %lu SAMPLES FOR EVENT %s>>>\n", lost.lost, str);
 
 	return lost.lost;
 }

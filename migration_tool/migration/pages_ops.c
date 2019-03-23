@@ -37,7 +37,7 @@ void build_page_tables(memory_data_list_t m_list, inst_data_list_t i_list, map<p
 		page_ts->operator[](m_cell.pid).add_cell(page_addr, page_node, m_cell.tid, m_cell.latency, m_cell.cpu, cpu_node, m_cell.is_cache_miss());
 
 		// [EXPERIMENTAL]: we update TID/cpu perf_table
-		tid_cpu_table.add_data(m_cell.tid, m_cell.cpu, m_cell.latency);
+		//tid_cpu_table.add_data(m_cell.tid, m_cell.cpu, m_cell.latency);
 	}
 
 	#ifdef USE_ANNEA_ST	// Unnecessary processing if we don't use annealing strategy
@@ -73,10 +73,14 @@ inline int get_page_current_node(pid_t pid, long int pageAddr){
 
 	//printf("Getting page current node for page addr 0x%016lx for PID %d. It is: ", pageAddr, pid);
 
+	#ifndef FAKE_DATA
 	// If "nodes" parameter is NULL, in status we obtain the node where the page is
 	numa_move_pages(pid, 1, pages, NULL, &status, MPOL_MF_MOVE);
+	#endif
 
 	//printf("%d\n",status);
+
+	free(pages);
 
 	return status;
 }

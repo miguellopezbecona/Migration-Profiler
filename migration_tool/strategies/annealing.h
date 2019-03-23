@@ -8,6 +8,7 @@ const int TICKETS_MEM_CELL_BETTER[] = {4, 4};
 const int TICKETS_FREE_CORE = 3;
 
 #define ANNEALING_PRINT
+//#define ANNEALING_PRINT_MORE_DETAILS
 
 // Special structure which takes into account that each possible choice is a simple migration or an interchange, and has tickets associated to it
 typedef struct labeled_migr {
@@ -24,7 +25,6 @@ typedef struct labeled_migr {
 
 typedef struct annealing : strategy {
 	// Only valid for threads
-	vector<migration_cell_t> get_threads_to_migrate(page_table_t *page_t);
 	vector<migration_cell_t> get_threads_to_migrate(map<pid_t, page_table_t> *page_ts);
 } annealing_t;
 

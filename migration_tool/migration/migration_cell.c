@@ -37,12 +37,17 @@ int migration_cell_t::perform_page_migration() const {
 	page[0] = (void*) elem;
 	int dest_int = dest, status;
 
+	#ifdef FAKE_DATA
+	int ret = 0;
+	return ret;
+	#else
 	// Key system call: numa_move_pages
 	int ret = numa_move_pages(pid, 1, page, &dest_int, &status, MPOL_MF_MOVE);
 	if (ret < 0){
 		printf("Move pages did not work: %s\n", strerror(errno));
 		return errno;
 	}
+	#endif
 
 	total_page_migrations++;
 
@@ -60,7 +65,7 @@ int migration_cell_t::perform_thread_migration() const {
 	int ret = system_struct_t::set_tid_cpu((pid_t) elem, dest, true);
 
 	#ifdef TH_MIGR_OUTPUT
-	printf("Migrated thread %d to CPU %d\n", (pid_t) elem, dest+1); // +1 only for demo!
+	printf("Migrated thread %d to CPU %d\n", (pid_t) elem, dest); // +1 only for demo!
 	#endif
 
 	total_thread_migrations++;

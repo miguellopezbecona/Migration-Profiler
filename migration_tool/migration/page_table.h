@@ -63,7 +63,7 @@ typedef struct page_table {
 	void add_inst_data_for_tid(pid_t tid, int core, long int insts, long int req_dr, long int time);
 	void calc_perf(); // Óscar's definition of performance
 	pid_t normalize_perf_and_get_worst_thread();
-	void reset_performance();
+	void set_inactive();
 	double get_total_performance();
 	vector<double> get_perf_data(pid_t tid);
 

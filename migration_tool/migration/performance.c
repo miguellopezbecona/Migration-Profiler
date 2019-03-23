@@ -48,13 +48,29 @@ void rm3d_data_t::calc_perf(double mean_lat){
 	}
 }
 
-void rm3d_data_t::reset() {
-	active = false;
+double rm3d_data_t::get_last_performance(){
+	if(index_last_node_calc == -1)
+		return -1.0;
+	else
+		return v_perfs[index_last_node_calc];
 
+}
+
+void rm3d_data_t::set_inactive(){
+	active = false;
+}
+
+void rm3d_data_t::reset_performance(){
 	fill(insts.begin(), insts.end(), 0);
 	fill(reqs.begin(), reqs.end(), 0);
 	fill(times.begin(), times.end(), 0);
 	fill(v_perfs.begin(), v_perfs.end(), PERFORMANCE_INVALID_VALUE);
+}
+
+// set_inative + reset_performance
+void rm3d_data_t::reset() {
+	set_inactive();
+	reset_performance();
 }
 
 void rm3d_data_t::print() const {
@@ -75,12 +91,12 @@ perf_cell_t::perf_cell(){
 	mean_lat = 0.0;
 }
 
-perf_cell_t::perf_cell(double lat){
+perf_cell_t::perf_cell(int lat){
 	num_acs = 1;
-	mean_lat = lat;
+	mean_lat = (double) lat;
 }
 
-void perf_cell_t::update_mlat(double lat){
+void perf_cell_t::update_mlat(int lat){
 	mean_lat = (mean_lat*num_acs + lat) / (num_acs + 1);
 	num_acs++;
 }
@@ -128,15 +144,15 @@ void perf_table_t::remove_row(long int key){
 }
 
 // When we define a sole performance metric, we should apply an aging technique
-void perf_table_t::add_data(long int key, int col_num, double lat){
+void perf_table_t::add_data(long int key, int col_num, int lat){
 	if(!has_row(key)){ // No entry, so we create it
 		vector<perf_cell_t> pv(coln);
-		table[key] = pv;
-		
 		for(int i=0;i<coln;i++){
 			perf_cell_t pc;
-			table[key][i] = pc;
+			pv[i] = pc;
 		}
+
+		table[key] = pv;
 	}
 
 	table[key][col_num].update_mlat(lat); // In any case, we update the mean

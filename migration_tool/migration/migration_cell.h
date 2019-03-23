@@ -5,8 +5,10 @@
 #include <unistd.h>
 
 // For numa_move_pages
+#ifndef FAKE_DATA
 #include <numa.h>
 #include <numaif.h>
+#endif
 
 #include "system_struct.h"
 
