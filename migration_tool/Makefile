@@ -1,5 +1,5 @@
 execbase=my_profiler
-libpfmlink=libpfm.so.4.9.0
+libpfmlink=libpfm.so.4.10.1
 commonflags=-O2 -std=c++11 -g -fstack-protector-all
 commonfiles=[^ABC]*.c perfmon/*.c migration/*.c
 
