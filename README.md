@@ -1,3 +1,5 @@
+**Warning**: *this line of research is currently maintained by another researcher in a different repository. For further information, please check the following link: https://gitlab.citius.usc.es/ruben.laso/migration*
+
 ## Overview
 The main application of this repository is a profiler which uses thread and page migration in order to improve efficiency in multi-threaded applications in manycore NUMA systems. It uses PEBS sampling to obtain information from hardware counters so it can analyze system's performance and make choices to improve it. Its initial implementation was heavily based on the work done by Óscar García Lorenzo for his PhD.
 
@@ -84,7 +86,4 @@ A UML model file was generated to make clearer the connection between the compon
 
 ![Class Diagram](img/class_diagram.png)
 ![Sequence DIagram](img/sequence_diagram.png)
-
-## License
-Private, right now.
 
